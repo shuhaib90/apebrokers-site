@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
 import { sound } from '../utils/audio';
+import { downloadBrokerCardPng, downloadBrokerGif } from '../utils/generateBrokerCard';
 
 export const ApplicationPage = ({ onBackHome }) => {
   const [formData, setFormData] = useState({
@@ -82,9 +83,12 @@ export const ApplicationPage = ({ onBackHome }) => {
     sound?.playPrinter?.();
 
     const brokerId = `#${Math.floor(1000 + Math.random() * 9000)}`;
+    const randomGifId = Math.floor(1 + Math.random() * 100);
     const submissionPayload = {
       ...formData,
       brokerId,
+      gifId: randomGifId,
+      gifUrl: `/gifs/${randomGifId}.gif`,
       submittedAt: new Date().toISOString(),
     };
 
@@ -138,55 +142,210 @@ export const ApplicationPage = ({ onBackHome }) => {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-2xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-12 flex-grow flex flex-col justify-center">
+      <main className="max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10 flex-grow flex flex-col justify-center">
         {submissionData ? (
-          /* SUCCESS CONFIRMATION SCREEN */
-          <div className="pixel-box p-6 sm:p-10 text-center space-y-6">
-            <div className="w-24 h-24 mx-auto bg-black border-4 border-black overflow-hidden shadow-pixel-md">
-              <img
-                src="/nfts/1.png"
-                alt="ApeBroker"
-                className="w-full h-full object-cover pixelated"
-              />
-            </div>
-
-            <div className="inline-block bg-[#FF2247] text-white font-pixel text-[10px] sm:text-xs px-4 py-1.5 border-3 border-black shadow-pixel-sm">
-              STATUS: UNDER REVIEW
-            </div>
-
-            <div className="space-y-1.5">
-              <h2 className="font-pixel text-2xl sm:text-3xl text-black font-extrabold">
-                APPLICATION RECEIVED
+          /* SUCCESS CONFIRMATION & BROKER IDENTIFICATION CARD */
+          <div className="space-y-6">
+            {/* Header Status */}
+            <div className="pixel-box p-4 sm:p-6 text-center space-y-2">
+              <div className="inline-block bg-[#00FF66] text-black font-pixel text-[10px] sm:text-xs px-3.5 py-1 border-2 border-black shadow-pixel-sm">
+                ● APPLICATION RECORDED ●
+              </div>
+              <h2 className="font-pixel text-xl sm:text-2xl text-black font-extrabold">
+                OFFICIAL BROKER IDENTIFICATION
               </h2>
-              <p className="font-mono text-xs sm:text-sm text-gray-800 font-semibold max-w-sm mx-auto">
-                Your ApeBrokers Whitelist application has been recorded.
+              <p className="font-mono text-xs text-gray-800 font-semibold max-w-md mx-auto">
+                Your ApeBrokers ID Card has been issued. Download your official PNG pass below!
               </p>
             </div>
 
-            {/* Receipt Box */}
-            <div className="bg-[#140D24] text-white border-3 border-black p-4 text-left font-mono text-xs space-y-2 max-w-md mx-auto">
-              <div className="flex justify-between border-b border-gray-700 pb-1.5">
-                <span className="text-gray-400">APPLICATION ID:</span>
-                <span className="text-[#FFD700] font-bold">{submissionData.brokerId}</span>
+            {/* Official Horizontal Broker ID Card (Reference Style) */}
+            <div className="relative bg-[#140d22] text-[#f0e6d2] border-4 border-[#3d2e54] rounded-2xl p-5 sm:p-7 shadow-[0_10px_30px_rgba(0,0,0,0.6)] overflow-hidden font-mono select-none">
+              {/* Inner Gold Border */}
+              <div className="absolute inset-2 border border-[#FFD700]/40 rounded-xl pointer-events-none" />
+
+              {/* Background Watermark Pattern */}
+              <div
+                className="absolute inset-0 opacity-5 pointer-events-none"
+                style={{
+                  backgroundImage: 'radial-gradient(#FFD700 1px, transparent 1px)',
+                  backgroundSize: '20px 20px',
+                }}
+              />
+
+              {/* Top Header Section */}
+              <div className="relative z-10 border-b-2 border-[#4a3765] pb-3.5 mb-5 flex items-center justify-between gap-4">
+                {/* Left: Logo Emblem & Title */}
+                <div className="flex items-center gap-3.5 sm:gap-4">
+                  {/* Diamond Emblem */}
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-[#FFD700] rotate-45 flex items-center justify-center border-2 border-black shadow-sm shrink-0">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#06030F] flex items-center justify-center -rotate-45">
+                      <span className="font-pixel text-base sm:text-lg text-[#00FF66] font-extrabold">A</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h1 className="font-serif text-2xl sm:text-3xl text-white font-extrabold tracking-wider leading-none">
+                      APEBROKERS
+                    </h1>
+                    <div className="text-[10px] sm:text-xs text-[#c7b299] font-bold tracking-[2px] mt-1 uppercase">
+                      OFFICIAL BROKER IDENTIFICATION
+                    </div>
+                    <div className="text-[10px] text-gray-400 font-mono mt-0.5">
+                      EXP: 12/2026
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: ID & Class */}
+                <div className="text-right shrink-0">
+                  <div className="font-mono text-xl sm:text-3xl text-white font-bold tracking-widest">
+                    APE-{submissionData.brokerId.replace('#', '')}
+                  </div>
+                  <div className="font-mono text-[10px] sm:text-xs text-[#FFD700] font-bold mt-1">
+                    CLASS: 5★ BROKER
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between border-b border-gray-700 pb-1.5">
-                <span className="text-gray-400">X USERNAME:</span>
-                <span className="text-[#00FF66] font-bold">{submissionData.xUsername}</span>
-              </div>
-              <div className="flex justify-between border-b border-gray-700 pb-1.5">
-                <span className="text-gray-400">WALLET:</span>
-                <span className="text-white font-bold truncate max-w-[160px]">
-                  {submissionData.walletAddress}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">NETWORK:</span>
-                <span className="text-[#00FF66] font-bold">ROBINHOOD CHAIN</span>
+
+              {/* Card Body: Left Photo + Right Details */}
+              <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-6 items-center">
+                {/* Left: Framed 1:1 Animated NFT Photo */}
+                <div className="md:col-span-4 flex justify-center">
+                  <div className="w-full max-w-[220px] aspect-[4/5] bg-[#0a0612] border-3 border-[#4a3765] p-2 relative shadow-lg">
+                    {/* Inner gold frame */}
+                    <div className="w-full h-full border border-[#FFD700]/50 relative overflow-hidden bg-black flex items-center justify-center">
+                      <img
+                        src={submissionData.gifUrl}
+                        alt={`ApeBroker #${submissionData.gifId}`}
+                        className="w-full h-full object-cover pixelated"
+                      />
+                      <div className="absolute top-1.5 left-1.5 bg-[#FFD700] text-black font-pixel text-[8px] px-2 py-0.5 border border-black font-bold">
+                        APE #{submissionData.gifId}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Identity Details Grid */}
+                <div className="md:col-span-8 space-y-3.5 text-left">
+                  {/* Name / Organization */}
+                  <div className="border-b border-[#3d2e54] pb-2.5">
+                    <div className="text-base sm:text-xl text-[#f0e6d2] font-serif font-bold tracking-wide">
+                      “THE BROKER” {submissionData.xUsername.toUpperCase()}
+                    </div>
+                    <div className="text-xs sm:text-sm text-[#c7b299] font-serif mt-0.5">
+                      APEBROKERS TRADING FLOOR, ROBINHOOD NETWORK
+                    </div>
+                  </div>
+
+                  {/* Spec Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-2.5 gap-x-4 text-xs">
+                    <div>
+                      <span className="text-[#9e8fae] font-bold text-[11px] block">CHAIN:</span>
+                      <span className="text-[#00DDFF] font-bold">ROBINHOOD</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[#9e8fae] font-bold text-[11px] block">SUPPLY:</span>
+                      <span className="text-[#00FF66] font-bold">5,555</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[#9e8fae] font-bold text-[11px] block">STATUS:</span>
+                      <span className="text-[#00FF66] font-bold">VERIFIED</span>
+                    </div>
+
+                    <div className="col-span-2">
+                      <span className="text-[#9e8fae] font-bold text-[11px] block">WALLET:</span>
+                      <span className="text-white font-bold truncate block">
+                        {submissionData.walletAddress}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[#9e8fae] font-bold text-[11px] block">ALLOCATION:</span>
+                      <span className="text-[#FFD700] font-bold">WHITELIST</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[#9e8fae] font-bold text-[11px] block">ROLE:</span>
+                      <span className="text-[#f0e6d2] font-semibold">FLOOR ALPHA</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[#9e8fae] font-bold text-[11px] block">ACCESS:</span>
+                      <span className="text-[#FFD700] font-bold">LEVEL-5</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[#9e8fae] font-bold text-[11px] block">DOB:</span>
+                      <span className="text-[#FF2247] font-bold">2026/RH</span>
+                    </div>
+                  </div>
+
+                  {/* Bottom Signature & Stamp */}
+                  <div className="pt-2 flex items-center justify-between border-t border-[#3d2e54]">
+                    <div className="text-[10px] text-gray-500 font-mono">
+                      APE-RH-5555 // {submissionData.brokerId}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="font-serif italic text-sm text-[#FFD700] opacity-80">
+                        ApeBrokers Executive
+                      </div>
+                      <div className="border border-[#00FF66] text-[#00FF66] font-pixel text-[7px] px-1.5 py-0.5 -rotate-6">
+                        APPROVED
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+            {/* Actions Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  sound?.playClick?.();
+                  downloadBrokerCardPng(submissionData);
+                }}
+                className="w-full min-h-[48px] pixel-btn pixel-btn-lime px-4 py-3 font-pixel text-xs font-extrabold flex items-center justify-center gap-2"
+              >
+                <span>💾</span>
+                <span>DOWNLOAD CARD (PNG)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sound?.playClick?.();
+                  downloadBrokerGif(submissionData.gifUrl, submissionData.gifId);
+                }}
+                className="w-full min-h-[48px] pixel-btn pixel-btn-gold px-4 py-3 font-pixel text-xs font-extrabold flex items-center justify-center gap-2"
+              >
+                <span>📥</span>
+                <span>SAVE NFT GIF</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sound?.playClick?.();
+                  const tweetText = encodeURIComponent(
+                    `Applied for @ApebrokersNft Whitelist! 🦍\n\nFloor Pass ${submissionData.brokerId} secured on Robinhood Chain.\n\n#ApeBrokers #NFT`
+                  );
+                  window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank', 'noopener,noreferrer');
+                }}
+                className="w-full min-h-[48px] pixel-btn pixel-btn-white px-4 py-3 font-pixel text-xs font-bold flex items-center justify-center gap-2"
+              >
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+                <span>SHARE ON X</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => {
@@ -194,20 +353,9 @@ export const ApplicationPage = ({ onBackHome }) => {
                   if (onBackHome) onBackHome();
                   else window.location.href = '/';
                 }}
-                className="pixel-btn pixel-btn-black px-6 py-3 font-pixel text-xs font-bold"
+                className="w-full min-h-[48px] pixel-btn pixel-btn-black px-4 py-3 font-pixel text-xs font-bold flex items-center justify-center gap-2"
               >
-                ◄ RETURN HOME
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  sound?.playClick?.();
-                  window.open('https://x.com/ApebrokersNft', '_blank', 'noopener,noreferrer');
-                }}
-                className="pixel-btn pixel-btn-white px-6 py-3 font-pixel text-xs font-bold"
-              >
-                FOLLOW ON X
+                <span>◄ RETURN HOME</span>
               </button>
             </div>
           </div>
