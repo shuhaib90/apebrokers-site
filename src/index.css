@@ -1,0 +1,167 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    box-sizing: border-box;
+  }
+  
+  body {
+    background-color: #00FF66;
+    color: #000000;
+    font-family: 'Press Start 2P', monospace;
+    overflow-x: hidden;
+  }
+}
+
+/* Authentic Pixel Borders & Shadows */
+.pixel-box {
+  border: 4px solid #000000;
+  box-shadow: 6px 6px 0px 0px #000000;
+  background-color: #FFFFFF;
+}
+
+.pixel-box-black {
+  border: 4px solid #000000;
+  box-shadow: 6px 6px 0px 0px #000000;
+  background-color: #0A0A0A;
+  color: #FFFFFF;
+}
+
+.pixel-box-purple {
+  border: 4px solid #000000;
+  box-shadow: 6px 6px 0px 0px #000000;
+  background-color: #2A0845;
+  color: #FFFFFF;
+}
+
+.pixel-border-sm {
+  border: 3px solid #000000;
+  box-shadow: 3px 3px 0px 0px #000000;
+}
+
+/* Interactive Pixel Buttons with 3D Press Feel */
+.pixel-btn {
+  position: relative;
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+  border: 3px solid #000000;
+  box-shadow: 3px 3px 0px 0px #000000;
+  font-family: 'Press Start 2P', monospace;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pixel-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+.pixel-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px 0px #000000;
+}
+
+.pixel-btn-black {
+  background-color: #000000;
+  color: #00FF66;
+}
+.pixel-btn-black:hover {
+  background-color: #1a1a1a;
+  color: #FFFFFF;
+}
+
+.pixel-btn-lime {
+  background-color: #00FF66;
+  color: #000000;
+}
+.pixel-btn-lime:hover {
+  background-color: #33ff85;
+}
+
+.pixel-btn-gold {
+  background-color: #FFD700;
+  color: #000000;
+}
+.pixel-btn-gold:hover {
+  background-color: #ffe033;
+}
+
+.pixel-btn-purple {
+  background-color: #2A0845;
+  color: #FFFFFF;
+}
+.pixel-btn-purple:hover {
+  background-color: #451070;
+}
+
+.pixel-btn-white {
+  background-color: #FFFFFF;
+  color: #000000;
+}
+.pixel-btn-white:hover {
+  background-color: #F0F0F0;
+}
+
+/* Crisp Pixel Inputs */
+.pixel-input {
+  border: 3px solid #000000;
+  box-shadow: 3px 3px 0px 0px #000000;
+  font-family: 'JetBrains Mono', monospace;
+  outline: none;
+  transition: box-shadow 0.1s ease, border-color 0.1s ease;
+}
+
+.pixel-input:focus {
+  border-color: #000000;
+  box-shadow: 4px 4px 0px 0px #FFD700;
+  background-color: #FFFFFF;
+}
+
+/* Animations */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.animate-blink {
+  animation: blink 1s infinite;
+}
+
+@keyframes pixelScanLine {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(1000%); }
+}
+.animate-pixel-scan {
+  animation: pixelScanLine 2.5s linear infinite;
+}
+
+@keyframes pixelGlitchSlow {
+  0%, 100% { opacity: 0.95; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(0.98); }
+  75% { opacity: 1; transform: scale(1.02); }
+}
+.animate-pixel-glitch {
+  animation: pixelGlitchSlow 1.8s ease-in-out infinite;
+}
+
+@keyframes pixelRadarSweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.animate-pixel-radar {
+  animation: pixelRadarSweep 4s linear infinite;
+}
+
+@keyframes stampPop {
+  0% { transform: scale(3) rotate(-20deg); opacity: 0; }
+  70% { transform: scale(0.95) rotate(-8deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-10deg); opacity: 1; }
+}
+.animate-stamp-pop {
+  animation: stampPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
