@@ -42,8 +42,8 @@ export const TurnstileWidget = ({ onVerify, onExpire, onError }) => {
 
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: TURNSTILE_SITE_KEY,
-        theme: 'dark',
-        size: 'flexible',
+        theme: 'auto',
+        size: 'normal',
         callback: (token) => {
           if (onVerify) onVerify(token);
         },
@@ -73,15 +73,8 @@ export const TurnstileWidget = ({ onVerify, onExpire, onError }) => {
   }, [isScriptLoaded]);
 
   return (
-    <div className="w-full bg-[#111] border-2 border-black p-3 rounded-lg flex flex-col items-center justify-center min-h-[72px] shadow-pixel-sm">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse" />
-        <span className="font-pixel text-[9px] text-[#00FF66] tracking-wider uppercase font-bold">
-          SECURITY CLEARANCE // HUMAN VERIFICATION
-        </span>
-      </div>
-
-      <div ref={containerRef} className="w-full flex justify-center" />
+    <div className="w-full flex justify-center py-1">
+      <div ref={containerRef} className="flex justify-center" />
     </div>
   );
 };
