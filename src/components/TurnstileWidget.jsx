@@ -1,10 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-// Cloudflare Turnstile Widget Component
-// Default testing sitekey (Always passes): '1x00000000000000000000AA'
-// Set VITE_TURNSTILE_SITE_KEY in .env for custom production domain key
+// Cloudflare Turnstile Production Site Key
 const TURNSTILE_SITE_KEY =
-  import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA';
+  import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAEeG0tqdiHpP28Q_';
 
 export const TurnstileWidget = ({ onVerify, onExpire, onError }) => {
   const containerRef = useRef(null);
