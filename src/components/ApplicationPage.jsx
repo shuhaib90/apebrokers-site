@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { sound } from '../utils/audio';
 import { downloadBrokerCardPng, downloadBrokerGif } from '../utils/generateBrokerCard';
-import { fetchActiveTasks, saveApplicationToSupabase } from '../utils/supabase';
+import { fetchActiveTasks, saveApplicationToSupabase, checkExistingApplication } from '../utils/supabase';
 
 const DEFAULT_TASKS = [
   {
@@ -70,8 +70,8 @@ export const ApplicationPage = ({ onBackHome }) => {
   const handleInputChange = (field, value) => {
     sound?.playTyping?.();
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: null }));
+    if (errors[field] || errors.duplicateBanner) {
+      setErrors((prev) => ({ ...prev, [field]: null, duplicateBanner: null }));
     }
   };
 
@@ -132,6 +132,39 @@ export const ApplicationPage = ({ onBackHome }) => {
     }
 
     setIsSubmitting(true);
+
+    // Check for duplicate X username or wallet address
+    try {
+      const dupCheck = await checkExistingApplication(formData.xUsername, formData.walletAddress);
+      if (dupCheck.exists) {
+        setIsSubmitting(false);
+        sound?.playStamp?.();
+
+        const errs = {};
+        if (dupCheck.duplicateUser) {
+          errs.xUsername = 'This X handle has already applied!';
+        }
+        if (dupCheck.duplicateWallet) {
+          errs.walletAddress = 'This wallet address has already applied!';
+        }
+        errs.duplicateBanner = {
+          message: 'APPLICATION ALREADY SUBMITTED',
+          subtext: `An application was already registered for ${
+            dupCheck.duplicateUser && dupCheck.duplicateWallet
+              ? 'this X handle and wallet address'
+              : dupCheck.duplicateUser
+              ? 'this X handle'
+              : 'this wallet address'
+          }.`,
+          existingApp: dupCheck.existingApp,
+        };
+        setErrors(errs);
+        return;
+      }
+    } catch (err) {
+      console.warn('Duplicate check warning:', err);
+    }
+
     sound?.playPrinter?.();
 
     const brokerId = `#${Math.floor(1000 + Math.random() * 9000)}`;
@@ -146,7 +179,18 @@ export const ApplicationPage = ({ onBackHome }) => {
 
     // Save to Supabase
     try {
-      await saveApplicationToSupabase(submissionPayload);
+      const result = await saveApplicationToSupabase(submissionPayload);
+      if (result?.isDuplicate) {
+        setIsSubmitting(false);
+        setErrors({
+          duplicateBanner: {
+            message: 'APPLICATION ALREADY SUBMITTED',
+            subtext: 'An application was already submitted for this X handle or wallet.',
+            existingApp: result.existingApp,
+          },
+        });
+        return;
+      }
     } catch (err) {
       console.warn('Supabase save error:', err);
     }
@@ -435,6 +479,42 @@ export const ApplicationPage = ({ onBackHome }) => {
                 Submit your X username, wallet address, and complete social tasks.
               </p>
             </div>
+
+            {/* Duplicate Application Alert Banner */}
+            {errors.duplicateBanner && (
+              <div className="bg-[#FF2247]/10 border-3 border-[#FF2247] p-4 sm:p-5 text-center space-y-2.5 shadow-pixel-sm">
+                <div className="inline-block bg-[#FF2247] text-white font-pixel text-[9px] px-2.5 py-1 border border-black font-extrabold">
+                  ! {errors.duplicateBanner.message}
+                </div>
+                <div className="font-mono text-xs text-black font-bold max-w-md mx-auto leading-relaxed">
+                  {errors.duplicateBanner.subtext}
+                </div>
+                {errors.duplicateBanner.existingApp && (
+                  <div className="pt-2 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound?.playClick?.();
+                        const existing = errors.duplicateBanner.existingApp;
+                        const randomGif = Math.floor(1 + Math.random() * 100);
+                        setSubmissionData({
+                          brokerId: existing.broker_id || `#${Math.floor(1000 + Math.random() * 9000)}`,
+                          xUsername: existing.x_username,
+                          walletAddress: existing.wallet_address,
+                          gifId: randomGif,
+                          gifUrl: `/gifs/${randomGif}.gif`,
+                          submittedAt: existing.created_at || new Date().toISOString(),
+                        });
+                      }}
+                      className="pixel-btn pixel-btn-black px-4 py-2.5 text-[10px] font-pixel text-[#00FF66] font-extrabold flex items-center gap-2"
+                    >
+                      <span>🪪</span>
+                      <span>[ VIEW YOUR REGISTERED ID CARD ]</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* 1. X Username */}

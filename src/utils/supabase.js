@@ -5,8 +5,63 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJ
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+export async function checkExistingApplication(xUsername, walletAddress) {
+  try {
+    const cleanUser = (xUsername || '').replace(/^@/, '').trim().toLowerCase();
+    const cleanWallet = (walletAddress || '').trim().toLowerCase();
+
+    if (!cleanUser && !cleanWallet) return { exists: false };
+
+    const { data, error } = await supabase
+      .from('apebrokers_applications')
+      .select('*');
+
+    if (error) {
+      console.warn('Check existing application query error:', error);
+      return { exists: false };
+    }
+
+    if (data && data.length > 0) {
+      const matchUser = cleanUser
+        ? data.find((app) => (app.x_username || '').replace(/^@/, '').trim().toLowerCase() === cleanUser)
+        : null;
+
+      const matchWallet = cleanWallet
+        ? data.find((app) => (app.wallet_address || '').trim().toLowerCase() === cleanWallet)
+        : null;
+
+      if (matchUser || matchWallet) {
+        return {
+          exists: true,
+          duplicateUser: !!matchUser,
+          duplicateWallet: !!matchWallet,
+          existingApp: matchUser || matchWallet,
+        };
+      }
+    }
+
+    return { exists: false };
+  } catch (err) {
+    console.error('Error checking duplicate application:', err);
+    return { exists: false };
+  }
+}
+
 export async function saveApplicationToSupabase(data) {
   try {
+    // 1. Safety check for duplicate before insert
+    const dupCheck = await checkExistingApplication(data.xUsername, data.walletAddress);
+    if (dupCheck.exists) {
+      return {
+        success: false,
+        isDuplicate: true,
+        duplicateUser: dupCheck.duplicateUser,
+        duplicateWallet: dupCheck.duplicateWallet,
+        existingApp: dupCheck.existingApp,
+      };
+    }
+
+    // 2. Perform insert
     const { data: inserted, error } = await supabase
       .from('apebrokers_applications')
       .insert([
