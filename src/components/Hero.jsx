@@ -59,9 +59,9 @@ export const Hero = ({ onApplyClick, onBrokersClick }) => {
             </h2>
           </div>
 
-          {/* Mobile-Only Artwork Preview (Clean 1:1 Animated Box, No Text) */}
+          {/* Mobile-Only Artwork Preview (Clean 1:1 Animated Box, No Border) */}
           <div className="lg:hidden w-full max-w-[280px] sm:max-w-[320px] my-2">
-            <div className="relative pixel-box-black p-3 shadow-pixel-md">
+            <div className="relative overflow-hidden">
               <img
                 src={HERO_GIFS[currentGifIndex]}
                 alt={`ApeBrokers Collection NFT #${currentGifIndex + 1}`}
@@ -95,9 +95,9 @@ export const Hero = ({ onApplyClick, onBrokersClick }) => {
           </div>
         </div>
 
-        {/* Desktop-Only Artwork Right Side (Clean 1:1 Animated Box, No Text) */}
+        {/* Desktop-Only Artwork Right Side (Clean 1:1 Animated Box, No Border) */}
         <div className="hidden lg:flex lg:col-span-5 justify-center">
-          <div className="relative w-full max-w-[380px] pixel-box-black p-4 shadow-pixel-lg">
+          <div className="relative w-full max-w-[380px] overflow-hidden">
             <img
               src={HERO_GIFS[currentGifIndex]}
               alt={`ApeBrokers Collection NFT #${currentGifIndex + 1}`}
