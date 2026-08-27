@@ -525,10 +525,10 @@ export const ApplicationPage = ({ onBackHome }) => {
                       <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
                         <button
                           type="button"
-                          onClick={() => handleOpenTask(task.url, key)}
+                          onClick={() => handleOpenTask(task.target_url || task.url, key)}
                           className="pixel-btn pixel-btn-white px-2.5 py-1.5 text-[9px]"
                         >
-                          {task.button_label || '[ OPEN ]'}
+                          {task.action_label ? `[ ${task.action_label.toUpperCase()} ]` : task.button_label || '[ OPEN ]'}
                         </button>
 
                         <button
