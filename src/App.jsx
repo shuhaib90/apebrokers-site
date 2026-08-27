@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
-import { BrokersGallery } from './components/BrokersGallery';
 import { ApplicationPage } from './components/ApplicationPage';
+import { VaultLockedModal } from './components/VaultLockedModal';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'brokers' | 'apply'
+  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'apply'
+  const [isVaultLockedOpen, setIsVaultLockedOpen] = useState(false);
 
   useEffect(() => {
     const path = window.location.pathname;
     const hash = window.location.hash;
     if (path === '/brokers' || hash === '#brokers') {
-      setCurrentPage('brokers');
+      setIsVaultLockedOpen(true);
     } else if (path === '/apply' || hash === '#apply') {
       setCurrentPage('apply');
     }
@@ -19,22 +20,19 @@ function App() {
 
   const handleApply = () => {
     setCurrentPage('apply');
+    setIsVaultLockedOpen(false);
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   const handleOpenBrokers = () => {
-    setCurrentPage('brokers');
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    setIsVaultLockedOpen(true);
   };
 
   const handleBackHome = () => {
     setCurrentPage('home');
+    setIsVaultLockedOpen(false);
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
-
-  if (currentPage === 'brokers') {
-    return <BrokersGallery onBackHome={handleBackHome} />;
-  }
 
   if (currentPage === 'apply') {
     return <ApplicationPage onBackHome={handleBackHome} />;
@@ -49,6 +47,13 @@ function App() {
       <main className="flex-grow flex flex-col items-center justify-center w-full">
         <Hero onApplyClick={handleApply} onBrokersClick={handleOpenBrokers} />
       </main>
+
+      {/* Vault Locked Modal Popup */}
+      <VaultLockedModal
+        isOpen={isVaultLockedOpen}
+        onClose={() => setIsVaultLockedOpen(false)}
+        onApplyClick={handleApply}
+      />
     </div>
   );
 }
