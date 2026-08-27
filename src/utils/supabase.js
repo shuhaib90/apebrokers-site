@@ -12,9 +12,18 @@ export async function checkExistingApplication(xUsername, walletAddress) {
 
     if (!cleanUser && !cleanWallet) return { exists: false };
 
+    // Query only matching rows using database index with limit
+    const filters = [];
+    if (cleanWallet) filters.push(`wallet_address.ilike.${cleanWallet}`);
+    if (cleanUser) filters.push(`x_username.ilike.%${cleanUser}%`);
+
+    if (filters.length === 0) return { exists: false };
+
     const { data, error } = await supabase
       .from('apebrokers_applications')
-      .select('*');
+      .select('id, broker_id, x_username, wallet_address, created_at')
+      .or(filters.join(','))
+      .limit(5);
 
     if (error) {
       console.warn('Check existing application query error:', error);
