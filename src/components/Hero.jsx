@@ -59,9 +59,9 @@ export const Hero = ({ onApplyClick, onBrokersClick }) => {
             </h2>
           </div>
 
-          {/* Mobile-Only Artwork Preview (Clean 1:1 Static NFT, No Border) */}
+          {/* Mobile-Only Artwork Preview (Clean 1:1 Static NFT, Curved Edges) */}
           <div className="lg:hidden w-full max-w-[280px] sm:max-w-[320px] my-2">
-            <div className="relative overflow-hidden">
+            <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-lg">
               <img
                 src={HERO_IMAGES[currentImageIndex]}
                 alt={`ApeBrokers Collection NFT #${currentImageIndex + 1}`}
@@ -95,9 +95,9 @@ export const Hero = ({ onApplyClick, onBrokersClick }) => {
           </div>
         </div>
 
-        {/* Desktop-Only Artwork Right Side (Clean 1:1 Static NFT, No Border) */}
+        {/* Desktop-Only Artwork Right Side (Clean 1:1 Static NFT, Curved Edges) */}
         <div className="hidden lg:flex lg:col-span-5 justify-center">
-          <div className="relative w-full max-w-[380px] overflow-hidden">
+          <div className="relative w-full max-w-[380px] overflow-hidden rounded-2xl sm:rounded-3xl shadow-xl">
             <img
               src={HERO_IMAGES[currentImageIndex]}
               alt={`ApeBrokers Collection NFT #${currentImageIndex + 1}`}
