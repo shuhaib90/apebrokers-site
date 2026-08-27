@@ -1,5 +1,5 @@
 // Utility to generate and download a horizontal ID-card matching the official Broker Identification style
-export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress, gifId, gifUrl }) {
+export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress, gifId, gifUrl, isGtd, gtdArtId }) {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
     const W = 1000;
@@ -32,7 +32,6 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
 
     const renderCard = () => {
       try {
-        // 1. Base Card Background (Rich Dark Broker / Gold Luxury ID)
         ctx.save();
         // Card rounded clipping
         const r = 24;
@@ -49,16 +48,22 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         ctx.closePath();
         ctx.clip();
 
-        // Background gradient
+        // 1. Background gradient (Gold luxury if isGtd)
         const bgGrad = ctx.createLinearGradient(0, 0, W, H);
-        bgGrad.addColorStop(0, '#1a1028');
-        bgGrad.addColorStop(0.5, '#120c1d');
-        bgGrad.addColorStop(1, '#090510');
+        if (isGtd) {
+          bgGrad.addColorStop(0, '#2e1c02');
+          bgGrad.addColorStop(0.5, '#190e01');
+          bgGrad.addColorStop(1, '#0c0700');
+        } else {
+          bgGrad.addColorStop(0, '#1a1028');
+          bgGrad.addColorStop(0.5, '#120c1d');
+          bgGrad.addColorStop(1, '#090510');
+        }
         ctx.fillStyle = bgGrad;
         ctx.fillRect(0, 0, W, H);
 
         // Subtle geometric watermark pattern on background
-        ctx.strokeStyle = 'rgba(255, 215, 0, 0.035)';
+        ctx.strokeStyle = isGtd ? 'rgba(255, 215, 0, 0.08)' : 'rgba(255, 215, 0, 0.035)';
         ctx.lineWidth = 1.5;
         for (let x = -100; x < W + 100; x += 55) {
           ctx.beginPath();
@@ -72,20 +77,20 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         }
 
         // 2. Outer Card Borders
-        ctx.strokeStyle = '#3d2e54';
+        ctx.strokeStyle = isGtd ? '#FFD700' : '#3d2e54';
         ctx.lineWidth = 6;
         ctx.strokeRect(3, 3, W - 6, H - 6);
 
-        ctx.strokeStyle = 'rgba(255, 215, 0, 0.45)';
+        ctx.strokeStyle = isGtd ? '#FFF275' : 'rgba(255, 215, 0, 0.45)';
         ctx.lineWidth = 2;
         ctx.strokeRect(10, 10, W - 20, H - 20);
 
         // 3. Top Header Strip
-        ctx.fillStyle = '#160e24';
+        ctx.fillStyle = isGtd ? '#231402' : '#160e24';
         ctx.fillRect(12, 12, W - 24, 140);
 
         // Header double divider lines
-        ctx.strokeStyle = '#4a3765';
+        ctx.strokeStyle = isGtd ? '#B38F00' : '#4a3765';
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(12, 152);
@@ -99,7 +104,7 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         ctx.lineTo(W - 12, 156);
         ctx.stroke();
 
-        // 4. Logo Emblem (Top Left - Clean Transparent Logo)
+        // 4. Logo Emblem (Top Left)
         const emblemX = 35;
         const emblemY = 24;
         const emblemSize = 110;
@@ -116,13 +121,17 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         ctx.fillText('APEBROKERS', 160, 32);
 
         ctx.font = "bold 14px 'Cinzel', 'Times New Roman', Georgia, serif";
-        ctx.fillStyle = '#c7b299';
+        ctx.fillStyle = isGtd ? '#FFD700' : '#c7b299';
         ctx.letterSpacing = '3px';
-        ctx.fillText('OFFICIAL BROKER IDENTIFICATION', 162, 78);
+        ctx.fillText(
+          isGtd ? '👑 GUARANTEED (GTD) BROKER PASS' : 'OFFICIAL BROKER IDENTIFICATION',
+          162,
+          78
+        );
 
         // Header Metadata (EXP, ID, CLASS)
         ctx.font = "bold 12px 'Courier New', monospace";
-        ctx.fillStyle = '#9e8fae';
+        ctx.fillStyle = isGtd ? '#f5d77f' : '#9e8fae';
         ctx.fillText('EXP: 12/2026', 162, 114);
 
         ctx.textAlign = 'right';
@@ -132,7 +141,7 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
 
         ctx.font = "bold 13px 'Courier New', monospace";
         ctx.fillStyle = '#FFD700';
-        ctx.fillText('CLASS: 5★ BROKER', W - 40, 114);
+        ctx.fillText(isGtd ? 'CLASS: 👑 GTD TIER 1' : 'CLASS: 5★ BROKER', W - 40, 114);
 
         // 6. Left Photo Frame
         const photoX = 40;
@@ -143,7 +152,7 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         // Photo Frame Border & Background
         ctx.fillStyle = '#0a0612';
         ctx.fillRect(photoX, photoY, photoW, photoH);
-        ctx.strokeStyle = '#4a3765';
+        ctx.strokeStyle = isGtd ? '#FFD700' : '#4a3765';
         ctx.lineWidth = 4;
         ctx.strokeRect(photoX, photoY, photoW, photoH);
 
@@ -153,18 +162,22 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         } catch (e) {}
 
         // Photo inner corner gold accents
-        ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)';
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = isGtd ? 2 : 1.5;
         ctx.strokeRect(photoX + 10, photoY + 10, photoW - 20, photoH - 20);
 
         // Photo badge top left
         ctx.fillStyle = '#FFD700';
-        ctx.fillRect(photoX + 14, photoY + 14, 110, 24);
+        ctx.fillRect(photoX + 14, photoY + 14, isGtd ? 140 : 110, 24);
         ctx.font = "bold 10px 'Press Start 2P', monospace, sans-serif";
         ctx.fillStyle = '#000000';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`APE #${gifId}`, photoX + 69, photoY + 26);
+        ctx.fillText(
+          isGtd ? `👑 GOLD APE #${gtdArtId || 1}` : `APE #${gifId}`,
+          photoX + (isGtd ? 84 : 69),
+          photoY + 26
+        );
 
         // 7. Right Side Information Block
         const infoX = 350;
@@ -179,25 +192,31 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
 
         // Affiliation
         ctx.font = "bold 14px 'Cinzel', 'Times New Roman', Georgia, serif";
-        ctx.fillStyle = '#c7b299';
-        ctx.fillText('APEBROKERS TRADING FLOOR, ROBINHOOD NETWORK', infoX, infoY + 36);
+        ctx.fillStyle = isGtd ? '#FFD700' : '#c7b299';
+        ctx.fillText(
+          isGtd
+            ? '👑 GUARANTEED VIP FLOOR, ROBINHOOD NETWORK'
+            : 'APEBROKERS TRADING FLOOR, ROBINHOOD NETWORK',
+          infoX,
+          infoY + 36
+        );
 
         // Divider below affiliation
-        ctx.strokeStyle = '#3d2e54';
+        ctx.strokeStyle = isGtd ? '#664d00' : '#3d2e54';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(infoX, infoY + 66);
         ctx.lineTo(W - 40, infoY + 66);
         ctx.stroke();
 
-        // 8. Stats & Spec Grid (Structured 3-column layout matching on-screen card)
+        // 8. Stats & Spec Grid (3-column layout)
         const col1X = infoX;
         const col2X = infoX + 210;
         const col3X = infoX + 410;
 
         const renderCell = (label, val, x, y, valColor = '#f0e6d2') => {
           ctx.font = "bold 11px 'Courier New', monospace";
-          ctx.fillStyle = '#9e8fae';
+          ctx.fillStyle = isGtd ? '#e6c35c' : '#9e8fae';
           ctx.fillText(label, x, y);
 
           ctx.font = "bold 15px 'Courier New', monospace";
@@ -212,20 +231,20 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         // Row 1: CHAIN | SUPPLY | STATUS
         renderCell('CHAIN:', 'ROBINHOOD', col1X, row1Y, '#00DDFF');
         renderCell('SUPPLY:', '5,555', col2X, row1Y, '#00FF66');
-        renderCell('STATUS:', 'UNDER REVIEW', col3X, row1Y, '#FFD700');
+        renderCell('STATUS:', isGtd ? '👑 GTD APPROVED' : 'UNDER REVIEW', col3X, row1Y, '#FFD700');
 
         // Row 2: WALLET (spanning col 1 & 2) | ALLOCATION
         renderCell('WALLET:', shortWallet, col1X, row2Y, '#FFFFFF');
-        renderCell('ALLOCATION:', 'APPLIED', col3X, row2Y, '#00DDFF');
+        renderCell('ALLOCATION:', isGtd ? '👑 GUARANTEED (GTD)' : 'APPLIED', col3X, row2Y, isGtd ? '#FFD700' : '#00DDFF');
 
         // Row 3: ROLE | ACCESS | DOB
-        renderCell('ROLE:', 'APPLICANT', col1X, row3Y, '#f0e6d2');
-        renderCell('ACCESS:', 'PENDING', col2X, row3Y, '#FFD700');
+        renderCell('ROLE:', isGtd ? '👑 GTD BROKER' : 'APPLICANT', col1X, row3Y, isGtd ? '#FFD700' : '#f0e6d2');
+        renderCell('ACCESS:', isGtd ? 'GUARANTEED' : 'PENDING', col2X, row3Y, isGtd ? '#00FF66' : '#FFD700');
         renderCell('DOB:', '2026/RH', col3X, row3Y, '#FF2247');
 
         // 9. Bottom Footer Bar
         const footerY = infoY + 276;
-        ctx.strokeStyle = '#3d2e54';
+        ctx.strokeStyle = isGtd ? '#664d00' : '#3d2e54';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(infoX, footerY);
@@ -234,10 +253,16 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
 
         // Footer Left: Serial ID
         ctx.font = "bold 11px 'Courier New', monospace";
-        ctx.fillStyle = '#6b7280';
-        ctx.fillText(`APE-RH-5555 // #${cleanBrokerId}`, infoX, footerY + 16);
+        ctx.fillStyle = '#8c7b60';
+        ctx.fillText(
+          isGtd
+            ? `APE-RH-GTD-5555 // #${cleanBrokerId}`
+            : `APE-RH-5555 // #${cleanBrokerId}`,
+          infoX,
+          footerY + 16
+        );
 
-        // Footer Right: Signature & Received Badge
+        // Footer Right: Signature & Stamp
         ctx.font = "italic 26px 'Brush Script MT', 'Dancing Script', 'Lucida Handwriting', cursive, serif";
         ctx.fillStyle = '#FFD700';
         ctx.textAlign = 'right';
@@ -248,13 +273,13 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         ctx.translate(W - 85, footerY + 22);
         ctx.rotate((-8 * Math.PI) / 180);
         ctx.strokeStyle = '#FFD700';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(-42, -13, 84, 26);
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(-46, -13, 92, 26);
         ctx.font = "bold 8px 'Press Start 2P', monospace, sans-serif";
         ctx.fillStyle = '#FFD700';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('RECEIVED', 0, 0);
+        ctx.fillText(isGtd ? '👑 GTD PASS' : 'RECEIVED', 0, 0);
         ctx.restore();
 
         ctx.restore();
@@ -262,7 +287,9 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         // 11. Trigger PNG file download
         const dataUrl = canvas.toDataURL('image/png');
         const link = document.createElement('a');
-        link.download = `ApeBrokers_Identification_${cleanBrokerId}.png`;
+        link.download = isGtd
+          ? `ApeBrokers_GOLDEN_GTD_Pass_${cleanBrokerId}.png`
+          : `ApeBrokers_Identification_${cleanBrokerId}.png`;
         link.href = dataUrl;
         document.body.appendChild(link);
         link.click();

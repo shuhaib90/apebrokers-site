@@ -71,6 +71,9 @@ export async function saveApplicationToSupabase(data) {
     }
 
     // 2. Perform insert
+    const isGtd = data.isGtd === true;
+    const cardTier = isGtd ? 'GOLDEN_GTD' : 'STANDARD';
+
     const { data: inserted, error } = await supabase
       .from('apebrokers_applications')
       .insert([
@@ -78,9 +81,12 @@ export async function saveApplicationToSupabase(data) {
           broker_id: data.brokerId,
           x_username: data.xUsername,
           wallet_address: data.walletAddress,
-          status: 'UNDER_REVIEW',
+          status: isGtd ? 'APPROVED' : 'UNDER_REVIEW',
           comment_link: data.commentLink || null,
           proof_links: data.proofLinks || {},
+          is_gtd: isGtd,
+          card_tier: cardTier,
+          gtd_art_id: data.gtdArtId || null,
         },
       ])
       .select();
@@ -93,6 +99,60 @@ export async function saveApplicationToSupabase(data) {
   } catch (err) {
     console.error('Supabase error:', err);
     return { success: false, error: err };
+  }
+}
+
+export async function fetchGtdConfig() {
+  try {
+    const { data: configRow } = await supabase
+      .from('apebrokers_settings')
+      .select('value')
+      .eq('key', 'gtd_config')
+      .single();
+
+    const config = configRow?.value || { enabled: true, win_rate_percent: 10, max_limit: 50 };
+
+    // Count how many GTD winners currently exist
+    const { count } = await supabase
+      .from('apebrokers_applications')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_gtd', true);
+
+    return {
+      enabled: config.enabled !== false,
+      winRate: config.win_rate_percent ?? 10,
+      maxLimit: config.max_limit ?? 50,
+      currentWinners: count || 0,
+    };
+  } catch (err) {
+    console.error('Error fetching GTD config:', err);
+    return { enabled: true, winRate: 10, maxLimit: 50, currentWinners: 0 };
+  }
+}
+
+export async function determineGtdWinner() {
+  try {
+    const gtdInfo = await fetchGtdConfig();
+    if (!gtdInfo.enabled) return { isWinner: false };
+    if (gtdInfo.currentWinners >= gtdInfo.maxLimit) return { isWinner: false };
+
+    // Roll random number 1-100
+    const roll = Math.floor(Math.random() * 100) + 1;
+    const isWinner = roll <= gtdInfo.winRate;
+
+    if (isWinner) {
+      const gtdArtId = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3
+      return {
+        isWinner: true,
+        gtdArtId,
+        artUrl: `/nfts/gold_${gtdArtId}.png`,
+      };
+    }
+
+    return { isWinner: false };
+  } catch (err) {
+    console.error('Error determining GTD winner:', err);
+    return { isWinner: false };
   }
 }
 
