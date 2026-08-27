@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { sound } from '../utils/audio';
 
-const HERO_GIFS = [
-  '/gifs/1.gif',
-  '/gifs/2.gif',
-  '/gifs/3.gif',
-  '/gifs/4.gif',
-  '/gifs/5.gif',
+const HERO_IMAGES = [
+  '/nfts/hero_1.png',
+  '/nfts/hero_2.png',
+  '/nfts/hero_3.png',
+  '/nfts/hero_4.png',
+  '/nfts/hero_5.png',
 ];
 
 export const Hero = ({ onApplyClick, onBrokersClick }) => {
-  const [currentGifIndex, setCurrentGifIndex] = useState(0);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentGifIndex((prev) => (prev + 1) % HERO_GIFS.length);
-    }, 2500);
+      setCurrentImageIndex((prev) => (prev + 1) % HERO_IMAGES.length);
+    }, 2800);
     return () => clearInterval(interval);
   }, []);
 
@@ -59,12 +59,12 @@ export const Hero = ({ onApplyClick, onBrokersClick }) => {
             </h2>
           </div>
 
-          {/* Mobile-Only Artwork Preview (Clean 1:1 Animated Box, No Border) */}
+          {/* Mobile-Only Artwork Preview (Clean 1:1 Static NFT, No Border) */}
           <div className="lg:hidden w-full max-w-[280px] sm:max-w-[320px] my-2">
             <div className="relative overflow-hidden">
               <img
-                src={HERO_GIFS[currentGifIndex]}
-                alt={`ApeBrokers Collection NFT #${currentGifIndex + 1}`}
+                src={HERO_IMAGES[currentImageIndex]}
+                alt={`ApeBrokers Collection NFT #${currentImageIndex + 1}`}
                 className="w-full h-auto aspect-square object-cover pixelated"
               />
             </div>
@@ -95,12 +95,12 @@ export const Hero = ({ onApplyClick, onBrokersClick }) => {
           </div>
         </div>
 
-        {/* Desktop-Only Artwork Right Side (Clean 1:1 Animated Box, No Border) */}
+        {/* Desktop-Only Artwork Right Side (Clean 1:1 Static NFT, No Border) */}
         <div className="hidden lg:flex lg:col-span-5 justify-center">
           <div className="relative w-full max-w-[380px] overflow-hidden">
             <img
-              src={HERO_GIFS[currentGifIndex]}
-              alt={`ApeBrokers Collection NFT #${currentGifIndex + 1}`}
+              src={HERO_IMAGES[currentImageIndex]}
+              alt={`ApeBrokers Collection NFT #${currentImageIndex + 1}`}
               className="w-full h-auto aspect-square object-cover pixelated"
             />
           </div>
