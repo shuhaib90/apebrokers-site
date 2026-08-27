@@ -205,15 +205,15 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         // Row 1
         drawField('CHAIN:', 'ROBINHOOD', infoX, gridY, '#00DDFF');
         drawField('SUPPLY:', '5,555', infoX + 220, gridY, '#00FF66');
-        drawField('STATUS:', 'VERIFIED', infoX + 430, gridY, '#00FF66');
+        drawField('STATUS:', 'UNDER REVIEW', infoX + 410, gridY, '#FFD700');
 
         // Row 2
         drawField('WALLET:', shortWallet, infoX, gridY + rowH, '#FFFFFF');
-        drawField('ALLOCATION:', 'WHITELIST', infoX + 380, gridY + rowH, '#FFD700');
+        drawField('ALLOCATION:', 'APPLIED', infoX + 380, gridY + rowH, '#00DDFF');
 
         // Row 3
-        drawField('ROLE:', 'FLOOR ALPHA', infoX, gridY + rowH * 2, '#f0e6d2');
-        drawField('ACCESS:', 'LEVEL-5', infoX + 260, gridY + rowH * 2, '#FFD700');
+        drawField('ROLE:', 'APPLICANT', infoX, gridY + rowH * 2, '#f0e6d2');
+        drawField('ACCESS:', 'PENDING', infoX + 260, gridY + rowH * 2, '#FFD700');
         drawField('DOB:', '2026/RH', infoX + 440, gridY + rowH * 2, '#FF2247');
 
         // Row 4
@@ -229,14 +229,14 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         ctx.save();
         ctx.translate(W - 90, H - 75);
         ctx.rotate((-15 * Math.PI) / 180);
-        ctx.strokeStyle = '#00FF66';
+        ctx.strokeStyle = '#FFD700';
         ctx.lineWidth = 2.5;
         ctx.strokeRect(-55, -16, 110, 32);
         ctx.font = "bold 9px 'Press Start 2P', monospace, sans-serif";
-        ctx.fillStyle = '#00FF66';
+        ctx.fillStyle = '#FFD700';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('APPROVED', 0, 0);
+        ctx.fillText('RECEIVED', 0, 0);
         ctx.restore();
 
         ctx.restore();

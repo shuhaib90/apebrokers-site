@@ -314,7 +314,7 @@ export const ApplicationPage = ({ onBackHome }) => {
 
                     <div>
                       <span className="text-[#9e8fae] font-bold text-[11px] block">STATUS:</span>
-                      <span className="text-[#00FF66] font-bold">VERIFIED</span>
+                      <span className="text-[#FFD700] font-bold">UNDER REVIEW</span>
                     </div>
 
                     <div className="col-span-2">
@@ -326,17 +326,17 @@ export const ApplicationPage = ({ onBackHome }) => {
 
                     <div>
                       <span className="text-[#9e8fae] font-bold text-[11px] block">ALLOCATION:</span>
-                      <span className="text-[#FFD700] font-bold">WHITELIST</span>
+                      <span className="text-[#00DDFF] font-bold">APPLIED</span>
                     </div>
 
                     <div>
                       <span className="text-[#9e8fae] font-bold text-[11px] block">ROLE:</span>
-                      <span className="text-[#f0e6d2] font-semibold">FLOOR ALPHA</span>
+                      <span className="text-[#f0e6d2] font-semibold">APPLICANT</span>
                     </div>
 
                     <div>
                       <span className="text-[#9e8fae] font-bold text-[11px] block">ACCESS:</span>
-                      <span className="text-[#FFD700] font-bold">LEVEL-5</span>
+                      <span className="text-[#FFD700] font-bold">PENDING</span>
                     </div>
 
                     <div>
@@ -355,8 +355,8 @@ export const ApplicationPage = ({ onBackHome }) => {
                       <div className="font-serif italic text-sm text-[#FFD700] opacity-80">
                         ApeBrokers Executive
                       </div>
-                      <div className="border border-[#00FF66] text-[#00FF66] font-pixel text-[7px] px-1.5 py-0.5 -rotate-6">
-                        APPROVED
+                      <div className="border border-[#FFD700] text-[#FFD700] font-pixel text-[7px] px-1.5 py-0.5 -rotate-6">
+                        RECEIVED
                       </div>
                     </div>
                   </div>
