@@ -1,7 +1,24 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { sound } from '../utils/audio';
 
+const HERO_GIFS = [
+  '/gifs/1.gif',
+  '/gifs/2.gif',
+  '/gifs/3.gif',
+  '/gifs/4.gif',
+  '/gifs/5.gif',
+];
+
 export const Hero = ({ onApplyClick, onBrokersClick }) => {
+  const [currentGifIndex, setCurrentGifIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentGifIndex((prev) => (prev + 1) % HERO_GIFS.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleBrokers = () => {
     sound?.playClick?.();
     if (onBrokersClick) {
@@ -42,17 +59,14 @@ export const Hero = ({ onApplyClick, onBrokersClick }) => {
             </h2>
           </div>
 
-          {/* Mobile-Only Artwork Preview */}
+          {/* Mobile-Only Artwork Preview (Clean 1:1 Animated Box, No Text) */}
           <div className="lg:hidden w-full max-w-[280px] sm:max-w-[320px] my-2">
-            <div className="relative pixel-box-black p-3">
+            <div className="relative pixel-box-black p-3 shadow-pixel-md">
               <img
-                src="/nfts/1.png"
-                alt="ApeBrokers Character"
+                src={HERO_GIFS[currentGifIndex]}
+                alt={`ApeBrokers Collection NFT #${currentGifIndex + 1}`}
                 className="w-full h-auto aspect-square object-cover pixelated"
               />
-              <div className="absolute top-4 right-4 bg-[#FFD700] text-black font-pixel text-[8px] px-2 py-0.5 border-2 border-black">
-                5,555 APES
-              </div>
             </div>
           </div>
 
@@ -81,20 +95,14 @@ export const Hero = ({ onApplyClick, onBrokersClick }) => {
           </div>
         </div>
 
-        {/* Desktop-Only Artwork Right Side */}
+        {/* Desktop-Only Artwork Right Side (Clean 1:1 Animated Box, No Text) */}
         <div className="hidden lg:flex lg:col-span-5 justify-center">
-          <div className="relative w-full max-w-[380px] pixel-box-black p-4">
+          <div className="relative w-full max-w-[380px] pixel-box-black p-4 shadow-pixel-lg">
             <img
-              src="/nfts/1.png"
-              alt="ApeBrokers Character"
+              src={HERO_GIFS[currentGifIndex]}
+              alt={`ApeBrokers Collection NFT #${currentGifIndex + 1}`}
               className="w-full h-auto aspect-square object-cover pixelated"
             />
-            <div className="absolute top-5 right-5 bg-[#FFD700] text-black font-pixel text-[9px] px-2.5 py-1 border-2 border-black">
-              5,555 APES
-            </div>
-            <div className="absolute bottom-5 left-5 bg-black text-[#00FF66] font-pixel text-[9px] px-2.5 py-1 border border-[#00FF66]">
-              ROBINHOOD CHAIN
-            </div>
           </div>
         </div>
       </div>
