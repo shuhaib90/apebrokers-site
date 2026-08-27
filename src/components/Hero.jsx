@@ -72,7 +72,7 @@ export const Hero = ({ onApplyClick, onBrokersClick }) => {
 
           {/* Description */}
           <p className="font-mono text-sm sm:text-base text-black font-semibold max-w-lg leading-relaxed">
-            5,555 unique pixel apes launching on Robinhood Chain. Complete the application below to secure your whitelist allocation.
+            5,555 unique pixel ape brokers launching on Robinhood Chain. Complete the application below to secure your whitelist allocation.
           </p>
 
           {/* Action Buttons */}
