@@ -231,11 +231,11 @@ export const ApplicationPage = ({ onBackHome }) => {
             ◄ BACK TO HOME
           </button>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <img
               src="/logo.png"
               alt="ApeBrokers Logo"
-              className="w-7 h-7 object-contain pixelated border-2 border-black bg-black"
+              className="w-9 h-9 sm:w-11 sm:h-11 object-contain pixelated"
             />
             <span className="font-pixel text-xs sm:text-sm text-black font-extrabold">
               APEBROKERS WL
@@ -280,12 +280,12 @@ export const ApplicationPage = ({ onBackHome }) => {
               <div className="relative z-10 border-b-2 border-[#4a3765] pb-3.5 mb-5 flex items-center justify-between gap-4">
                 {/* Left: Logo Emblem & Title */}
                 <div className="flex items-center gap-3.5 sm:gap-4">
-                  {/* Logo Frame */}
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-black border-2 border-[#FFD700] rounded-lg overflow-hidden shrink-0 flex items-center justify-center shadow-md">
+                  {/* Floating Logo (No background, no border) */}
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center">
                     <img
                       src="/logo.png"
                       alt="ApeBrokers Logo"
-                      className="w-full h-full object-contain pixelated"
+                      className="w-full h-full object-contain pixelated drop-shadow-md"
                     />
                   </div>
 

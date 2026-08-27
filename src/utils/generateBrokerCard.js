@@ -97,19 +97,13 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         ctx.lineTo(W - 12, 166);
         ctx.stroke();
 
-        // 4. Logo Emblem (Top Left)
-        const emblemX = 45;
-        const emblemY = 32;
-        const emblemSize = 95;
-
-        ctx.fillStyle = '#06030F';
-        ctx.fillRect(emblemX, emblemY, emblemSize, emblemSize);
-        ctx.strokeStyle = '#FFD700';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(emblemX, emblemY, emblemSize, emblemSize);
+        // 4. Logo Emblem (Top Left - Transparent Floating Logo)
+        const emblemX = 40;
+        const emblemY = 28;
+        const emblemSize = 105;
 
         try {
-          ctx.drawImage(logoImg, emblemX + 4, emblemY + 4, emblemSize - 8, emblemSize - 8);
+          ctx.drawImage(logoImg, emblemX, emblemY, emblemSize, emblemSize);
         } catch (e) {}
 
         // 5. Header Titles
