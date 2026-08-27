@@ -1,7 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { sound } from '../utils/audio';
 import { downloadBrokerCardPng, downloadBrokerGif } from '../utils/generateBrokerCard';
+import { fetchActiveTasks, saveApplicationToSupabase } from '../utils/supabase';
+
+const DEFAULT_TASKS = [
+  {
+    id: 'followX',
+    task_key: 'followX',
+    title: 'FOLLOW @APEBROKERSNFT ON X',
+    platform: 'X',
+    url: 'https://x.com/ApebrokersNft',
+    button_label: '[ OPEN ]',
+    is_required: true,
+  },
+  {
+    id: 'joinDiscord',
+    task_key: 'joinDiscord',
+    title: 'JOIN APEBROKERS DISCORD',
+    platform: 'DISCORD',
+    url: 'https://discord.com',
+    button_label: '[ OPEN ]',
+    is_required: true,
+  },
+  {
+    id: 'repostWL',
+    task_key: 'repostWL',
+    title: 'REPOST WL ANNOUNCEMENT',
+    platform: 'X',
+    url: 'https://x.com/ApebrokersNft',
+    button_label: '[ OPEN ]',
+    is_required: true,
+  },
+];
 
 export const ApplicationPage = ({ onBackHome }) => {
   const [formData, setFormData] = useState({
@@ -9,11 +40,28 @@ export const ApplicationPage = ({ onBackHome }) => {
     walletAddress: '',
   });
 
+  const [tasks, setTasks] = useState(DEFAULT_TASKS);
   const [taskStates, setTaskStates] = useState({
-    followX: 'LOCKED', // LOCKED | READY | VERIFYING | VERIFIED
+    followX: 'LOCKED',
     joinDiscord: 'LOCKED',
     repostWL: 'LOCKED',
   });
+
+  useEffect(() => {
+    async function loadTasks() {
+      const dbTasks = await fetchActiveTasks();
+      if (dbTasks && dbTasks.length > 0) {
+        setTasks(dbTasks);
+        const initialStates = {};
+        dbTasks.forEach((t) => {
+          const key = t.task_key || t.id.toString();
+          initialStates[key] = 'LOCKED';
+        });
+        setTaskStates(initialStates);
+      }
+    }
+    loadTasks();
+  }, []);
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,9 +109,13 @@ export const ApplicationPage = ({ onBackHome }) => {
       errs.walletAddress = 'Enter valid Robinhood Chain / EVM address (0x...)';
     }
 
-    const allVerified = Object.values(taskStates).every((s) => s === 'VERIFIED');
-    if (!allVerified) {
-      errs.tasks = 'Please complete and verify all 3 social tasks';
+    const requiredTasks = tasks.filter((t) => t.is_required !== false);
+    const allRequiredVerified = requiredTasks.every((t) => {
+      const key = t.task_key || t.id.toString();
+      return taskStates[key] === 'VERIFIED';
+    });
+    if (!allRequiredVerified) {
+      errs.tasks = `Please complete and verify all ${requiredTasks.length} required social tasks`;
     }
 
     setErrors(errs);
@@ -94,7 +146,6 @@ export const ApplicationPage = ({ onBackHome }) => {
 
     // Save to Supabase
     try {
-      const { saveApplicationToSupabase } = await import('../utils/supabase');
       await saveApplicationToSupabase(submissionPayload);
     } catch (err) {
       console.warn('Supabase save error:', err);
@@ -117,6 +168,7 @@ export const ApplicationPage = ({ onBackHome }) => {
   };
 
   const verifiedCount = Object.values(taskStates).filter((s) => s === 'VERIFIED').length;
+
 
   return (
     <div className="min-h-screen bg-[#00FF66] text-black font-pixel selection:bg-black selection:text-[#00FF66] flex flex-col justify-between select-none">
@@ -439,132 +491,72 @@ export const ApplicationPage = ({ onBackHome }) => {
                     SOCIAL TASKS
                   </span>
                   <span className="bg-[#140D24] text-[#00FF66] font-pixel text-[9px] px-2 py-0.5 border border-black">
-                    {verifiedCount} / 3 VERIFIED
+                    {verifiedCount} / {tasks.length} VERIFIED
                   </span>
                 </div>
 
-                {/* Task 1: Follow X */}
-                <div className="bg-white border-3 border-black p-3 sm:p-3.5 flex items-center justify-between gap-2 shadow-pixel-sm">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-7 h-7 bg-black text-[#00FF66] flex items-center justify-center font-pixel text-xs shrink-0">
-                      X
-                    </span>
-                    <div className="font-pixel text-[9px] sm:text-[10px] text-black">
-                      FOLLOW @APEBROKERSNFT ON X
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenTask('https://x.com/ApebrokersNft', 'followX')}
-                      className="pixel-btn pixel-btn-white px-2.5 py-1.5 text-[9px]"
-                    >
-                      [ OPEN ]
-                    </button>
-                    <button
-                      type="button"
-                      disabled={taskStates.followX === 'LOCKED' || taskStates.followX === 'VERIFIED'}
-                      onClick={() => handleVerifyTask('followX')}
-                      className={`pixel-btn px-2.5 py-1.5 text-[9px] ${
-                        taskStates.followX === 'VERIFIED'
-                          ? 'pixel-btn-lime cursor-default'
-                          : taskStates.followX === 'READY'
-                          ? 'pixel-btn-gold animate-pulse'
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed border-gray-400'
-                      }`}
-                    >
-                      {taskStates.followX === 'VERIFIED'
-                        ? '✓ DONE'
-                        : taskStates.followX === 'VERIFYING'
-                        ? '...'
-                        : taskStates.followX === 'READY'
-                        ? '[ VERIFY ]'
-                        : 'LOCKED'}
-                    </button>
-                  </div>
-                </div>
+                {/* Dynamic Social Tasks List (Synced with Admin Dashboard & Supabase) */}
+                {tasks.map((task) => {
+                  const key = task.task_key || task.id.toString();
+                  const state = taskStates[key] || 'LOCKED';
+                  const platform = (task.platform || 'X').toUpperCase();
+                  const isDC = platform.includes('DISCORD');
+                  const isTG = platform.includes('TELEGRAM');
+                  const iconBg = isDC ? 'bg-[#5865F2]' : isTG ? 'bg-[#0088CC]' : 'bg-black text-[#00FF66]';
+                  const iconText = isDC ? 'DC' : isTG ? 'TG' : platform.includes('RETWEET') || platform.includes('REPOST') ? 'RT' : 'X';
 
-                {/* Task 2: Join Discord */}
-                <div className="bg-white border-3 border-black p-3 sm:p-3.5 flex items-center justify-between gap-2 shadow-pixel-sm">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-7 h-7 bg-[#2A0845] text-white flex items-center justify-center font-pixel text-xs shrink-0">
-                      DC
-                    </span>
-                    <div className="font-pixel text-[9px] sm:text-[10px] text-black">
-                      JOIN APEBROKERS DISCORD
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenTask('https://discord.com', 'joinDiscord')}
-                      className="pixel-btn pixel-btn-white px-2.5 py-1.5 text-[9px]"
+                  return (
+                    <div
+                      key={key}
+                      className="bg-white border-3 border-black p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-pixel-sm"
                     >
-                      [ OPEN ]
-                    </button>
-                    <button
-                      type="button"
-                      disabled={taskStates.joinDiscord === 'LOCKED' || taskStates.joinDiscord === 'VERIFIED'}
-                      onClick={() => handleVerifyTask('joinDiscord')}
-                      className={`pixel-btn px-2.5 py-1.5 text-[9px] ${
-                        taskStates.joinDiscord === 'VERIFIED'
-                          ? 'pixel-btn-lime cursor-default'
-                          : taskStates.joinDiscord === 'READY'
-                          ? 'pixel-btn-gold animate-pulse'
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed border-gray-400'
-                      }`}
-                    >
-                      {taskStates.joinDiscord === 'VERIFIED'
-                        ? '✓ DONE'
-                        : taskStates.joinDiscord === 'VERIFYING'
-                        ? '...'
-                        : taskStates.joinDiscord === 'READY'
-                        ? '[ VERIFY ]'
-                        : 'LOCKED'}
-                    </button>
-                  </div>
-                </div>
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className={`w-7 h-7 ${iconBg} flex items-center justify-center font-pixel text-xs shrink-0 border border-black text-white`}
+                        >
+                          {iconText}
+                        </span>
+                        <div className="font-pixel text-[9px] sm:text-[10px] text-black">
+                          {task.title}
+                          {task.is_required !== false && <span className="text-[#FF2247] ml-1">*</span>}
+                        </div>
+                      </div>
 
-                {/* Task 3: Repost */}
-                <div className="bg-white border-3 border-black p-3 sm:p-3.5 flex items-center justify-between gap-2 shadow-pixel-sm">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-7 h-7 bg-black text-[#FFD700] flex items-center justify-center font-pixel text-xs shrink-0">
-                      RT
-                    </span>
-                    <div className="font-pixel text-[9px] sm:text-[10px] text-black">
-                      REPOST WL ANNOUNCEMENT
+                      <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenTask(task.url, key)}
+                          className="pixel-btn pixel-btn-white px-2.5 py-1.5 text-[9px]"
+                        >
+                          {task.button_label || '[ OPEN ]'}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={state === 'LOCKED' || state === 'VERIFIED'}
+                          onClick={() => handleVerifyTask(key)}
+                          className={`pixel-btn px-2.5 py-1.5 text-[9px] min-w-[78px] ${
+                            state === 'VERIFIED'
+                              ? 'pixel-btn-lime cursor-default text-black font-bold'
+                              : state === 'READY'
+                              ? 'pixel-btn-gold animate-pulse text-black'
+                              : state === 'VERIFYING'
+                              ? 'bg-gray-300 text-black cursor-wait'
+                              : 'bg-gray-200 text-gray-400 cursor-not-allowed border-gray-400'
+                          }`}
+                        >
+                          {state === 'VERIFIED'
+                            ? '✓ DONE'
+                            : state === 'VERIFYING'
+                            ? '...'
+                            : state === 'READY'
+                            ? '[ VERIFY ]'
+                            : 'LOCKED'}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenTask('https://x.com/intent/retweet', 'repostWL')}
-                      className="pixel-btn pixel-btn-white px-2.5 py-1.5 text-[9px]"
-                    >
-                      [ OPEN ]
-                    </button>
-                    <button
-                      type="button"
-                      disabled={taskStates.repostWL === 'LOCKED' || taskStates.repostWL === 'VERIFIED'}
-                      onClick={() => handleVerifyTask('repostWL')}
-                      className={`pixel-btn px-2.5 py-1.5 text-[9px] ${
-                        taskStates.repostWL === 'VERIFIED'
-                          ? 'pixel-btn-lime cursor-default'
-                          : taskStates.repostWL === 'READY'
-                          ? 'pixel-btn-gold animate-pulse'
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed border-gray-400'
-                      }`}
-                    >
-                      {taskStates.repostWL === 'VERIFIED'
-                        ? '✓ DONE'
-                        : taskStates.repostWL === 'VERIFYING'
-                        ? '...'
-                        : taskStates.repostWL === 'READY'
-                        ? '[ VERIFY ]'
-                        : 'LOCKED'}
-                    </button>
-                  </div>
-                </div>
+                  );
+                })}
 
                 {errors.tasks && (
                   <div className="font-pixel text-[9px] text-[#FF2247] bg-[#FF2247]/10 p-2 border-2 border-[#FF2247] text-center">

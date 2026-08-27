@@ -29,3 +29,22 @@ export async function saveApplicationToSupabase(data) {
     return { success: false, error: err };
   }
 }
+
+export async function fetchActiveTasks() {
+  try {
+    const { data, error } = await supabase
+      .from('apebrokers_tasks')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+
+    if (error) {
+      console.warn('Supabase tasks fetch error:', error);
+      return null;
+    }
+    return data || [];
+  } catch (err) {
+    console.error('Supabase tasks error:', err);
+    return null;
+  }
+}
