@@ -11,7 +11,9 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
     const cleanBrokerId = (brokerId || '#0000').replace('#', '');
     const cleanUsername = (xUsername || '@broker').trim();
     const shortWallet = walletAddress
-      ? `${walletAddress.slice(0, 10)}...${walletAddress.slice(-8)}`
+      ? walletAddress.length > 26
+        ? `${walletAddress.slice(0, 14)}...${walletAddress.slice(-10)}`
+        : walletAddress
       : '0x0000...0000';
 
     const img = new Image();
@@ -49,16 +51,16 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
 
         // Background gradient
         const bgGrad = ctx.createLinearGradient(0, 0, W, H);
-        bgGrad.addColorStop(0, '#1f162b');
-        bgGrad.addColorStop(0.5, '#120d1c');
-        bgGrad.addColorStop(1, '#0b0812');
+        bgGrad.addColorStop(0, '#1a1028');
+        bgGrad.addColorStop(0.5, '#120c1d');
+        bgGrad.addColorStop(1, '#090510');
         ctx.fillStyle = bgGrad;
         ctx.fillRect(0, 0, W, H);
 
         // Subtle geometric watermark pattern on background
-        ctx.strokeStyle = 'rgba(255, 215, 0, 0.04)';
+        ctx.strokeStyle = 'rgba(255, 215, 0, 0.035)';
         ctx.lineWidth = 1.5;
-        for (let x = -100; x < W + 100; x += 60) {
+        for (let x = -100; x < W + 100; x += 55) {
           ctx.beginPath();
           ctx.moveTo(x, 0);
           ctx.lineTo(x + H, H);
@@ -69,38 +71,38 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
           ctx.stroke();
         }
 
-        // 2. Outer Card Border
+        // 2. Outer Card Borders
         ctx.strokeStyle = '#3d2e54';
         ctx.lineWidth = 6;
         ctx.strokeRect(3, 3, W - 6, H - 6);
 
-        ctx.strokeStyle = '#FFD700';
+        ctx.strokeStyle = 'rgba(255, 215, 0, 0.45)';
         ctx.lineWidth = 2;
         ctx.strokeRect(10, 10, W - 20, H - 20);
 
         // 3. Top Header Strip
-        ctx.fillStyle = '#160e22';
-        ctx.fillRect(12, 12, W - 24, 150);
+        ctx.fillStyle = '#160e24';
+        ctx.fillRect(12, 12, W - 24, 140);
 
         // Header double divider lines
         ctx.strokeStyle = '#4a3765';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(12, 162);
-        ctx.lineTo(W - 12, 162);
+        ctx.moveTo(12, 152);
+        ctx.lineTo(W - 12, 152);
         ctx.stroke();
 
         ctx.strokeStyle = '#FFD700';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(12, 166);
-        ctx.lineTo(W - 12, 166);
+        ctx.moveTo(12, 156);
+        ctx.lineTo(W - 12, 156);
         ctx.stroke();
 
-        // 4. Logo Emblem (Top Left - Transparent Floating Logo)
-        const emblemX = 40;
-        const emblemY = 28;
-        const emblemSize = 105;
+        // 4. Logo Emblem (Top Left - Clean Transparent Logo)
+        const emblemX = 35;
+        const emblemY = 24;
+        const emblemSize = 110;
 
         try {
           ctx.drawImage(logoImg, emblemX, emblemY, emblemSize, emblemSize);
@@ -109,34 +111,34 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         // 5. Header Titles
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
-        ctx.font = "900 38px 'Cinzel', 'Times New Roman', Georgia, serif";
+        ctx.font = "900 34px 'Cinzel', 'Times New Roman', Georgia, serif";
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillText('APEBROKERS', 155, 34);
+        ctx.fillText('APEBROKERS', 160, 32);
 
-        ctx.font = "bold 16px 'Cinzel', 'Times New Roman', Georgia, serif";
+        ctx.font = "bold 14px 'Cinzel', 'Times New Roman', Georgia, serif";
         ctx.fillStyle = '#c7b299';
         ctx.letterSpacing = '3px';
-        ctx.fillText('OFFICIAL BROKER IDENTIFICATION', 158, 84);
+        ctx.fillText('OFFICIAL BROKER IDENTIFICATION', 162, 78);
 
-        // Header Metadata Right (EXP, ID, CLASS)
-        ctx.font = "bold 13px 'Courier New', monospace";
-        ctx.fillStyle = '#a89bb5';
-        ctx.fillText('EXP: 12/2026', 158, 125);
+        // Header Metadata (EXP, ID, CLASS)
+        ctx.font = "bold 12px 'Courier New', monospace";
+        ctx.fillStyle = '#9e8fae';
+        ctx.fillText('EXP: 12/2026', 162, 114);
 
         ctx.textAlign = 'right';
         ctx.font = "bold 32px 'Courier New', monospace";
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillText(`APE-${cleanBrokerId}`, W - 45, 78);
+        ctx.fillText(`APE-${cleanBrokerId}`, W - 40, 38);
 
-        ctx.font = "bold 15px 'Courier New', monospace";
+        ctx.font = "bold 13px 'Courier New', monospace";
         ctx.fillStyle = '#FFD700';
-        ctx.fillText('CLASS: 5★ BROKER', W - 45, 125);
+        ctx.fillText('CLASS: 5★ BROKER', W - 40, 114);
 
         // 6. Left Photo Frame
-        const photoX = 45;
-        const photoY = 195;
-        const photoW = 280;
-        const photoH = 370;
+        const photoX = 40;
+        const photoY = 180;
+        const photoW = 275;
+        const photoH = 390;
 
         // Photo Frame Border & Background
         ctx.fillStyle = '#0a0612';
@@ -150,9 +152,9 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
           ctx.drawImage(img, photoX + 6, photoY + 6, photoW - 12, photoH - 12);
         } catch (e) {}
 
-        // Photo inner corner accents
-        ctx.strokeStyle = '#FFD700';
-        ctx.lineWidth = 2;
+        // Photo inner corner gold accents
+        ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)';
+        ctx.lineWidth = 1.5;
         ctx.strokeRect(photoX + 10, photoY + 10, photoW - 20, photoH - 20);
 
         // Photo badge top left
@@ -165,8 +167,8 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         ctx.fillText(`APE #${gifId}`, photoX + 69, photoY + 26);
 
         // 7. Right Side Information Block
-        const infoX = 360;
-        const infoY = 195;
+        const infoX = 350;
+        const infoY = 180;
 
         // Name / Title
         ctx.textAlign = 'left';
@@ -176,57 +178,79 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         ctx.fillText(`"THE BROKER" ${cleanUsername.toUpperCase()}`, infoX, infoY);
 
         // Affiliation
-        ctx.font = "bold 17px 'Cinzel', 'Times New Roman', Georgia, serif";
+        ctx.font = "bold 14px 'Cinzel', 'Times New Roman', Georgia, serif";
         ctx.fillStyle = '#c7b299';
-        ctx.fillText('APEBROKERS TRADING FLOOR,', infoX, infoY + 38);
-        ctx.fillText('ROBINHOOD NETWORK', infoX, infoY + 66);
+        ctx.fillText('APEBROKERS TRADING FLOOR, ROBINHOOD NETWORK', infoX, infoY + 36);
 
-        // 8. Stats & Spec Grid (2 columns like the ID card)
-        const gridY = infoY + 115;
-        const rowH = 34;
+        // Divider below affiliation
+        ctx.strokeStyle = '#3d2e54';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(infoX, infoY + 66);
+        ctx.lineTo(W - 40, infoY + 66);
+        ctx.stroke();
 
-        const drawField = (label, val, x, y, valColor = '#f0e6d2') => {
-          ctx.font = "bold 12px 'Courier New', monospace";
+        // 8. Stats & Spec Grid (Structured 3-column layout matching on-screen card)
+        const col1X = infoX;
+        const col2X = infoX + 210;
+        const col3X = infoX + 410;
+
+        const renderCell = (label, val, x, y, valColor = '#f0e6d2') => {
+          ctx.font = "bold 11px 'Courier New', monospace";
           ctx.fillStyle = '#9e8fae';
           ctx.fillText(label, x, y);
 
-          const labelW = ctx.measureText(label).width;
-          ctx.font = "bold 14px 'Courier New', monospace";
+          ctx.font = "bold 15px 'Courier New', monospace";
           ctx.fillStyle = valColor;
-          ctx.fillText(val, x + labelW + 6, y);
+          ctx.fillText(val, x, y + 16);
         };
 
-        // Row 1
-        drawField('CHAIN:', 'ROBINHOOD', infoX, gridY, '#00DDFF');
-        drawField('SUPPLY:', '5,555', infoX + 220, gridY, '#00FF66');
-        drawField('STATUS:', 'UNDER REVIEW', infoX + 410, gridY, '#FFD700');
+        const row1Y = infoY + 82;
+        const row2Y = infoY + 142;
+        const row3Y = infoY + 202;
 
-        // Row 2
-        drawField('WALLET:', shortWallet, infoX, gridY + rowH, '#FFFFFF');
-        drawField('ALLOCATION:', 'APPLIED', infoX + 380, gridY + rowH, '#00DDFF');
+        // Row 1: CHAIN | SUPPLY | STATUS
+        renderCell('CHAIN:', 'ROBINHOOD', col1X, row1Y, '#00DDFF');
+        renderCell('SUPPLY:', '5,555', col2X, row1Y, '#00FF66');
+        renderCell('STATUS:', 'UNDER REVIEW', col3X, row1Y, '#FFD700');
 
-        // Row 3
-        drawField('ROLE:', 'APPLICANT', infoX, gridY + rowH * 2, '#f0e6d2');
-        drawField('ACCESS:', 'PENDING', infoX + 260, gridY + rowH * 2, '#FFD700');
-        drawField('DOB:', '2026/RH', infoX + 440, gridY + rowH * 2, '#FF2247');
+        // Row 2: WALLET (spanning col 1 & 2) | ALLOCATION
+        renderCell('WALLET:', shortWallet, col1X, row2Y, '#FFFFFF');
+        renderCell('ALLOCATION:', 'APPLIED', col3X, row2Y, '#00DDFF');
 
-        // Row 4
-        drawField('DESK:', 'VIP FLOOR', infoX, gridY + rowH * 3, '#f0e6d2');
-        drawField('CONVICTION:', 'MAXIMALIST', infoX + 260, gridY + rowH * 3, '#00FF66');
+        // Row 3: ROLE | ACCESS | DOB
+        renderCell('ROLE:', 'APPLICANT', col1X, row3Y, '#f0e6d2');
+        renderCell('ACCESS:', 'PENDING', col2X, row3Y, '#FFD700');
+        renderCell('DOB:', '2026/RH', col3X, row3Y, '#FF2247');
 
-        // 9. Cursive Signature on bottom right
-        ctx.font = "italic 32px 'Brush Script MT', 'Dancing Script', 'Lucida Handwriting', cursive, serif";
+        // 9. Bottom Footer Bar
+        const footerY = infoY + 276;
+        ctx.strokeStyle = '#3d2e54';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(infoX, footerY);
+        ctx.lineTo(W - 40, footerY);
+        ctx.stroke();
+
+        // Footer Left: Serial ID
+        ctx.font = "bold 11px 'Courier New', monospace";
+        ctx.fillStyle = '#6b7280';
+        ctx.fillText(`APE-RH-5555 // #${cleanBrokerId}`, infoX, footerY + 16);
+
+        // Footer Right: Signature & Received Badge
+        ctx.font = "italic 26px 'Brush Script MT', 'Dancing Script', 'Lucida Handwriting', cursive, serif";
         ctx.fillStyle = '#FFD700';
-        ctx.fillText('ApeBrokers Executive', infoX + 220, gridY + rowH * 4 + 8);
+        ctx.textAlign = 'right';
+        ctx.fillText('ApeBrokers Executive', W - 150, footerY + 10);
 
         // 10. Official Gold Watermark Stamp (bottom right corner)
         ctx.save();
-        ctx.translate(W - 90, H - 75);
-        ctx.rotate((-15 * Math.PI) / 180);
+        ctx.translate(W - 85, footerY + 22);
+        ctx.rotate((-8 * Math.PI) / 180);
         ctx.strokeStyle = '#FFD700';
-        ctx.lineWidth = 2.5;
-        ctx.strokeRect(-55, -16, 110, 32);
-        ctx.font = "bold 9px 'Press Start 2P', monospace, sans-serif";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-42, -13, 84, 26);
+        ctx.font = "bold 8px 'Press Start 2P', monospace, sans-serif";
         ctx.fillStyle = '#FFD700';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
