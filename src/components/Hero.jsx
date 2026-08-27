@@ -8,8 +8,9 @@ const HERO_IMAGES = [
   '/nfts/hero_4.png',
 ];
 
-export const Hero = ({ onApplyClick, onBrokersClick }) => {
+export const Hero = ({ onApplyClick }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [collectionText, setCollectionText] = useState('[ COLLECTION ]');
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -20,11 +21,10 @@ export const Hero = ({ onApplyClick, onBrokersClick }) => {
 
   const handleBrokers = () => {
     sound?.playClick?.();
-    if (onBrokersClick) {
-      onBrokersClick();
-    } else {
-      window.location.href = '/brokers.html';
-    }
+    setCollectionText('[ COMING SOON ]');
+    setTimeout(() => {
+      setCollectionText('[ COLLECTION ]');
+    }, 2500);
   };
 
   const handleApply = () => {
@@ -87,9 +87,13 @@ export const Hero = ({ onApplyClick, onBrokersClick }) => {
             <button
               type="button"
               onClick={handleBrokers}
-              className="w-full sm:w-auto min-h-[50px] pixel-btn pixel-btn-purple px-6 sm:px-8 py-3.5 font-pixel text-xs sm:text-sm font-bold"
+              className={`w-full sm:w-auto min-h-[50px] pixel-btn px-6 sm:px-8 py-3.5 font-pixel text-xs sm:text-sm font-bold transition-all ${
+                collectionText.includes('SOON')
+                  ? 'pixel-btn-black text-[#FFD700] border-[#FFD700]'
+                  : 'pixel-btn-purple'
+              }`}
             >
-              [ COLLECTION ]
+              {collectionText}
             </button>
           </div>
         </div>
