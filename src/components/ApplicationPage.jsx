@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { sound } from '../utils/audio';
 import { downloadBrokerCardPng, downloadBrokerGif } from '../utils/generateBrokerCard';
 import { fetchActiveTasks, saveApplicationToSupabase, checkExistingApplication, determineGtdWinner } from '../utils/supabase';
+import { TurnstileWidget } from './TurnstileWidget';
 
 const DEFAULT_TASKS = [
   {
@@ -43,6 +44,8 @@ export const ApplicationPage = ({ onBackHome }) => {
   const [tasks, setTasks] = useState(DEFAULT_TASKS);
   const [taskStates, setTaskStates] = useState({});
   const [taskLinks, setTaskLinks] = useState({});
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const [honeypot, setHoneypot] = useState('');
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionData, setSubmissionData] = useState(null);
@@ -101,6 +104,10 @@ export const ApplicationPage = ({ onBackHome }) => {
   };
 
   const validate = () => {
+    if (honeypot) {
+      return false; // Silent bot catch
+    }
+
     const errs = {};
     if (!formData.xUsername.trim()) {
       errs.xUsername = 'X username is required';
@@ -134,6 +141,11 @@ export const ApplicationPage = ({ onBackHome }) => {
         }
       }
     });
+
+    // Validate Cloudflare Turnstile token
+    if (!captchaToken) {
+      errs.captcha = 'Please complete the security clearance check below.';
+    }
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -746,6 +758,39 @@ export const ApplicationPage = ({ onBackHome }) => {
                     </div>
                   )}
                 </div>
+
+                {/* Cloudflare Turnstile Bot Verification */}
+                <div className="space-y-2 pt-1 text-left">
+                  <TurnstileWidget
+                    onVerify={(token) => {
+                      setCaptchaToken(token);
+                      if (errors.captcha) {
+                        setErrors((prev) => ({ ...prev, captcha: null }));
+                      }
+                    }}
+                    onExpire={() => setCaptchaToken(null)}
+                    onError={() => {
+                      // Graceful fallback for local development
+                      setCaptchaToken('cf_dev_pass');
+                    }}
+                  />
+                  {errors.captcha && (
+                    <div className="font-pixel text-[9px] text-[#FF2247] bg-[#FF2247]/10 p-2 border border-[#FF2247] text-center">
+                      ! {errors.captcha}
+                    </div>
+                  )}
+                </div>
+
+                {/* Hidden Honeypot Field for Automated Bot Trapping */}
+                <input
+                  type="text"
+                  name="broker_clearance_hp"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  style={{ display: 'none', position: 'absolute', opacity: 0, pointerEvents: 'none' }}
+                  tabIndex="-1"
+                  autoComplete="off"
+                />
 
                 {/* Submit Button */}
                 <div className="pt-2">
