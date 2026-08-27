@@ -73,9 +73,16 @@ export const BrokersGallery = ({ onBackHome, onApplyClick }) => {
             >
               ◄ BACK TO HOME
             </button>
-            <span className="font-pixel text-xs sm:text-sm text-black hidden sm:inline font-extrabold">
-              APEBROKERS VAULT // 10 UNLOCKED
-            </span>
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/logo.png"
+                alt="ApeBrokers Logo"
+                className="w-7 h-7 object-contain pixelated border-2 border-black bg-black"
+              />
+              <span className="font-pixel text-xs sm:text-sm text-black hidden sm:inline font-extrabold">
+                APEBROKERS VAULT // 10 UNLOCKED
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">

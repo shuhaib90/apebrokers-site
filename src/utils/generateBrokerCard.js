@@ -17,6 +17,17 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
     const img = new Image();
     img.crossOrigin = 'anonymous';
 
+    const logoImg = new Image();
+    logoImg.crossOrigin = 'anonymous';
+
+    let imagesLoaded = 0;
+    const checkAndRender = () => {
+      imagesLoaded++;
+      if (imagesLoaded >= 2) {
+        renderCard();
+      }
+    };
+
     const renderCard = () => {
       try {
         // 1. Base Card Background (Rich Dark Broker / Gold Luxury ID)
@@ -86,35 +97,20 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         ctx.lineTo(W - 12, 166);
         ctx.stroke();
 
-        // 4. Logo Emblem (Diamond badge on left)
-        const emblemX = 85;
-        const emblemY = 85;
-        ctx.save();
-        ctx.translate(emblemX, emblemY);
-        ctx.fillStyle = '#FFD700';
-        ctx.beginPath();
-        ctx.moveTo(0, -42);
-        ctx.lineTo(42, 0);
-        ctx.lineTo(0, 42);
-        ctx.lineTo(-42, 0);
-        ctx.closePath();
-        ctx.fill();
+        // 4. Logo Emblem (Top Left)
+        const emblemX = 45;
+        const emblemY = 32;
+        const emblemSize = 95;
 
         ctx.fillStyle = '#06030F';
-        ctx.beginPath();
-        ctx.moveTo(0, -32);
-        ctx.lineTo(32, 0);
-        ctx.lineTo(0, 32);
-        ctx.lineTo(-32, 0);
-        ctx.closePath();
-        ctx.fill();
+        ctx.fillRect(emblemX, emblemY, emblemSize, emblemSize);
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(emblemX, emblemY, emblemSize, emblemSize);
 
-        ctx.font = "bold 26px 'Press Start 2P', monospace, sans-serif";
-        ctx.fillStyle = '#00FF66';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('A', 0, 2);
-        ctx.restore();
+        try {
+          ctx.drawImage(logoImg, emblemX + 4, emblemY + 4, emblemSize - 8, emblemSize - 8);
+        } catch (e) {}
 
         // 5. Header Titles
         ctx.textAlign = 'left';
@@ -261,9 +257,13 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
       }
     };
 
-    img.onload = renderCard;
-    img.onerror = renderCard;
+    img.onload = checkAndRender;
+    img.onerror = checkAndRender;
+    logoImg.onload = checkAndRender;
+    logoImg.onerror = checkAndRender;
+
     img.src = gifUrl;
+    logoImg.src = '/logo.png';
   });
 }
 

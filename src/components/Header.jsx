@@ -26,7 +26,12 @@ export const Header = ({ onApplyClick }) => {
     <header className="sticky top-0 z-50 w-full bg-[#00FF66] border-b-4 border-black px-4 sm:px-8 py-3.5 select-none">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         {/* Left: Brand */}
-        <a href="#" className="flex items-center gap-2">
+        <a href="#" className="flex items-center gap-2.5">
+          <img
+            src="/logo.png"
+            alt="ApeBrokers Logo"
+            className="w-8 h-8 sm:w-9 sm:h-9 object-contain pixelated border-2 border-black bg-black"
+          />
           <span className="font-pixel text-sm sm:text-base text-black tracking-wider font-extrabold">
             APEBROKERS
           </span>

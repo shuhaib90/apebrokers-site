@@ -135,9 +135,16 @@ export const ApplicationPage = ({ onBackHome }) => {
             ◄ BACK TO HOME
           </button>
 
-          <span className="font-pixel text-xs sm:text-sm text-black font-extrabold">
-            APEBROKERS WL
-          </span>
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/logo.png"
+              alt="ApeBrokers Logo"
+              className="w-7 h-7 object-contain pixelated border-2 border-black bg-black"
+            />
+            <span className="font-pixel text-xs sm:text-sm text-black font-extrabold">
+              APEBROKERS WL
+            </span>
+          </div>
         </div>
       </header>
 
@@ -177,11 +184,13 @@ export const ApplicationPage = ({ onBackHome }) => {
               <div className="relative z-10 border-b-2 border-[#4a3765] pb-3.5 mb-5 flex items-center justify-between gap-4">
                 {/* Left: Logo Emblem & Title */}
                 <div className="flex items-center gap-3.5 sm:gap-4">
-                  {/* Diamond Emblem */}
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-[#FFD700] rotate-45 flex items-center justify-center border-2 border-black shadow-sm shrink-0">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#06030F] flex items-center justify-center -rotate-45">
-                      <span className="font-pixel text-base sm:text-lg text-[#00FF66] font-extrabold">A</span>
-                    </div>
+                  {/* Logo Frame */}
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-black border-2 border-[#FFD700] rounded-lg overflow-hidden shrink-0 flex items-center justify-center shadow-md">
+                    <img
+                      src="/logo.png"
+                      alt="ApeBrokers Logo"
+                      className="w-full h-full object-contain pixelated"
+                    />
                   </div>
 
                   <div>
