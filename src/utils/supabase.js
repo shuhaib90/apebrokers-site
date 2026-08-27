@@ -70,6 +70,8 @@ export async function saveApplicationToSupabase(data) {
           x_username: data.xUsername,
           wallet_address: data.walletAddress,
           status: 'UNDER_REVIEW',
+          comment_link: data.commentLink || null,
+          proof_links: data.proofLinks || {},
         },
       ])
       .select();

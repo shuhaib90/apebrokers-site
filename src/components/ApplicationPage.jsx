@@ -41,37 +41,37 @@ export const ApplicationPage = ({ onBackHome }) => {
   });
 
   const [tasks, setTasks] = useState(DEFAULT_TASKS);
-  const [taskStates, setTaskStates] = useState({
-    followX: 'LOCKED',
-    joinDiscord: 'LOCKED',
-    repostWL: 'LOCKED',
-  });
+  const [taskStates, setTaskStates] = useState({});
+  const [taskLinks, setTaskLinks] = useState({});
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionData, setSubmissionData] = useState(null);
 
+  // Fetch dynamic tasks from Supabase on mount
   useEffect(() => {
+    let mounted = true;
     async function loadTasks() {
-      const dbTasks = await fetchActiveTasks();
-      if (dbTasks && dbTasks.length > 0) {
-        setTasks(dbTasks);
+      const activeTasks = await fetchActiveTasks();
+      if (mounted && activeTasks && activeTasks.length > 0) {
+        setTasks(activeTasks);
         const initialStates = {};
-        dbTasks.forEach((t) => {
-          const key = t.task_key || t.id.toString();
+        activeTasks.forEach((task) => {
+          const key = task.task_key || task.id.toString();
           initialStates[key] = 'LOCKED';
         });
         setTaskStates(initialStates);
       }
     }
     loadTasks();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submissionData, setSubmissionData] = useState(null);
-
   const handleInputChange = (field, value) => {
-    sound?.playTyping?.();
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field] || errors.duplicateBanner) {
-      setErrors((prev) => ({ ...prev, [field]: null, duplicateBanner: null }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: null }));
     }
   };
 
@@ -108,6 +108,19 @@ export const ApplicationPage = ({ onBackHome }) => {
     } else if (walletTrim.length < 10) {
       errs.walletAddress = 'Enter valid Robinhood Chain / EVM address (0x...)';
     }
+
+    // Validate required link inputs (e.g. comment link)
+    tasks.forEach((t) => {
+      const key = t.task_key || t.id.toString();
+      if (t.requires_link && t.is_required !== false) {
+        const linkVal = (taskLinks[key] || '').trim();
+        if (!linkVal) {
+          errs[`task_link_${key}`] = 'Please enter your comment / proof link';
+        } else if (!linkVal.startsWith('http://') && !linkVal.startsWith('https://')) {
+          errs[`task_link_${key}`] = 'Please enter a valid link (https://...)';
+        }
+      }
+    });
 
     const requiredTasks = tasks.filter((t) => t.is_required !== false);
     const allRequiredVerified = requiredTasks.every((t) => {
@@ -169,8 +182,15 @@ export const ApplicationPage = ({ onBackHome }) => {
 
     const brokerId = `#${Math.floor(1000 + Math.random() * 9000)}`;
     const randomGifId = Math.floor(1 + Math.random() * 100);
+
+    const commentTask = tasks.find((t) => t.requires_link);
+    const commentKey = commentTask ? (commentTask.task_key || commentTask.id.toString()) : null;
+    const commentLink = commentKey ? taskLinks[commentKey] : Object.values(taskLinks)[0] || null;
+
     const submissionPayload = {
       ...formData,
+      commentLink,
+      proofLinks: taskLinks,
       brokerId,
       gifId: randomGifId,
       gifUrl: `/gifs/${randomGifId}.gif`,
@@ -588,52 +608,86 @@ export const ApplicationPage = ({ onBackHome }) => {
                   return (
                     <div
                       key={key}
-                      className="bg-white border-3 border-black p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-pixel-sm"
+                      className="bg-white border-3 border-black p-3 sm:p-3.5 flex flex-col gap-2.5 shadow-pixel-sm"
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span
-                          className={`w-7 h-7 ${iconBg} flex items-center justify-center font-pixel text-xs shrink-0 border border-black text-white`}
-                        >
-                          {iconText}
-                        </span>
-                        <div className="font-pixel text-[9px] sm:text-[10px] text-black">
-                          {task.title}
-                          {task.is_required !== false && <span className="text-[#FF2247] ml-1">*</span>}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className={`w-7 h-7 ${iconBg} flex items-center justify-center font-pixel text-xs shrink-0 border border-black text-white`}
+                          >
+                            {iconText}
+                          </span>
+                          <div className="font-pixel text-[9px] sm:text-[10px] text-black">
+                            {task.title}
+                            {task.is_required !== false && <span className="text-[#FF2247] ml-1">*</span>}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenTask(task.target_url || task.url, key)}
+                            className="pixel-btn pixel-btn-white px-2.5 py-1.5 text-[9px]"
+                          >
+                            {task.action_label ? `[ ${task.action_label.toUpperCase()} ]` : task.button_label || '[ OPEN ]'}
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={state === 'LOCKED' || state === 'VERIFIED'}
+                            onClick={() => handleVerifyTask(key)}
+                            className={`pixel-btn px-2.5 py-1.5 text-[9px] min-w-[78px] ${
+                              state === 'VERIFIED'
+                                ? 'pixel-btn-lime cursor-default text-black font-bold'
+                                : state === 'READY'
+                                ? 'pixel-btn-gold animate-pulse text-black'
+                                : state === 'VERIFYING'
+                                ? 'bg-gray-300 text-black cursor-wait'
+                                : 'bg-gray-200 text-gray-400 cursor-not-allowed border-gray-400'
+                            }`}
+                          >
+                            {state === 'VERIFIED'
+                              ? '✓ DONE'
+                              : state === 'VERIFYING'
+                              ? '...'
+                              : state === 'READY'
+                              ? '[ VERIFY ]'
+                              : 'LOCKED'}
+                          </button>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenTask(task.target_url || task.url, key)}
-                          className="pixel-btn pixel-btn-white px-2.5 py-1.5 text-[9px]"
-                        >
-                          {task.action_label ? `[ ${task.action_label.toUpperCase()} ]` : task.button_label || '[ OPEN ]'}
-                        </button>
-
-                        <button
-                          type="button"
-                          disabled={state === 'LOCKED' || state === 'VERIFIED'}
-                          onClick={() => handleVerifyTask(key)}
-                          className={`pixel-btn px-2.5 py-1.5 text-[9px] min-w-[78px] ${
-                            state === 'VERIFIED'
-                              ? 'pixel-btn-lime cursor-default text-black font-bold'
-                              : state === 'READY'
-                              ? 'pixel-btn-gold animate-pulse text-black'
-                              : state === 'VERIFYING'
-                              ? 'bg-gray-300 text-black cursor-wait'
-                              : 'bg-gray-200 text-gray-400 cursor-not-allowed border-gray-400'
-                          }`}
-                        >
-                          {state === 'VERIFIED'
-                            ? '✓ DONE'
-                            : state === 'VERIFYING'
-                            ? '...'
-                            : state === 'READY'
-                            ? '[ VERIFY ]'
-                            : 'LOCKED'}
-                        </button>
-                      </div>
+                      {/* Optional Proof / Comment Link Entry Box */}
+                      {task.requires_link && (
+                        <div className="w-full pt-2.5 mt-1 border-t-2 border-dashed border-gray-300 space-y-1 text-left">
+                          <div className="flex items-center justify-between">
+                            <span className="font-pixel text-[8px] sm:text-[9px] text-[#2A0845] font-extrabold flex items-center gap-1">
+                              <span>🔗</span> <span>COMMENT LINK / PROOF URL:</span>
+                              {task.is_required !== false && <span className="text-[#FF2247]">*</span>}
+                            </span>
+                          </div>
+                          <input
+                            type="url"
+                            placeholder={task.input_placeholder || 'Paste your X comment link (https://x.com/...)'}
+                            value={taskLinks[key] || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setTaskLinks((prev) => ({ ...prev, [key]: val }));
+                              if (errors[`task_link_${key}`]) {
+                                setErrors((prev) => ({ ...prev, [`task_link_${key}`]: null }));
+                              }
+                            }}
+                            className={`w-full h-10 px-3 bg-[#F4F6F8] text-black font-mono text-xs border-2 ${
+                              errors[`task_link_${key}`] ? 'border-[#FF2247] bg-[#FFF0F2]' : 'border-black'
+                            } focus:border-[#00FF66] focus:bg-white transition-colors`}
+                          />
+                          {errors[`task_link_${key}`] && (
+                            <div className="font-pixel text-[8px] text-[#FF2247] mt-0.5">
+                              ! {errors[`task_link_${key}`]}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
