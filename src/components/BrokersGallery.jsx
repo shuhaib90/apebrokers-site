@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { sound } from '../utils/audio';
 
-// Generate list of 100 animated brokers (1.gif to 100.gif)
+// Generate list of 100 animated brokers (1.gif to 10.gif unlocked, 11-100 hidden with "SOON")
 const ALL_BROKERS = Array.from({ length: 100 }, (_, i) => {
   const id = i + 1;
+  const isUnlocked = id <= 10;
   const roles = [
     'Founding Partner', 'Chief Floor Trader', 'Derivatives Specialist', 
     'Senior Arbitrageur', 'Floor Alpha Ape', 'High-Roller Broker', 
@@ -18,6 +19,7 @@ const ALL_BROKERS = Array.from({ length: 100 }, (_, i) => {
     role: roles[(id - 1) % roles.length],
     tag: tags[(id - 1) % tags.length],
     gif: `/gifs/${id}.gif`,
+    unlocked: isUnlocked,
   };
 });
 
@@ -33,6 +35,10 @@ export const BrokersGallery = ({ onBackHome, onApplyClick }) => {
   );
 
   const handleSelectBroker = (broker) => {
+    if (!broker.unlocked) {
+      sound?.playClick?.();
+      return;
+    }
     sound?.playClick?.();
     setSelectedBroker(broker);
     window.scrollTo({ top: 100, behavior: 'smooth' });
@@ -68,7 +74,7 @@ export const BrokersGallery = ({ onBackHome, onApplyClick }) => {
               ◄ BACK TO HOME
             </button>
             <span className="font-pixel text-xs sm:text-sm text-black hidden sm:inline font-extrabold">
-              APEBROKERS VAULT // 100 ANIMATED COLLECTION
+              APEBROKERS VAULT // 10 UNLOCKED
             </span>
           </div>
 
@@ -100,21 +106,21 @@ export const BrokersGallery = ({ onBackHome, onApplyClick }) => {
         {/* Title Bar & Search */}
         <div className="pixel-box p-5 sm:p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
-            <div className="inline-block bg-black text-[#FFD700] font-pixel text-[9px] px-2.5 py-1 border-2 border-black mb-1">
-              ROBINHOOD CHAIN • 100 ANIMATED COLLECTION
+            <div className="inline-block bg-black text-[#00FF66] font-pixel text-[9px] px-2.5 py-1 border-2 border-black mb-1">
+              ROBINHOOD CHAIN • 10 REVEALED
             </div>
             <h1 className="font-pixel text-xl sm:text-2xl text-black font-extrabold tracking-tight">
               APEBROKERS COLLECTION
             </h1>
             <p className="font-mono text-xs text-gray-700 font-semibold mt-0.5">
-              100 Unique 16-Bit Animated Brokers
+              10 Animated Brokers Unlocked • 90 Revealing Soon
             </p>
           </div>
 
           {/* Search Box */}
           <div className="flex items-center gap-2 w-full md:w-auto">
             <div className="bg-black text-[#00FF66] font-pixel text-[9px] sm:text-[10px] px-3 py-2.5 border-2 border-black">
-              SHOWING: {filteredBrokers.length} / 100
+              UNLOCKED: 10 / 100
             </div>
             <input
               type="text"
@@ -193,43 +199,71 @@ export const BrokersGallery = ({ onBackHome, onApplyClick }) => {
           </div>
         )}
 
-        {/* 100 Brokers Grid */}
+        {/* Collection Grid: 10 Unlocked + 90 Hidden with "SOON" */}
         <div className="space-y-4">
           <div className="font-pixel text-xs text-black flex items-center justify-between">
-            <span>ALL 100 ANIMATED BROKERS:</span>
-            <span className="text-gray-700 text-[10px]">CLICK CARD TO INSPECT</span>
+            <span>COLLECTION PREVIEW (10 REVEALED):</span>
+            <span className="text-gray-700 text-[10px]">CLICK UNLOCKED CARD TO INSPECT</span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-10 gap-2.5">
             {filteredBrokers.map((broker) => {
               const isSelected = selectedBroker?.id === broker.id;
+
+              if (broker.unlocked) {
+                return (
+                  <button
+                    key={broker.id}
+                    type="button"
+                    onClick={() => handleSelectBroker(broker)}
+                    className={`pixel-border-sm p-1.5 flex flex-col items-center text-center relative transition-all ${
+                      isSelected
+                        ? 'bg-black text-[#00FF66] scale-105 shadow-pixel-md z-10'
+                        : 'bg-white text-black hover:bg-gray-100 cursor-pointer'
+                    }`}
+                  >
+                    <div className="w-full aspect-square relative bg-black border border-black/40 overflow-hidden flex items-center justify-center">
+                      <img
+                        src={broker.gif}
+                        alt={broker.name}
+                        loading="lazy"
+                        className="w-full h-full object-cover pixelated"
+                      />
+                    </div>
+
+                    <div className="font-pixel text-[8px] font-bold mt-1.5">
+                      #{broker.id}
+                    </div>
+                    <div className="font-mono text-[8px] truncate max-w-full opacity-80">
+                      {broker.tag}
+                    </div>
+                  </button>
+                );
+              }
+
+              // Hidden card with "SOON"
               return (
-                <button
+                <div
                   key={broker.id}
-                  type="button"
-                  onClick={() => handleSelectBroker(broker)}
-                  className={`pixel-border-sm p-1.5 flex flex-col items-center text-center relative transition-all ${
-                    isSelected
-                      ? 'bg-black text-[#00FF66] scale-105 shadow-pixel-md z-10'
-                      : 'bg-white text-black hover:bg-gray-100'
-                  }`}
+                  className="pixel-border-sm p-1.5 flex flex-col items-center text-center relative bg-[#0d0d0d] text-gray-400 select-none opacity-85"
                 >
-                  <div className="w-full aspect-square relative bg-black border border-black/40 overflow-hidden flex items-center justify-center">
-                    <img
-                      src={broker.gif}
-                      alt={broker.name}
-                      loading="lazy"
-                      className="w-full h-full object-cover pixelated"
-                    />
+                  <div className="w-full aspect-square relative bg-[#181818] border border-black/60 overflow-hidden flex flex-col items-center justify-center p-1">
+                    {/* Pixel lock icon */}
+                    <div className="w-4 h-3.5 border-2 border-[#FFD700] rounded-t-sm mb-0.5 relative">
+                      <div className="w-1.5 h-1.5 bg-[#FFD700] mx-auto mt-0.5" />
+                    </div>
+                    <span className="font-pixel text-[8px] text-[#FFD700] tracking-wider animate-pulse">
+                      SOON
+                    </span>
                   </div>
 
-                  <div className="font-pixel text-[8px] font-bold mt-1.5">
+                  <div className="font-pixel text-[8px] font-bold mt-1.5 text-gray-500">
                     #{broker.id}
                   </div>
-                  <div className="font-mono text-[8px] truncate max-w-full opacity-80">
-                    {broker.tag}
+                  <div className="font-mono text-[8px] truncate max-w-full text-gray-600">
+                    LOCKED
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -245,7 +279,7 @@ export const BrokersGallery = ({ onBackHome, onApplyClick }) => {
       {/* Footer */}
       <footer className="w-full bg-black text-white border-t-4 border-black px-4 py-6 text-center select-none mt-12">
         <div className="font-pixel text-xs text-[#00FF66]">
-          APEBROKERS // 100 ANIMATED PIXEL COLLECTION • 5,555 TOTAL SUPPLY
+          APEBROKERS // 10 REVEALED PIXEL COLLECTION • 5,555 TOTAL SUPPLY
         </div>
         <div className="font-mono text-[10px] text-gray-400 mt-1">
           Follow <a href="https://x.com/ApebrokersNft" target="_blank" rel="noopener noreferrer" className="text-[#00FF66] underline">@ApebrokersNft</a> on X

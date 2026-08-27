@@ -76,7 +76,7 @@ export const Hero = ({ onApplyClick, onBrokersClick }) => {
               onClick={handleBrokers}
               className="w-full sm:w-auto min-h-[50px] pixel-btn pixel-btn-purple px-6 sm:px-8 py-3.5 font-pixel text-xs sm:text-sm font-bold"
             >
-              [ BROKERS ]
+              [ COLLECTION ]
             </button>
           </div>
         </div>
