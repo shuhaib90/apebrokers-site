@@ -297,16 +297,29 @@ export const ApplicationPage = ({ onBackHome }) => {
               <div
                 className={`relative rounded-2xl p-5 sm:p-7 shadow-[0_10px_40px_rgba(0,0,0,0.7)] overflow-hidden font-mono select-none transition-all ${
                   submissionData.isGtd
-                    ? 'bg-gradient-to-br from-[#231500] via-[#140b00] to-[#0a0500] text-[#f7e6b5] border-4 border-[#FFD700] ring-4 ring-[#FFD700]/30 shadow-[0_0_50px_rgba(255,215,0,0.4)]'
+                    ? 'bg-gradient-to-br from-[#261803] via-[#140c01] to-[#050300] text-[#f7e6b5] border-4 border-[#FFD700] ring-4 ring-[#FFD700]/40 shadow-[0_0_60px_rgba(255,215,0,0.35)]'
                     : 'bg-[#140d22] text-[#f0e6d2] border-4 border-[#3d2e54]'
                 }`}
               >
-                {/* Inner Gold Border */}
+                {/* Inner Gold Borders & Corner Accents */}
                 <div
                   className={`absolute inset-2 rounded-xl pointer-events-none ${
                     submissionData.isGtd ? 'border-2 border-[#FFD700]/70' : 'border border-[#FFD700]/40'
                   }`}
                 />
+
+                {submissionData.isGtd && (
+                  <>
+                    {/* Top Left Corner */}
+                    <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-[#FFD700] pointer-events-none" />
+                    {/* Top Right Corner */}
+                    <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-[#FFD700] pointer-events-none" />
+                    {/* Bottom Left Corner */}
+                    <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-[#FFD700] pointer-events-none" />
+                    {/* Bottom Right Corner */}
+                    <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-[#FFD700] pointer-events-none" />
+                  </>
+                )}
 
                 {/* Background Watermark Pattern */}
                 <div
@@ -320,12 +333,13 @@ export const ApplicationPage = ({ onBackHome }) => {
                 {/* Top Header Section */}
                 <div
                   className={`relative z-10 border-b-2 pb-3.5 mb-5 flex items-center justify-between gap-4 ${
-                    submissionData.isGtd ? 'border-[#FFD700]/40 bg-[#2b1900]/40 px-3 py-2 rounded-lg' : 'border-[#4a3765]'
+                    submissionData.isGtd
+                      ? 'border-[#FFD700]/60 bg-[#1c1102]/80 px-4 py-2.5 rounded-xl'
+                      : 'border-[#4a3765]'
                   }`}
                 >
                   {/* Left: Logo Emblem & Title */}
                   <div className="flex items-center gap-3.5 sm:gap-4">
-                    {/* Floating Logo (No background, no border) */}
                     <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center">
                       <img
                         src="/logo.png"
@@ -338,25 +352,27 @@ export const ApplicationPage = ({ onBackHome }) => {
                       <h1 className="font-serif text-2xl sm:text-3xl text-white font-extrabold tracking-wider leading-none">
                         APEBROKERS
                       </h1>
-                      <div
-                        className={`text-[10px] sm:text-xs font-bold tracking-[2px] mt-1 uppercase ${
-                          submissionData.isGtd ? 'text-[#FFD700]' : 'text-[#c7b299]'
-                        }`}
-                      >
-                        {submissionData.isGtd ? '👑 GUARANTEED (GTD) BROKER PASS' : 'OFFICIAL BROKER IDENTIFICATION'}
-                      </div>
+                      {submissionData.isGtd ? (
+                        <div className="inline-block mt-1 bg-[#FFD700] text-black font-pixel text-[8px] sm:text-[9px] px-2 py-0.5 font-bold shadow-sm">
+                          👑 GUARANTEED (GTD) BROKER PASS
+                        </div>
+                      ) : (
+                        <div className="text-[10px] sm:text-xs font-bold tracking-[2px] mt-1 uppercase text-[#c7b299]">
+                          OFFICIAL BROKER IDENTIFICATION
+                        </div>
+                      )}
                       <div className="text-[10px] text-gray-400 font-mono mt-0.5">
-                        EXP: 12/2026
+                        EXP: 12/2026 • ROBINHOOD CHAIN
                       </div>
                     </div>
                   </div>
 
                   {/* Right: ID & Class */}
                   <div className="text-right shrink-0">
-                    <div className="font-mono text-xl sm:text-3xl text-white font-bold tracking-widest">
+                    <div className="font-mono text-xl sm:text-3xl text-[#FFD700] font-bold tracking-widest">
                       APE-{submissionData.brokerId.replace('#', '')}
                     </div>
-                    <div className="font-mono text-[10px] sm:text-xs text-[#FFD700] font-bold mt-1">
+                    <div className="font-pixel text-[9px] sm:text-[10px] text-[#FFD700] font-bold mt-1 bg-[#2d1c02] px-2 py-1 rounded border border-[#FFD700]/50">
                       {submissionData.isGtd ? 'CLASS: 👑 GTD TIER 1' : 'CLASS: 5★ BROKER'}
                     </div>
                   </div>
@@ -369,19 +385,19 @@ export const ApplicationPage = ({ onBackHome }) => {
                     <div
                       className={`w-full max-w-[220px] aspect-[4/5] p-2 relative shadow-lg ${
                         submissionData.isGtd
-                          ? 'bg-[#1a0e00] border-3 border-[#FFD700]'
+                          ? 'bg-[#1a0e00] border-4 border-[#FFD700]'
                           : 'bg-[#0a0612] border-3 border-[#4a3765]'
                       }`}
                     >
                       {/* Inner gold frame */}
-                      <div className="w-full h-full border border-[#FFD700]/70 relative overflow-hidden bg-black flex items-center justify-center">
+                      <div className="w-full h-full border-2 border-[#FFD700]/70 relative overflow-hidden bg-black flex items-center justify-center">
                         <img
                           src={submissionData.gifUrl}
                           alt={submissionData.isGtd ? `Golden Ape #${submissionData.gtdArtId}` : `ApeBroker #${submissionData.gifId}`}
                           className="w-full h-full object-cover pixelated"
                         />
                         <div className="absolute top-1.5 left-1.5 bg-[#FFD700] text-black font-pixel text-[8px] px-2 py-0.5 border border-black font-bold">
-                          {submissionData.isGtd ? `👑 GOLD #${submissionData.gtdArtId}` : `APE #${submissionData.gifId}`}
+                          {submissionData.isGtd ? `👑 GOLD APE #${submissionData.gtdArtId}` : `APE #${submissionData.gifId}`}
                         </div>
                       </div>
                     </div>
@@ -391,87 +407,87 @@ export const ApplicationPage = ({ onBackHome }) => {
                   <div className="md:col-span-8 space-y-3.5 text-left">
                     {/* Name / Organization */}
                     <div className="border-b border-[#3d2e54] pb-2.5">
-                      <div className="text-base sm:text-xl text-[#f0e6d2] font-serif font-bold tracking-wide">
+                      <div className="text-base sm:text-xl text-[#FFF2D6] font-serif font-bold tracking-wide">
                         “THE BROKER” {submissionData.xUsername.toUpperCase()}
                       </div>
                       <div
                         className={`text-xs sm:text-sm font-serif mt-0.5 ${
-                          submissionData.isGtd ? 'text-[#FFD700]' : 'text-[#c7b299]'
+                          submissionData.isGtd ? 'text-[#FFD700] font-bold' : 'text-[#c7b299]'
                         }`}
                       >
                         {submissionData.isGtd
-                          ? '👑 GUARANTEED VIP FLOOR, ROBINHOOD NETWORK'
+                          ? '👑 GUARANTEED VIP FLOOR  //  ROBINHOOD NETWORK'
                           : 'APEBROKERS TRADING FLOOR, ROBINHOOD NETWORK'}
                       </div>
                     </div>
 
-                    {/* Spec Grid */}
+                    {/* Spec Grid (3 Columns) */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-2.5 gap-x-4 text-xs">
                       <div>
-                        <span className="text-[#9e8fae] font-bold text-[11px] block">CHAIN:</span>
-                        <span className="text-[#00DDFF] font-bold">ROBINHOOD</span>
+                        <span className="text-[#d9b44a] font-bold text-[11px] block">CHAIN:</span>
+                        <span className="text-[#00F0FF] font-bold">ROBINHOOD</span>
                       </div>
 
                       <div>
-                        <span className="text-[#9e8fae] font-bold text-[11px] block">SUPPLY:</span>
+                        <span className="text-[#d9b44a] font-bold text-[11px] block">SUPPLY:</span>
                         <span className="text-[#00FF66] font-bold">5,555</span>
                       </div>
 
                       <div>
-                        <span className="text-[#9e8fae] font-bold text-[11px] block">STATUS:</span>
+                        <span className="text-[#d9b44a] font-bold text-[11px] block">STATUS:</span>
                         <span className="text-[#FFD700] font-bold">
                           {submissionData.isGtd ? '👑 GTD APPROVED' : 'UNDER REVIEW'}
                         </span>
                       </div>
 
                       <div className="col-span-2">
-                        <span className="text-[#9e8fae] font-bold text-[11px] block">WALLET:</span>
+                        <span className="text-[#d9b44a] font-bold text-[11px] block">WALLET:</span>
                         <span className="text-white font-bold truncate block">
                           {submissionData.walletAddress}
                         </span>
                       </div>
 
                       <div>
-                        <span className="text-[#9e8fae] font-bold text-[11px] block">ALLOCATION:</span>
+                        <span className="text-[#d9b44a] font-bold text-[11px] block">ALLOCATION:</span>
                         <span className={`font-bold ${submissionData.isGtd ? 'text-[#FFD700]' : 'text-[#00DDFF]'}`}>
                           {submissionData.isGtd ? '👑 GUARANTEED (GTD)' : 'APPLIED'}
                         </span>
                       </div>
 
                       <div>
-                        <span className="text-[#9e8fae] font-bold text-[11px] block">ROLE:</span>
-                        <span className="text-[#f0e6d2] font-semibold">
-                          {submissionData.isGtd ? '👑 GTD BROKER' : 'APPLICANT'}
+                        <span className="text-[#d9b44a] font-bold text-[11px] block">ROLE:</span>
+                        <span className="text-[#FFE8A3] font-semibold">
+                          {submissionData.isGtd ? '👑 VIP BROKER' : 'APPLICANT'}
                         </span>
                       </div>
 
                       <div>
-                        <span className="text-[#9e8fae] font-bold text-[11px] block">ACCESS:</span>
-                        <span className="text-[#FFD700] font-bold">
-                          {submissionData.isGtd ? 'GUARANTEED' : 'PENDING'}
+                        <span className="text-[#d9b44a] font-bold text-[11px] block">ACCESS:</span>
+                        <span className="text-[#00FFAA] font-bold">
+                          {submissionData.isGtd ? 'UNRESTRICTED' : 'PENDING'}
                         </span>
                       </div>
 
                       <div>
-                        <span className="text-[#9e8fae] font-bold text-[11px] block">DOB:</span>
-                        <span className="text-[#FF2247] font-bold">2026/RH</span>
+                        <span className="text-[#d9b44a] font-bold text-[11px] block">DOB:</span>
+                        <span className="text-[#FF3366] font-bold">2026 / RH</span>
                       </div>
                     </div>
 
                     {/* Bottom Signature & Stamp */}
-                    <div className="pt-2 flex items-center justify-between border-t border-[#3d2e54]">
-                      <div className="text-[10px] text-gray-500 font-mono">
+                    <div className="pt-2 flex items-center justify-between border-t border-[#805d00]/60">
+                      <div className="text-[10px] text-[#aa8c52] font-mono">
                         {submissionData.isGtd
-                          ? `APE-RH-GTD-5555 // ${submissionData.brokerId}`
-                          : `APE-RH-5555 // ${submissionData.brokerId}`}
+                          ? `AUTHENTICATED // RH-GTD-5555 // #${submissionData.brokerId.replace('#', '')}`
+                          : `APE-RH-5555 // #${submissionData.brokerId.replace('#', '')}`}
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <div className="font-serif italic text-sm text-[#FFD700] opacity-80">
+                        <div className="font-serif italic text-sm text-[#FFD700] opacity-90">
                           ApeBrokers Executive
                         </div>
-                        <div className="border border-[#FFD700] text-[#FFD700] font-pixel text-[7px] px-1.5 py-0.5 -rotate-6">
-                          {submissionData.isGtd ? '👑 GTD PASS' : 'RECEIVED'}
+                        <div className="border-2 border-[#FFD700] text-[#FFD700] font-pixel text-[7px] px-2 py-0.5 -rotate-6 shadow-sm bg-[#1c1102]">
+                          {submissionData.isGtd ? '★ GTD PASS ★' : 'RECEIVED'}
                         </div>
                       </div>
                     </div>
