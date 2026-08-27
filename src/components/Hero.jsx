@@ -6,7 +6,6 @@ const HERO_IMAGES = [
   '/nfts/hero_2.png',
   '/nfts/hero_3.png',
   '/nfts/hero_4.png',
-  '/nfts/hero_5.png',
 ];
 
 export const Hero = ({ onApplyClick, onBrokersClick }) => {
