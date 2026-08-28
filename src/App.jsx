@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ApplicationPage } from './components/ApplicationPage';
@@ -25,7 +26,12 @@ function App() {
   };
 
   if (currentPage === 'apply') {
-    return <ApplicationPage onBackHome={handleBackHome} />;
+    return (
+      <>
+        <ApplicationPage onBackHome={handleBackHome} />
+        <Analytics />
+      </>
+    );
   }
 
   return (
@@ -37,6 +43,9 @@ function App() {
       <main className="flex-grow flex flex-col items-center justify-center w-full">
         <Hero onApplyClick={handleApply} />
       </main>
+
+      {/* Vercel Analytics */}
+      <Analytics />
     </div>
   );
 }
