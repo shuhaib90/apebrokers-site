@@ -539,10 +539,10 @@ export const ApplicationPage = ({ onBackHome }) => {
                     sound?.playClick?.();
                     const tweetText = encodeURIComponent(
                       submissionData.isGtd
-                        ? `I just won a GOLDEN GTD Pass for @Apesyndicates on Robinhood Chain! 👑🦍\n\nSyndicate ID: ${submissionData.brokerId} - 100% Guaranteed WL!\n\n#ApeSyndicate #RobinhoodChain #NFT`
-                        : `Applied for @Apesyndicates Whitelist! 🦍\n\nFloor Pass ${submissionData.brokerId} secured on Robinhood Chain.\n\n#ApeSyndicate #NFT`
+                        ? `I just won a GOLDEN GTD Pass for @Apesyndicates on Robinhood Chain! 👑🦍\n\nSyndicate ID: ${submissionData.brokerId} - 100% Guaranteed WL!\n\nhttps://x.com/i/status/2093348238971846874\n\n#ApeSyndicate #RobinhoodChain #NFT`
+                        : `Applied for @Apesyndicates Whitelist! 🦍\n\nFloor Pass ${submissionData.brokerId} secured on Robinhood Chain.\n\nhttps://x.com/i/status/2093348238971846874\n\n#ApeSyndicate #NFT`
                     );
-                    window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank', 'noopener,noreferrer');
+                    window.open(`https://x.com/intent/tweet?text=${tweetText}`, '_blank', 'noopener,noreferrer');
                   }}
                   className="w-full min-h-[48px] pixel-btn pixel-btn-white px-4 py-3 font-pixel text-xs font-bold flex items-center justify-center gap-2"
                 >
