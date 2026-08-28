@@ -19,7 +19,7 @@ export const SuccessModal = ({ submissionData, onReset }) => {
   const handleShareOnX = () => {
     sound.playClick();
     const tweetText = encodeURIComponent(
-      `Just submitted my Syndicate Pass application for @Apesyndicates on Robinhood Chain!\n\nTicket: ${submissionData?.ticketId || '#APE-WL'}\n\nhttps://x.com/i/status/2093348238971846874\n\n#ApeSyndicate #RobinhoodChain #NFT`
+      `Just submitted my Syndicate Pass application for @Apesyndicates on Robinhood Chain!\n\nTicket: ${submissionData?.ticketId || '#APE-WL'}\n\nhttps://x.com/Apesyndicates/status/2093348238971846874/photo/1\n\n#ApeSyndicate #RobinhoodChain #NFT`
     );
     window.open(`https://x.com/intent/tweet?text=${tweetText}`, '_blank', 'noopener,noreferrer');
   };
