@@ -39,7 +39,7 @@ export const Hero = ({ onApplyClick }) => {
 
   return (
     <section className="w-full max-w-6xl mx-auto px-4 sm:px-8 pt-8 pb-12 sm:pt-14 sm:pb-16 select-none">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
         {/* Left Column */}
         <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left space-y-5 sm:space-y-6">
           {/* Badge */}
@@ -48,60 +48,49 @@ export const Hero = ({ onApplyClick }) => {
             <span>WL APPLICATIONS OPEN</span>
           </div>
 
-          {/* Headline (Responsive sizing to fit APESYNDICATE length perfectly) */}
-          <div className="space-y-1 sm:space-y-2 w-full">
-            <h1 className="font-pixel text-2xl sm:text-3xl md:text-4xl lg:text-[40px] xl:text-[46px] text-black tracking-tight font-extrabold leading-tight">
+          {/* Headline */}
+          <div className="space-y-1 sm:space-y-2">
+            <h1 className="font-pixel text-3xl sm:text-4xl lg:text-[42px] xl:text-5xl text-black tracking-tight font-extrabold leading-tight">
               APESYNDICATE
             </h1>
-            <h2 className="font-pixel text-lg sm:text-2xl md:text-3xl lg:text-[26px] xl:text-[32px] text-[#2A0845] tracking-tight font-extrabold">
+            <h2 className="font-pixel text-xl sm:text-2xl lg:text-3xl xl:text-4xl text-[#2A0845] tracking-tight font-extrabold">
               GET ON THE LIST.
             </h2>
           </div>
 
-          {/* Mobile-Only Artwork Preview (Pure NFT, No text, No bg box) */}
-          <div className="lg:hidden w-full max-w-[260px] sm:max-w-[300px] my-2 flex justify-center">
-            <img
-              src={HERO_IMAGES[currentImageIndex]}
-              alt={`ApeSyndicate Collection NFT #${currentImageIndex + 1}`}
-              className="w-full h-auto aspect-square object-contain pixelated drop-shadow-md"
-            />
+          {/* Mobile-Only Artwork Preview (Clean 1:1 Static NFT, Curved Edges) */}
+          <div className="lg:hidden w-full max-w-[280px] sm:max-w-[320px] my-2">
+            <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-lg">
+              <img
+                src={HERO_IMAGES[currentImageIndex]}
+                alt={`ApeSyndicate Collection NFT #${currentImageIndex + 1}`}
+                className="w-full h-auto aspect-square object-cover pixelated"
+              />
+            </div>
           </div>
 
-          {/* Value Props Strip */}
-          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 sm:gap-3 text-[10px] sm:text-xs font-pixel">
-            <span className="bg-black text-white px-2.5 py-1 border-2 border-black">
-              5,555 SUPPLY
-            </span>
-            <span className="bg-black text-[#00FF66] px-2.5 py-1 border-2 border-black">
-              ROBINHOOD CHAIN
-            </span>
-            <span className="bg-black text-[#FFD700] px-2.5 py-1 border-2 border-black">
-              TBA MINT
-            </span>
-          </div>
-
-          {/* Paragraph */}
-          <p className="font-mono text-sm sm:text-base text-gray-900 font-semibold max-w-lg leading-relaxed">
-            5,555 elite pixel apes taking over Robinhood Chain. Complete the broker checklist below to secure your whitelist pass.
+          {/* Description */}
+          <p className="font-mono text-sm sm:text-base text-black font-semibold max-w-lg leading-relaxed">
+            5,555 unique pixel apes launching on Robinhood Chain. Complete the application below to secure your whitelist allocation.
           </p>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto pt-2">
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto pt-2">
             <button
               type="button"
               onClick={handleApply}
-              className="w-full sm:w-auto min-h-[52px] pixel-btn pixel-btn-black px-6 sm:px-8 py-3 font-pixel text-xs sm:text-sm font-extrabold tracking-wider"
+              className="w-full sm:w-auto min-h-[50px] pixel-btn pixel-btn-black px-6 sm:px-8 py-3.5 font-pixel text-xs sm:text-sm font-extrabold"
             >
-              [ APPLY FOR WHITELIST ]
+              [ APPLY FOR WL ]
             </button>
 
             <button
               type="button"
               onClick={handleBrokers}
-              className={`w-full sm:w-auto min-h-[52px] pixel-btn px-5 sm:px-6 py-3 font-pixel text-xs transition-all ${
-                collectionText === '[ COMING SOON ]'
-                  ? 'pixel-btn-gold text-black animate-pulse font-bold'
-                  : 'pixel-btn-white'
+              className={`w-full sm:w-auto min-h-[50px] pixel-btn px-6 sm:px-8 py-3.5 font-pixel text-xs sm:text-sm font-bold transition-all ${
+                collectionText.includes('SOON')
+                  ? 'pixel-btn-black text-[#FFD700] border-[#FFD700]'
+                  : 'pixel-btn-purple'
               }`}
             >
               {collectionText}
@@ -109,14 +98,43 @@ export const Hero = ({ onApplyClick }) => {
           </div>
         </div>
 
-        {/* Right Column: Desktop Pure Floating NFT Artwork (No text overlay, No card background) */}
-        <div className="hidden lg:col-span-5 lg:flex justify-center items-center">
-          <div className="w-full max-w-[340px] xl:max-w-[380px] flex justify-center items-center">
+        {/* Desktop-Only Artwork Right Side (Clean 1:1 Static NFT, Curved Edges) */}
+        <div className="hidden lg:flex lg:col-span-5 justify-center">
+          <div className="relative w-full max-w-[380px] overflow-hidden rounded-2xl sm:rounded-3xl shadow-xl">
             <img
               src={HERO_IMAGES[currentImageIndex]}
-              alt="ApeSyndicate Hero NFT"
-              className="w-full h-auto aspect-square object-contain pixelated drop-shadow-xl transition-opacity duration-300"
+              alt={`ApeSyndicate Collection NFT #${currentImageIndex + 1}`}
+              className="w-full h-auto aspect-square object-cover pixelated"
             />
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Bar */}
+      <div className="mt-12 sm:mt-16 w-full">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Stat 1 */}
+          <div className="pixel-box-black p-4 text-center">
+            <div className="font-pixel text-xl sm:text-2xl text-[#00FF66] font-extrabold">5,555</div>
+            <div className="font-pixel text-[9px] text-gray-400 mt-1">TOTAL SUPPLY</div>
+          </div>
+
+          {/* Stat 2 */}
+          <div className="pixel-box-black p-4 text-center">
+            <div className="font-pixel text-xl sm:text-2xl text-[#FFD700] font-extrabold">TBA</div>
+            <div className="font-pixel text-[9px] text-gray-400 mt-1">MINT PRICE</div>
+          </div>
+
+          {/* Stat 3 */}
+          <div className="pixel-box-black p-4 text-center">
+            <div className="font-pixel text-lg sm:text-xl text-white font-extrabold">ROBINHOOD</div>
+            <div className="font-pixel text-[9px] text-gray-400 mt-1">NETWORK</div>
+          </div>
+
+          {/* Stat 4 */}
+          <div className="pixel-box-black p-4 text-center">
+            <div className="font-pixel text-xl sm:text-2xl text-[#FF2247] font-extrabold">TBA</div>
+            <div className="font-pixel text-[9px] text-gray-400 mt-1">MINT DATE</div>
           </div>
         </div>
       </div>
