@@ -35,12 +35,22 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#00FF66] text-black flex flex-col justify-between font-pixel selection:bg-black selection:text-[#00FF66]">
+    <div
+      className="min-h-screen text-black flex flex-col justify-between font-pixel selection:bg-black selection:text-[#00FF66] bg-cover bg-center bg-no-repeat bg-fixed relative"
+      style={{
+        backgroundImage: "url('/landscape_bg.gif')",
+      }}
+    >
+      {/* Background Dimmer Layer for enhanced readability */}
+      <div className="absolute inset-0 bg-black/40 pointer-events-none z-0" />
+
       {/* Top Header */}
-      <Header onApplyClick={handleApply} />
+      <div className="relative z-50">
+        <Header onApplyClick={handleApply} />
+      </div>
 
       {/* Hero Content with Stats */}
-      <main className="flex-grow flex flex-col items-center justify-center w-full">
+      <main className="flex-grow flex flex-col items-center justify-center w-full relative z-10">
         <Hero onApplyClick={handleApply} />
       </main>
 
