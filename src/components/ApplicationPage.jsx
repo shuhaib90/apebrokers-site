@@ -231,9 +231,17 @@ export const ApplicationPage = ({ onBackHome }) => {
   const verifiedCount = Object.values(taskStates).filter((s) => s === 'VERIFIED').length;
 
   return (
-    <div className="min-h-screen bg-[#00FF66] text-black font-pixel selection:bg-black selection:text-[#00FF66] flex flex-col justify-between select-none">
+    <div
+      className="min-h-screen text-black font-pixel selection:bg-black selection:text-[#00FF66] flex flex-col justify-between select-none bg-cover bg-center bg-no-repeat bg-fixed relative"
+      style={{
+        backgroundImage: "url('/landscape_bg.gif')",
+      }}
+    >
+      {/* Background Dimmer Layer for readability */}
+      <div className="absolute inset-0 bg-black/45 pointer-events-none z-0" />
+
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full bg-[#00FF66] border-b-4 border-black px-4 sm:px-8 py-3.5">
+      <header className="sticky top-0 z-40 w-full bg-[#00FF66] border-b-4 border-black px-4 sm:px-8 py-3.5 shadow-md relative">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <button
             type="button"
@@ -261,7 +269,7 @@ export const ApplicationPage = ({ onBackHome }) => {
       </header>
 
       {/* Main Content Form */}
-      <main className="flex-grow flex items-center justify-center p-3 sm:p-6 py-6 sm:py-10">
+      <main className="flex-grow flex items-center justify-center p-3 sm:p-6 py-6 sm:py-10 relative z-10">
         <div className="w-full max-w-2xl">
           {submissionData ? (
             /* SUCCESS CONFIRMATION & SYNDICATE IDENTIFICATION CARD */
@@ -827,7 +835,7 @@ export const ApplicationPage = ({ onBackHome }) => {
       </main>
 
       {/* Footer */}
-      <footer className="w-full bg-black text-white border-t-4 border-black px-4 py-6 text-center select-none">
+      <footer className="w-full bg-black text-white border-t-4 border-black px-4 py-6 text-center select-none relative z-10">
         <div className="font-pixel text-xs text-[#00FF66]">
           APESYNDICATE // ROBINHOOD CHAIN
         </div>
