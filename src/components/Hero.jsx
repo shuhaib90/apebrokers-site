@@ -51,46 +51,59 @@ export const Hero = ({ onApplyClick }) => {
           {/* Headline */}
           <div className="space-y-1 sm:space-y-2">
             <h1 className="font-pixel text-3xl sm:text-5xl lg:text-6xl text-black tracking-tight font-extrabold leading-none">
-              APEBROKERS
+              APESYNDICATE
             </h1>
             <h2 className="font-pixel text-xl sm:text-3xl lg:text-4xl text-[#2A0845] tracking-tight font-extrabold">
               GET ON THE LIST.
             </h2>
           </div>
 
-          {/* Mobile-Only Artwork Preview (Clean 1:1 Static NFT, Curved Edges) */}
+          {/* Mobile-Only Artwork Preview */}
           <div className="lg:hidden w-full max-w-[280px] sm:max-w-[320px] my-2">
             <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-lg">
               <img
                 src={HERO_IMAGES[currentImageIndex]}
-                alt={`ApeBrokers Collection NFT #${currentImageIndex + 1}`}
+                alt={`ApeSyndicate Collection NFT #${currentImageIndex + 1}`}
                 className="w-full h-auto aspect-square object-cover pixelated"
               />
             </div>
           </div>
 
-          {/* Description */}
-          <p className="font-mono text-sm sm:text-base text-black font-semibold max-w-lg leading-relaxed">
-            5,555 unique pixel ape brokers launching on Robinhood Chain. Complete the application below to secure your whitelist allocation.
+          {/* Value Props Strip */}
+          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 sm:gap-3 text-[10px] sm:text-xs font-pixel">
+            <span className="bg-black text-white px-2.5 py-1 border-2 border-black">
+              5,555 SUPPLY
+            </span>
+            <span className="bg-black text-[#00FF66] px-2.5 py-1 border-2 border-black">
+              ROBINHOOD CHAIN
+            </span>
+            <span className="bg-black text-[#FFD700] px-2.5 py-1 border-2 border-black">
+              TBA MINT
+            </span>
+          </div>
+
+          {/* Paragraph */}
+          <p className="font-mono text-sm sm:text-base text-gray-900 font-semibold max-w-lg leading-relaxed">
+            5,555 elite pixel apes taking over Robinhood Chain. Complete the broker checklist below to secure your whitelist pass.
           </p>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto pt-2">
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto pt-2">
             <button
               type="button"
               onClick={handleApply}
-              className="w-full sm:w-auto min-h-[50px] pixel-btn pixel-btn-black px-6 sm:px-8 py-3.5 font-pixel text-xs sm:text-sm font-extrabold"
+              className="w-full sm:w-auto min-h-[52px] pixel-btn pixel-btn-black px-6 sm:px-8 py-3 font-pixel text-xs sm:text-sm font-extrabold tracking-wider"
             >
-              [ APPLY FOR WL ]
+              [ APPLY FOR WHITELIST ]
             </button>
 
             <button
               type="button"
               onClick={handleBrokers}
-              className={`w-full sm:w-auto min-h-[50px] pixel-btn px-6 sm:px-8 py-3.5 font-pixel text-xs sm:text-sm font-bold transition-all ${
-                collectionText.includes('SOON')
-                  ? 'pixel-btn-black text-[#FFD700] border-[#FFD700]'
-                  : 'pixel-btn-purple'
+              className={`w-full sm:w-auto min-h-[52px] pixel-btn px-5 sm:px-6 py-3 font-pixel text-xs transition-all ${
+                collectionText === '[ COMING SOON ]'
+                  ? 'pixel-btn-gold text-black animate-pulse font-bold'
+                  : 'pixel-btn-white'
               }`}
             >
               {collectionText}
@@ -98,43 +111,26 @@ export const Hero = ({ onApplyClick }) => {
           </div>
         </div>
 
-        {/* Desktop-Only Artwork Right Side (Clean 1:1 Static NFT, Curved Edges) */}
-        <div className="hidden lg:flex lg:col-span-5 justify-center">
-          <div className="relative w-full max-w-[380px] overflow-hidden rounded-2xl sm:rounded-3xl shadow-xl">
-            <img
-              src={HERO_IMAGES[currentImageIndex]}
-              alt={`ApeBrokers Collection NFT #${currentImageIndex + 1}`}
-              className="w-full h-auto aspect-square object-cover pixelated"
-            />
-          </div>
-        </div>
-      </div>
+        {/* Right Column: Desktop Large Animated Showcase */}
+        <div className="hidden lg:col-span-5 lg:flex justify-center">
+          <div className="w-full max-w-[380px] space-y-3">
+            <div className="relative overflow-hidden rounded-3xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] border-4 border-black bg-black">
+              <img
+                src={HERO_IMAGES[currentImageIndex]}
+                alt="ApeSyndicate Hero NFT"
+                className="w-full h-auto aspect-square object-cover pixelated transition-all duration-300"
+              />
 
-      {/* Stats Bar */}
-      <div className="mt-12 sm:mt-16 w-full">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {/* Stat 1 */}
-          <div className="pixel-box-black p-4 text-center">
-            <div className="font-pixel text-xl sm:text-2xl text-[#00FF66] font-extrabold">5,555</div>
-            <div className="font-pixel text-[9px] text-gray-400 mt-1">TOTAL SUPPLY</div>
-          </div>
+              {/* Tag overlay */}
+              <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-sm text-[#00FF66] font-pixel text-[9px] px-2.5 py-1 border border-[#00FF66]">
+                ● FEATURED APE #{currentImageIndex + 1}
+              </div>
+            </div>
 
-          {/* Stat 2 */}
-          <div className="pixel-box-black p-4 text-center">
-            <div className="font-pixel text-xl sm:text-2xl text-[#FFD700] font-extrabold">TBA</div>
-            <div className="font-pixel text-[9px] text-gray-400 mt-1">MINT PRICE</div>
-          </div>
-
-          {/* Stat 3 */}
-          <div className="pixel-box-black p-4 text-center">
-            <div className="font-pixel text-lg sm:text-xl text-white font-extrabold">ROBINHOOD</div>
-            <div className="font-pixel text-[9px] text-gray-400 mt-1">NETWORK</div>
-          </div>
-
-          {/* Stat 4 */}
-          <div className="pixel-box-black p-4 text-center">
-            <div className="font-pixel text-xl sm:text-2xl text-[#FF2247] font-extrabold">TBA</div>
-            <div className="font-pixel text-[9px] text-gray-400 mt-1">MINT DATE</div>
+            <div className="bg-black text-white p-3 border-3 border-black text-center font-pixel text-[10px] flex items-center justify-between">
+              <span className="text-[#00FF66]">APESYNDICATE // GENESIS</span>
+              <span className="text-[#FFD700]">5,555 UNIQUE</span>
+            </div>
           </div>
         </div>
       </div>

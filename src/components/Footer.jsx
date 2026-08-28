@@ -18,7 +18,7 @@ export const Footer = () => {
         {/* Brand */}
         <div className="space-y-1">
           <div className="font-pixel text-lg sm:text-xl text-[#00FF66] font-extrabold tracking-wider">
-            APEBROKERS
+            APESYNDICATE
           </div>
           <div className="font-pixel text-[10px] sm:text-xs text-gray-400">
             5,555 PIXEL APES • COMING SOON ON ROBINHOOD CHAIN
@@ -57,7 +57,7 @@ export const Footer = () => {
 
         {/* Copyright */}
         <div className="font-pixel text-[8px] text-gray-600 pt-2 border-t border-gray-900 w-full">
-          © {new Date().getFullYear()} APEBROKERS. ALL RIGHTS RESERVED.
+          © {new Date().getFullYear()} APESYNDICATE. ALL RIGHTS RESERVED.
         </div>
       </div>
     </footer>

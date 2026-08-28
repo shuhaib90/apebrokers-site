@@ -15,7 +15,7 @@ const ALL_BROKERS = Array.from({ length: 100 }, (_, i) => {
   return {
     id: id.toString(),
     numId: id,
-    name: `ApeBroker #${id}`,
+    name: `ApeSyndicate #${id}`,
     role: roles[(id - 1) % roles.length],
     tag: tags[(id - 1) % tags.length],
     gif: `/gifs/${id}.gif`,
@@ -80,7 +80,7 @@ export const BrokersGallery = ({ onBackHome, onApplyClick }) => {
                 className="w-9 h-9 sm:w-11 sm:h-11 object-contain pixelated"
               />
               <span className="font-pixel text-xs sm:text-sm text-black hidden sm:inline font-extrabold">
-                APEBROKERS VAULT // 10 UNLOCKED
+                APESYNDICATE VAULT // 10 UNLOCKED
               </span>
             </div>
           </div>
@@ -117,10 +117,10 @@ export const BrokersGallery = ({ onBackHome, onApplyClick }) => {
               ROBINHOOD CHAIN • 10 REVEALED
             </div>
             <h1 className="font-pixel text-xl sm:text-2xl text-black font-extrabold tracking-tight">
-              APEBROKERS COLLECTION
+              APESYNDICATE COLLECTION
             </h1>
             <p className="font-mono text-xs text-gray-700 font-semibold mt-0.5">
-              10 Animated Brokers Unlocked • 90 Revealing Soon
+              10 Animated Apes Unlocked • 90 Revealing Soon
             </p>
           </div>
 
@@ -286,7 +286,7 @@ export const BrokersGallery = ({ onBackHome, onApplyClick }) => {
       {/* Footer */}
       <footer className="w-full bg-black text-white border-t-4 border-black px-4 py-6 text-center select-none mt-12">
         <div className="font-pixel text-xs text-[#00FF66]">
-          APEBROKERS // 10 REVEALED PIXEL COLLECTION • 5,555 TOTAL SUPPLY
+          APESYNDICATE // 10 REVEALED PIXEL COLLECTION • 5,555 TOTAL SUPPLY
         </div>
         <div className="font-mono text-[10px] text-gray-400 mt-1">
           Follow <a href="https://x.com/ApebrokersNft" target="_blank" rel="noopener noreferrer" className="text-[#00FF66] underline">@ApebrokersNft</a> on X

@@ -162,7 +162,7 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         ctx.textBaseline = 'top';
         ctx.font = "900 36px 'Cinzel', 'Times New Roman', Georgia, serif";
         ctx.fillStyle = isGtd ? '#FFFFFF' : '#FFFFFF';
-        ctx.fillText('APEBROKERS', 160, 32);
+        ctx.fillText('APESYNDICATE', 160, 32);
 
         if (isGtd) {
           // Luxury Gold Pill Badge for GTD
@@ -170,7 +170,7 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
           ctx.fillRect(160, 78, 380, 24);
           ctx.font = "900 11px 'Press Start 2P', monospace, sans-serif";
           ctx.fillStyle = '#000000';
-          ctx.fillText('👑 GUARANTEED (GTD) BROKER PASS', 170, 84);
+          ctx.fillText('👑 GUARANTEED (GTD) SYNDICATE PASS', 170, 84);
 
           ctx.font = "bold 12px 'Courier New', monospace";
           ctx.fillStyle = '#f5d77f';
@@ -179,7 +179,7 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
           ctx.font = "bold 14px 'Cinzel', 'Times New Roman', Georgia, serif";
           ctx.fillStyle = '#c7b299';
           ctx.letterSpacing = '3px';
-          ctx.fillText('OFFICIAL BROKER IDENTIFICATION', 162, 78);
+          ctx.fillText('OFFICIAL SYNDICATE IDENTIFICATION', 162, 78);
 
           ctx.font = "bold 12px 'Courier New', monospace";
           ctx.fillStyle = '#9e8fae';
@@ -259,7 +259,7 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         ctx.textBaseline = 'top';
         ctx.font = "900 25px 'Cinzel', 'Times New Roman', Georgia, serif";
         ctx.fillStyle = isGtd ? '#FFF2D6' : '#f0e6d2';
-        ctx.fillText(`"THE BROKER" ${cleanUsername.toUpperCase()}`, infoX, infoY);
+        ctx.fillText(`"THE SYNDICATE" ${cleanUsername.toUpperCase()}`, infoX, infoY);
 
         // Affiliation
         ctx.font = "bold 14px 'Cinzel', 'Times New Roman', Georgia, serif";
@@ -267,7 +267,7 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         ctx.fillText(
           isGtd
             ? '👑 GUARANTEED VIP FLOOR  //  ROBINHOOD NETWORK'
-            : 'APEBROKERS TRADING FLOOR, ROBINHOOD NETWORK',
+            : 'APESYNDICATE FLOOR, ROBINHOOD NETWORK',
           infoX,
           infoY + 36
         );
@@ -309,7 +309,7 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         renderCell('ALLOCATION:', isGtd ? '👑 GUARANTEED (GTD)' : 'APPLIED', col3X, row2Y, isGtd ? '#FFD700' : '#00DDFF');
 
         // Row 3: ROLE | ACCESS | DOB
-        renderCell('ROLE:', isGtd ? '👑 VIP BROKER' : 'APPLICANT', col1X, row3Y, isGtd ? '#FFE8A3' : '#f0e6d2');
+        renderCell('ROLE:', isGtd ? '👑 VIP SYNDICATE' : 'APPLICANT', col1X, row3Y, isGtd ? '#FFE8A3' : '#f0e6d2');
         renderCell('ACCESS:', isGtd ? 'UNRESTRICTED' : 'PENDING', col2X, row3Y, isGtd ? '#00FFAA' : '#FFD700');
         renderCell('DOB:', '2026 / RH', col3X, row3Y, '#FF3366');
 
@@ -337,7 +337,7 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         ctx.font = "italic 28px 'Brush Script MT', 'Dancing Script', 'Lucida Handwriting', cursive, serif";
         ctx.fillStyle = '#FFD700';
         ctx.textAlign = 'right';
-        ctx.fillText('ApeBrokers Executive', W - 160, footerY + 10);
+        ctx.fillText('ApeSyndicate Executive', W - 160, footerY + 10);
 
         // 10. Official Gold Watermark Stamp
         ctx.save();
@@ -363,8 +363,8 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         const dataUrl = canvas.toDataURL('image/png');
         const link = document.createElement('a');
         link.download = isGtd
-          ? `ApeBrokers_GOLDEN_GTD_Pass_${cleanBrokerId}.png`
-          : `ApeBrokers_Identification_${cleanBrokerId}.png`;
+          ? `ApeSyndicate_GOLDEN_GTD_Pass_${cleanBrokerId}.png`
+          : `ApeSyndicate_Identification_${cleanBrokerId}.png`;
         link.href = dataUrl;
         document.body.appendChild(link);
         link.click();
@@ -391,7 +391,7 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
 export function downloadBrokerGif(gifUrl, gifId) {
   const link = document.createElement('a');
   link.href = gifUrl;
-  link.download = `ApeBroker_${gifId}.gif`;
+  link.download = `ApeSyndicate_${gifId}.gif`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

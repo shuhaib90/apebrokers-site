@@ -10,10 +10,10 @@ export const About = () => {
             PROJECT OVERVIEW
           </div>
           <h2 className="font-pixel text-xl sm:text-2xl md:text-3xl text-black font-extrabold tracking-tight">
-            WHAT IS APEBROKERS?
+            WHAT IS APESYNDICATE?
           </h2>
           <p className="font-mono text-sm sm:text-base text-gray-800 font-semibold max-w-2xl mx-auto leading-relaxed">
-            A collection of 5,555 unique pixel apes built around broker culture, community and digital collectibles on Robinhood Chain.
+            A collection of 5,555 unique pixel apes built around syndicate culture, conviction, community and digital collectibles on Robinhood Chain.
           </p>
         </div>
 
@@ -59,18 +59,10 @@ export const About = () => {
           </div>
         </div>
 
-        {/* Whitelist Benefits */}
-        <div className="bg-gray-100 border-3 border-black p-5 text-left font-mono text-xs space-y-2">
-          <div className="font-pixel text-[10px] text-black font-bold">
-            ★ WHITELIST ALLOCATION PERKS:
-          </div>
-          <ul className="space-y-1.5 text-gray-700 text-xs list-disc list-inside font-medium">
-            <li><strong className="text-black">Guaranteed Mint Window</strong> before public minting opens.</li>
-            <li><strong className="text-black">Priority Floor Access</strong> to the private ApeBrokers Discord syndicate.</li>
-            <li><strong className="text-black">Reduced Gas & Priority Execution</strong> on Robinhood Chain.</li>
-            <li><strong className="text-black">Direct Eligibility</strong> for upcoming $BROKER ecosystem rewards.</li>
-          </ul>
-        </div>
+        {/* Short Mission Text */}
+        <p className="font-mono text-xs sm:text-sm text-gray-700 font-semibold max-w-xl mx-auto pt-2">
+          Securing a whitelist spot grants early access to the genesis mint, private syndicate alpha channels, and community governance.
+        </p>
       </div>
     </section>
   );

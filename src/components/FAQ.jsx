@@ -3,20 +3,20 @@ import { sound } from '../utils/audio';
 
 const FAQ_ITEMS = [
   {
-    q: 'What is ApeBrokers?',
-    a: 'ApeBrokers is a high-conviction collection of 5,555 unique pixel apes operating an onchain trading floor on Robinhood Chain.',
+    q: 'What is ApeSyndicate?',
+    a: 'ApeSyndicate is a high-conviction collection of 5,555 unique pixel apes operating an onchain syndicate on Robinhood Chain.',
   },
   {
     q: 'How do I apply for WL?',
-    a: 'Complete the whitelist application form on this website with your X username, Discord username, and EVM/Robinhood wallet address, and complete the 3 social tasks.',
+    a: 'Complete the whitelist application form on this website with your X username, EVM/Robinhood wallet address, and complete the social tasks.',
   },
   {
     q: 'When is the mint?',
-    a: 'Mint date and mint price are TBA (To Be Announced) exclusively via our official X (@ApeBrokers) and Discord announcement channels.',
+    a: 'Mint date and mint price are TBA (To Be Announced) exclusively via our official X (@ApebrokersNft) and Discord announcement channels.',
   },
   {
-    q: 'Which chain is ApeBrokers on?',
-    a: 'ApeBrokers is built natively and exclusively on Robinhood Chain.',
+    q: 'Which chain is ApeSyndicate on?',
+    a: 'ApeSyndicate is built natively and exclusively on Robinhood Chain.',
   },
   {
     q: 'Do I need to connect my wallet?',
@@ -24,7 +24,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'How will WL be selected?',
-    a: 'Applications are screened directly by the ApeBrokers team based on verified task completion, conviction, and community engagement.',
+    a: 'Applications are screened directly by the ApeSyndicate team based on verified task completion, conviction, and community engagement.',
   },
 ];
 
@@ -61,18 +61,18 @@ export const FAQ = () => {
                 <button
                   type="button"
                   onClick={() => toggleFAQ(idx)}
-                  className={`w-full min-h-[48px] px-4 py-3.5 flex items-center justify-between text-left font-pixel text-xs sm:text-sm font-bold transition-colors ${
-                    isOpen ? 'bg-[#2A0845] text-white' : 'bg-white text-black hover:bg-gray-100'
-                  }`}
+                  className="w-full p-3.5 sm:p-4 text-left flex items-center justify-between gap-3 bg-white hover:bg-gray-100 transition-colors"
                 >
-                  <span className="pr-3 leading-snug">{item.q}</span>
-                  <span className={`font-pixel text-sm shrink-0 ${isOpen ? 'text-[#FFD700]' : 'text-black'}`}>
-                    {isOpen ? '−' : '+'}
+                  <span className="font-pixel text-[10px] sm:text-xs text-black font-bold">
+                    {item.q}
+                  </span>
+                  <span className="font-pixel text-xs text-black shrink-0 font-extrabold">
+                    {isOpen ? '[-]' : '[+]'}
                   </span>
                 </button>
 
                 {isOpen && (
-                  <div className="p-4 bg-gray-50 border-t-2 border-black font-mono text-xs sm:text-sm text-gray-800 font-semibold leading-relaxed">
+                  <div className="p-3.5 sm:p-4 bg-gray-100 border-t-2 border-black font-mono text-xs sm:text-sm text-gray-800 font-semibold leading-relaxed">
                     {item.a}
                   </div>
                 )}

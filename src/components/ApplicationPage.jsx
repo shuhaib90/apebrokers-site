@@ -250,11 +250,11 @@ export const ApplicationPage = ({ onBackHome }) => {
           <div className="flex items-center gap-3">
             <img
               src="/logo.png"
-              alt="ApeBrokers Logo"
+              alt="ApeSyndicate Logo"
               className="w-9 h-9 sm:w-11 sm:h-11 object-contain pixelated"
             />
             <span className="font-pixel text-xs sm:text-sm text-black font-extrabold">
-              APEBROKERS WL
+              APESYNDICATE WL
             </span>
           </div>
         </div>
@@ -264,7 +264,7 @@ export const ApplicationPage = ({ onBackHome }) => {
       <main className="flex-grow flex items-center justify-center p-3 sm:p-6 py-6 sm:py-10">
         <div className="w-full max-w-2xl">
           {submissionData ? (
-            /* SUCCESS CONFIRMATION & BROKER IDENTIFICATION CARD */
+            /* SUCCESS CONFIRMATION & SYNDICATE IDENTIFICATION CARD */
             <div className="space-y-6">
               {/* GTD Winner Celebration Banner */}
               {submissionData.isGtd ? (
@@ -275,7 +275,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                     <span className="text-base sm:text-xl">👑</span>
                   </div>
                   <p className="font-mono text-xs sm:text-sm font-bold max-w-lg mx-auto leading-relaxed">
-                    🎉 Congratulations! Your wallet was randomly chosen for a <span className="underline font-extrabold">GUARANTEED (GTD) WHITELIST ALLOCATION</span> with a Rare Golden Broker Pass!
+                    🎉 Congratulations! Your wallet was randomly chosen for a <span className="underline font-extrabold">GUARANTEED (GTD) WHITELIST ALLOCATION</span> with a Rare Golden Syndicate Pass!
                   </p>
                 </div>
               ) : (
@@ -285,10 +285,10 @@ export const ApplicationPage = ({ onBackHome }) => {
                     ● APPLICATION RECORDED ●
                   </div>
                   <h2 className="font-pixel text-xl sm:text-2xl text-black font-extrabold">
-                    OFFICIAL BROKER IDENTIFICATION
+                    OFFICIAL SYNDICATE IDENTIFICATION
                   </h2>
                   <p className="font-mono text-xs text-gray-800 font-semibold max-w-md mx-auto">
-                    Your ApeBrokers ID Card has been issued. Download your official PNG pass below!
+                    Your ApeSyndicate ID Card has been issued. Download your official PNG pass below!
                   </p>
                 </div>
               )}
@@ -343,22 +343,22 @@ export const ApplicationPage = ({ onBackHome }) => {
                     <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center">
                       <img
                         src="/logo.png"
-                        alt="ApeBrokers Logo"
+                        alt="ApeSyndicate Logo"
                         className="w-full h-full object-contain pixelated drop-shadow-md"
                       />
                     </div>
 
                     <div>
                       <h1 className="font-serif text-2xl sm:text-3xl text-white font-extrabold tracking-wider leading-none">
-                        APEBROKERS
+                        APESYNDICATE
                       </h1>
                       {submissionData.isGtd ? (
                         <div className="inline-block mt-1 bg-[#FFD700] text-black font-pixel text-[8px] sm:text-[9px] px-2 py-0.5 font-bold shadow-sm">
-                          👑 GUARANTEED (GTD) BROKER PASS
+                          👑 GUARANTEED (GTD) SYNDICATE PASS
                         </div>
                       ) : (
                         <div className="text-[10px] sm:text-xs font-bold tracking-[2px] mt-1 uppercase text-[#c7b299]">
-                          OFFICIAL BROKER IDENTIFICATION
+                          OFFICIAL SYNDICATE IDENTIFICATION
                         </div>
                       )}
                       <div className="text-[10px] text-gray-400 font-mono mt-0.5">
@@ -408,7 +408,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                     {/* Name / Organization */}
                     <div className="border-b border-[#3d2e54] pb-2.5">
                       <div className="text-base sm:text-xl text-[#FFF2D6] font-serif font-bold tracking-wide">
-                        “THE BROKER” {submissionData.xUsername.toUpperCase()}
+                        “THE SYNDICATE” {submissionData.xUsername.toUpperCase()}
                       </div>
                       <div
                         className={`text-xs sm:text-sm font-serif mt-0.5 ${
@@ -417,7 +417,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                       >
                         {submissionData.isGtd
                           ? '👑 GUARANTEED VIP FLOOR  //  ROBINHOOD NETWORK'
-                          : 'APEBROKERS TRADING FLOOR, ROBINHOOD NETWORK'}
+                          : 'APESYNDICATE FLOOR, ROBINHOOD NETWORK'}
                       </div>
                     </div>
 
@@ -457,7 +457,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                       <div>
                         <span className="text-[#d9b44a] font-bold text-[11px] block">ROLE:</span>
                         <span className="text-[#FFE8A3] font-semibold">
-                          {submissionData.isGtd ? '👑 VIP BROKER' : 'APPLICANT'}
+                          {submissionData.isGtd ? '👑 VIP SYNDICATE' : 'APPLICANT'}
                         </span>
                       </div>
 
@@ -484,7 +484,7 @@ export const ApplicationPage = ({ onBackHome }) => {
 
                       <div className="flex items-center gap-3">
                         <div className="font-serif italic text-sm text-[#FFD700] opacity-90">
-                          ApeBrokers Executive
+                          ApeSyndicate Executive
                         </div>
                         <div className="border-2 border-[#FFD700] text-[#FFD700] font-pixel text-[7px] px-2 py-0.5 -rotate-6 shadow-sm bg-[#1c1102]">
                           {submissionData.isGtd ? '★ GTD PASS ★' : 'RECEIVED'}
@@ -531,8 +531,8 @@ export const ApplicationPage = ({ onBackHome }) => {
                     sound?.playClick?.();
                     const tweetText = encodeURIComponent(
                       submissionData.isGtd
-                        ? `I just won a GOLDEN GTD Pass for @ApebrokersNft on Robinhood Chain! 👑🦍\n\nBroker ID: ${submissionData.brokerId} - 100% Guaranteed WL!\n\n#ApeBrokers #RobinhoodChain #NFT`
-                        : `Applied for @ApebrokersNft Whitelist! 🦍\n\nFloor Pass ${submissionData.brokerId} secured on Robinhood Chain.\n\n#ApeBrokers #NFT`
+                        ? `I just won a GOLDEN GTD Pass for @ApebrokersNft on Robinhood Chain! 👑🦍\n\nSyndicate ID: ${submissionData.brokerId} - 100% Guaranteed WL!\n\n#ApeSyndicate #RobinhoodChain #NFT`
+                        : `Applied for @ApebrokersNft Whitelist! 🦍\n\nFloor Pass ${submissionData.brokerId} secured on Robinhood Chain.\n\n#ApeSyndicate #NFT`
                     );
                     window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank', 'noopener,noreferrer');
                   }}
@@ -566,7 +566,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                   ROBINHOOD CHAIN • 5,555 ALLOCATION
                 </div>
                 <h1 className="font-pixel text-xl sm:text-2xl text-black font-extrabold">
-                  APEBROKERS APPLICATION
+                  APESYNDICATE APPLICATION
                 </h1>
                 <p className="font-mono text-xs text-gray-700 font-semibold">
                   Submit your X username, wallet address, and complete social tasks.
@@ -829,7 +829,7 @@ export const ApplicationPage = ({ onBackHome }) => {
       {/* Footer */}
       <footer className="w-full bg-black text-white border-t-4 border-black px-4 py-6 text-center select-none">
         <div className="font-pixel text-xs text-[#00FF66]">
-          APEBROKERS // ROBINHOOD CHAIN
+          APESYNDICATE // ROBINHOOD CHAIN
         </div>
       </footer>
     </div>
