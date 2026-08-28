@@ -40,6 +40,7 @@ export const TurnstileWidget = ({ onVerify, onExpire, onError }) => {
 
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: TURNSTILE_SITE_KEY,
+        action: 'apply_whitelist',
         theme: 'auto',
         size: 'normal',
         callback: (token) => {

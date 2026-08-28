@@ -53,7 +53,7 @@ export const BrokersGallery = ({ onBackHome, onApplyClick }) => {
 
   const handleFollowX = () => {
     sound?.playClick?.();
-    window.open('https://x.com/ApebrokersNft', '_blank', 'noopener,noreferrer');
+    window.open('https://x.com/Apesyndicates', '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -289,7 +289,7 @@ export const BrokersGallery = ({ onBackHome, onApplyClick }) => {
           APESYNDICATE // 10 REVEALED PIXEL COLLECTION • 5,555 TOTAL SUPPLY
         </div>
         <div className="font-mono text-[10px] text-gray-400 mt-1">
-          Follow <a href="https://x.com/ApebrokersNft" target="_blank" rel="noopener noreferrer" className="text-[#00FF66] underline">@ApebrokersNft</a> on X
+          Follow <a href="https://x.com/Apesyndicates" target="_blank" rel="noopener noreferrer" className="text-[#00FF66] underline">@Apesyndicates</a> on X
         </div>
       </footer>
     </div>

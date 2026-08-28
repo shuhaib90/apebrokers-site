@@ -2,9 +2,9 @@ import React from 'react';
 import { sound } from '../utils/audio';
 
 export const Header = ({ onApplyClick }) => {
-  const handleXClick = () => {
+  const handleFollowX = () => {
     sound?.playClick?.();
-    window.open('https://x.com/ApebrokersNft', '_blank', 'noopener,noreferrer');
+    window.open('https://x.com/Apesyndicates', '_blank', 'noopener,noreferrer');
   };
 
   const handleDiscordClick = () => {
@@ -50,7 +50,7 @@ export const Header = ({ onApplyClick }) => {
 
           <button
             type="button"
-            onClick={handleXClick}
+            onClick={handleFollowX}
             aria-label="Official X"
             className="pixel-btn pixel-btn-white p-1.5 sm:px-3 sm:py-2 text-xs flex items-center justify-center"
           >

@@ -4,7 +4,7 @@ import { sound } from '../utils/audio';
 export const Footer = () => {
   const handleXClick = () => {
     sound?.playClick?.();
-    window.open('https://x.com/ApebrokersNft', '_blank', 'noopener,noreferrer');
+    window.open('https://x.com/Apesyndicates', '_blank', 'noopener,noreferrer');
   };
 
   const handleDiscordClick = () => {

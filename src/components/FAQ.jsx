@@ -12,7 +12,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'When is the mint?',
-    a: 'Mint date and mint price are TBA (To Be Announced) exclusively via our official X (@ApebrokersNft) and Discord announcement channels.',
+    a: 'Mint date and mint price are TBA (To Be Announced) exclusively via our official X (@Apesyndicates) and Discord announcement channels.',
   },
   {
     q: 'Which chain is ApeSyndicate on?',
