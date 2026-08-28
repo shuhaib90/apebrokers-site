@@ -39,7 +39,7 @@ export const Hero = ({ onApplyClick }) => {
 
   return (
     <section className="w-full max-w-6xl mx-auto px-4 sm:px-8 pt-8 pb-12 sm:pt-14 sm:pb-16 select-none">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center">
         {/* Left Column */}
         <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left space-y-5 sm:space-y-6">
           {/* Badge */}
@@ -48,25 +48,23 @@ export const Hero = ({ onApplyClick }) => {
             <span>WL APPLICATIONS OPEN</span>
           </div>
 
-          {/* Headline */}
-          <div className="space-y-1 sm:space-y-2">
-            <h1 className="font-pixel text-3xl sm:text-5xl lg:text-6xl text-black tracking-tight font-extrabold leading-none">
+          {/* Headline (Responsive sizing to fit APESYNDICATE length perfectly) */}
+          <div className="space-y-1 sm:space-y-2 w-full">
+            <h1 className="font-pixel text-2xl sm:text-3xl md:text-4xl lg:text-[40px] xl:text-[46px] text-black tracking-tight font-extrabold leading-tight">
               APESYNDICATE
             </h1>
-            <h2 className="font-pixel text-xl sm:text-3xl lg:text-4xl text-[#2A0845] tracking-tight font-extrabold">
+            <h2 className="font-pixel text-lg sm:text-2xl md:text-3xl lg:text-[26px] xl:text-[32px] text-[#2A0845] tracking-tight font-extrabold">
               GET ON THE LIST.
             </h2>
           </div>
 
-          {/* Mobile-Only Artwork Preview */}
-          <div className="lg:hidden w-full max-w-[280px] sm:max-w-[320px] my-2">
-            <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-lg">
-              <img
-                src={HERO_IMAGES[currentImageIndex]}
-                alt={`ApeSyndicate Collection NFT #${currentImageIndex + 1}`}
-                className="w-full h-auto aspect-square object-cover pixelated"
-              />
-            </div>
+          {/* Mobile-Only Artwork Preview (Pure NFT, No text, No bg box) */}
+          <div className="lg:hidden w-full max-w-[260px] sm:max-w-[300px] my-2 flex justify-center">
+            <img
+              src={HERO_IMAGES[currentImageIndex]}
+              alt={`ApeSyndicate Collection NFT #${currentImageIndex + 1}`}
+              className="w-full h-auto aspect-square object-contain pixelated drop-shadow-md"
+            />
           </div>
 
           {/* Value Props Strip */}
@@ -111,26 +109,14 @@ export const Hero = ({ onApplyClick }) => {
           </div>
         </div>
 
-        {/* Right Column: Desktop Large Animated Showcase */}
-        <div className="hidden lg:col-span-5 lg:flex justify-center">
-          <div className="w-full max-w-[380px] space-y-3">
-            <div className="relative overflow-hidden rounded-3xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] border-4 border-black bg-black">
-              <img
-                src={HERO_IMAGES[currentImageIndex]}
-                alt="ApeSyndicate Hero NFT"
-                className="w-full h-auto aspect-square object-cover pixelated transition-all duration-300"
-              />
-
-              {/* Tag overlay */}
-              <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-sm text-[#00FF66] font-pixel text-[9px] px-2.5 py-1 border border-[#00FF66]">
-                ● FEATURED APE #{currentImageIndex + 1}
-              </div>
-            </div>
-
-            <div className="bg-black text-white p-3 border-3 border-black text-center font-pixel text-[10px] flex items-center justify-between">
-              <span className="text-[#00FF66]">APESYNDICATE // GENESIS</span>
-              <span className="text-[#FFD700]">5,555 UNIQUE</span>
-            </div>
+        {/* Right Column: Desktop Pure Floating NFT Artwork (No text overlay, No card background) */}
+        <div className="hidden lg:col-span-5 lg:flex justify-center items-center">
+          <div className="w-full max-w-[340px] xl:max-w-[380px] flex justify-center items-center">
+            <img
+              src={HERO_IMAGES[currentImageIndex]}
+              alt="ApeSyndicate Hero NFT"
+              className="w-full h-auto aspect-square object-contain pixelated drop-shadow-xl transition-opacity duration-300"
+            />
           </div>
         </div>
       </div>
