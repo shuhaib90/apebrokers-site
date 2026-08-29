@@ -4,6 +4,7 @@ import { sound } from '../utils/audio';
 import { downloadBrokerCardPng, downloadBrokerGif } from '../utils/generateBrokerCard';
 import { fetchActiveTasks, saveApplicationToSupabase, checkExistingApplication, determineGtdWinner } from '../utils/supabase';
 import { TurnstileWidget } from './TurnstileWidget';
+import { HumanVerificationSlider } from './HumanVerificationSlider';
 
 const DEFAULT_TASKS = [
   {
@@ -44,8 +45,10 @@ export const ApplicationPage = ({ onBackHome }) => {
   const [tasks, setTasks] = useState(DEFAULT_TASKS);
   const [taskStates, setTaskStates] = useState({});
   const [taskLinks, setTaskLinks] = useState({});
-  const [captchaToken, setCaptchaToken] = useState(null);
   const [honeypot, setHoneypot] = useState('');
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const [humanSignature, setHumanSignature] = useState(null);
+  const [formMountedAt] = useState(Date.now());
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionData, setSubmissionData] = useState(null);
@@ -145,6 +148,16 @@ export const ApplicationPage = ({ onBackHome }) => {
     // Validate Cloudflare Turnstile token
     if (!captchaToken) {
       errs.captcha = 'Please complete the security clearance check below.';
+    }
+
+    // Validate Human Slider Drag Verification
+    if (!humanSignature) {
+      errs.humanSlider = 'Slide the Golden Key above to complete human verification.';
+    }
+
+    // Minimum interaction timing check (blocks instant scripted submissions)
+    if (Date.now() - formMountedAt < 2500) {
+      errs.humanSlider = 'Please review your application details before submitting.';
     }
 
     setErrors(errs);
@@ -805,6 +818,18 @@ export const ApplicationPage = ({ onBackHome }) => {
                   )}
                 </div>
 
+                {/* Layer 1: Interactive Human Verification Slider */}
+                <HumanVerificationSlider
+                  onVerified={(sig) => {
+                    setHumanSignature(sig);
+                    if (errors.humanSlider) {
+                      setErrors((prev) => ({ ...prev, humanSlider: null }));
+                    }
+                  }}
+                  isVerified={!!humanSignature}
+                  error={errors.humanSlider}
+                />
+
                 {/* Hidden Honeypot Field for Automated Bot Trapping */}
                 <input
                   type="text"
@@ -816,16 +841,22 @@ export const ApplicationPage = ({ onBackHome }) => {
                   autoComplete="off"
                 />
 
-                {/* Submit Button */}
+                {/* Submit Button (Locked until human verified) */}
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={isSubmitting}
-                    className={`w-full min-h-[52px] py-3.5 px-6 pixel-btn pixel-btn-black font-pixel text-xs sm:text-sm font-extrabold tracking-wider ${
-                      isSubmitting ? 'opacity-70 cursor-wait' : ''
-                    }`}
+                    disabled={isSubmitting || !humanSignature}
+                    className={`w-full min-h-[52px] py-3.5 px-6 pixel-btn font-pixel text-xs sm:text-sm font-extrabold tracking-wider transition-all ${
+                      !humanSignature
+                        ? 'pixel-btn-black opacity-60 cursor-not-allowed border-gray-600 text-gray-400'
+                        : 'pixel-btn-lime text-black shadow-pixel-lg animate-pulse'
+                    } ${isSubmitting ? 'opacity-70 cursor-wait' : ''}`}
                   >
-                    {isSubmitting ? 'SUBMITTING APPLICATION...' : '[ SUBMIT APPLICATION ]'}
+                    {isSubmitting
+                      ? 'SUBMITTING APPLICATION...'
+                      : !humanSignature
+                      ? '[ 🔒 SLIDE KEY ABOVE TO UNLOCK ]'
+                      : '[ 🚀 SUBMIT APPLICATION ]'}
                   </button>
                 </div>
               </form>
