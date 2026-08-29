@@ -12,6 +12,7 @@ export default defineConfig({
         brokers: resolve(__dirname, 'brokers.html'),
         apply: resolve(__dirname, 'apply.html'),
         claim: resolve(__dirname, 'claim.html'),
+        holders: resolve(__dirname, 'holders.html'),
       },
     },
   },
