@@ -5,6 +5,7 @@ import { downloadBrokerCardPng, downloadBrokerGif } from '../utils/generateBroke
 import { fetchActiveTasks, saveApplicationToSupabase, checkExistingApplication, determineGtdWinner } from '../utils/supabase';
 import { TurnstileWidget } from './TurnstileWidget';
 import { HumanVerificationSlider } from './HumanVerificationSlider';
+import { validateTweetUrlFormat, verifyTweetLive } from '../utils/xVerification';
 
 const DEFAULT_TASKS = [
   {
@@ -97,13 +98,38 @@ export const ApplicationPage = ({ onBackHome }) => {
     }));
   };
 
-  const handleVerifyTask = (taskKey) => {
+  const handleVerifyTask = async (taskKey) => {
     sound?.playClick?.();
+    const taskObj = tasks.find((t) => (t.task_key || t.id.toString()) === taskKey);
+
+    // If task requires a link proof, check format and snowflake authenticity immediately
+    if (taskObj && taskObj.requires_link) {
+      const linkVal = (taskLinks[taskKey] || '').trim();
+      const check = validateTweetUrlFormat(linkVal, formData.xUsername);
+      if (!check.valid) {
+        setErrors((prev) => ({ ...prev, [`task_link_${taskKey}`]: check.error }));
+        sound?.playError?.();
+        return;
+      }
+    }
+
     setTaskStates((prev) => ({ ...prev, [taskKey]: 'VERIFYING' }));
+
+    // Optional live check for required link
+    if (taskObj && taskObj.requires_link) {
+      const linkVal = (taskLinks[taskKey] || '').trim();
+      const liveCheck = await verifyTweetLive(linkVal);
+      if (!liveCheck.live) {
+        setTaskStates((prev) => ({ ...prev, [taskKey]: 'READY' }));
+        setErrors((prev) => ({ ...prev, [`task_link_${taskKey}`]: liveCheck.error || 'Comment tweet not found on X.' }));
+        return;
+      }
+    }
+
     setTimeout(() => {
       sound?.playStamp?.();
       setTaskStates((prev) => ({ ...prev, [taskKey]: 'VERIFIED' }));
-    }, 900);
+    }, 700);
   };
 
   const validate = () => {
@@ -132,15 +158,18 @@ export const ApplicationPage = ({ onBackHome }) => {
       errs.tasks = `Please complete and verify all ${unverifiedRequired.length} mandatory tasks.`;
     }
 
-    // Validate required proof link inputs
+    // Validate required proof link inputs with Snowflake and Author checks
     tasks.forEach((t) => {
       if (t.requires_link && t.is_required !== false) {
         const key = t.task_key || t.id.toString();
         const linkVal = (taskLinks[key] || '').trim();
         if (!linkVal) {
           errs[`task_link_${key}`] = 'Comment / proof link is required';
-        } else if (!linkVal.startsWith('http://') && !linkVal.startsWith('https://')) {
-          errs[`task_link_${key}`] = 'Please enter a valid URL (https://...)';
+        } else {
+          const check = validateTweetUrlFormat(linkVal, formData.xUsername);
+          if (!check.valid) {
+            errs[`task_link_${key}`] = check.error;
+          }
         }
       }
     });
