@@ -63,18 +63,13 @@ export function validateTweetUrlFormat(url, expectedUsername) {
     };
   }
 
-  // Check 3: Username match check (if user is not 'i' or 'Apesyndicates')
+  // Check 3: Strict 1:1 Username match check
   if (expectedUsername) {
     const cleanExpected = expectedUsername.replace(/^@/, '').trim().toLowerCase();
-    if (
-      urlUser !== 'i' &&
-      urlUser !== 'apesyndicates' &&
-      urlUser !== 'apebrokersnft' &&
-      urlUser !== cleanExpected
-    ) {
+    if (urlUser !== cleanExpected && urlUser !== 'i') {
       return {
         valid: false,
-        error: `Link username (@${match[1]}) does not match your entered X handle (@${cleanExpected}).`,
+        error: `Link username (@${match[1]}) must match your X handle (@${cleanExpected}). Please paste the direct link to your reply comment (https://x.com/${cleanExpected}/status/...).`,
       };
     }
   }

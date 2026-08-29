@@ -79,6 +79,14 @@ export const ApplicationPage = ({ onBackHome }) => {
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === 'xUsername') {
+      tasks.forEach((t) => {
+        if (t.requires_link) {
+          const k = t.task_key || t.id.toString();
+          setTaskStates((prev) => ({ ...prev, [k]: 'READY' }));
+        }
+      });
+    }
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: null }));
     }
@@ -799,6 +807,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                               onChange={(e) => {
                                 const val = e.target.value;
                                 setTaskLinks((prev) => ({ ...prev, [key]: val }));
+                                setTaskStates((prev) => ({ ...prev, [key]: 'READY' }));
                                 if (errors[`task_link_${key}`]) {
                                   setErrors((prev) => ({ ...prev, [`task_link_${key}`]: null }));
                                 }
