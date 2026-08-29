@@ -83,9 +83,13 @@ export const Hero = ({ onApplyClick }) => {
           </div>
 
           {/* Stat 2 */}
-          <div className="pixel-box-black p-4 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] border-3 border-black">
-            <div className="font-pixel text-lg sm:text-xl text-[#FFD700] font-extrabold truncate">0.002 ETH</div>
-            <div className="font-pixel text-[9px] text-gray-400 mt-1">MINT PRICE ($5)</div>
+          <div className="pixel-box-black p-3.5 sm:p-4 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] border-3 border-black flex flex-col justify-center items-center">
+            <div className="font-pixel text-sm sm:text-base md:text-lg lg:text-xl text-[#FFD700] font-extrabold whitespace-nowrap">
+              0.002 ETH
+            </div>
+            <div className="font-pixel text-[8px] sm:text-[9px] text-gray-400 mt-1 whitespace-nowrap">
+              MINT PRICE
+            </div>
           </div>
 
           {/* Stat 3 */}
