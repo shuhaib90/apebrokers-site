@@ -1,9 +1,16 @@
 /**
  * Resilient Web3 & ERC-721 / ERC-1155 NFT Contract Balance Scanner
- * Supports connected wallet (MetaMask, Robinhood Wallet, Phantom) + Direct RPC fallback
+ * Direct RPC Querying + Injected Wallet Provider Fallback
  */
 
 const ERC721_BALANCE_OF = '0x70a08231';
+
+const DEFAULT_NETWORK_RPCS = {
+  'Ethereum': 'https://ethereum-rpc.publicnode.com',
+  'Base': 'https://base-rpc.publicnode.com',
+  'Arbitrum': 'https://arbitrum-one-rpc.publicnode.com',
+  'Polygon': 'https://polygon-bor-rpc.publicnode.com',
+};
 
 function padAddress(address) {
   const clean = (address || '').replace(/^0x/, '').toLowerCase();
@@ -56,16 +63,45 @@ export async function getConnectedAccount() {
 /**
  * Scans an on-chain NFT smart contract for holder balance
  */
-export async function checkNftBalance(walletAddress, contractAddress, network = 'Robinhood Chain') {
+export async function checkNftBalance(walletAddress, contractAddress, network = 'Robinhood Chain', rpcUrl = null) {
   if (!walletAddress || !contractAddress) return { isHolder: false, balance: 0 };
 
   const cleanWallet = walletAddress.trim();
   const cleanContract = contractAddress.trim();
+  const data = `${ERC721_BALANCE_OF}${padAddress(cleanWallet)}`;
 
-  // 1. First try connected wallet provider (e.g. Robinhood Wallet / MetaMask on current active chain)
+  // 1. Direct JSON-RPC call if custom RPC URL or known network RPC exists
+  const targetRpc = rpcUrl || DEFAULT_NETWORK_RPCS[network] || null;
+  if (targetRpc) {
+    try {
+      const response = await fetch(targetRpc, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'eth_call',
+          params: [{ to: cleanContract, data }, 'latest'],
+        }),
+      });
+
+      if (response.ok) {
+        const json = await response.json();
+        if (json.result && json.result !== '0x' && json.result !== '0x0') {
+          const balance = parseInt(json.result, 16);
+          if (!isNaN(balance) && balance > 0) {
+            return { isHolder: true, balance, source: 'rpc' };
+          }
+        }
+      }
+    } catch (rpcErr) {
+      console.warn(`Direct RPC query note for ${cleanContract}:`, rpcErr.message);
+    }
+  }
+
+  // 2. Injected wallet provider check (window.ethereum)
   if (typeof window !== 'undefined' && window.ethereum) {
     try {
-      const data = `${ERC721_BALANCE_OF}${padAddress(cleanWallet)}`;
       const result = await window.ethereum.request({
         method: 'eth_call',
         params: [
@@ -80,7 +116,7 @@ export async function checkNftBalance(walletAddress, contractAddress, network = 
       if (result && result !== '0x' && result !== '0x0') {
         const balance = parseInt(result, 16);
         if (!isNaN(balance) && balance > 0) {
-          return { isHolder: true, balance };
+          return { isHolder: true, balance, source: 'wallet' };
         }
       }
     } catch (walletErr) {
@@ -88,41 +124,6 @@ export async function checkNftBalance(walletAddress, contractAddress, network = 
     }
   }
 
-  // 2. Try network public RPC fallback if available
-  const networkRpcs = {
-    'Ethereum': 'https://ethereum-rpc.publicnode.com',
-    'Base': 'https://base-rpc.publicnode.com',
-    'Arbitrum': 'https://arbitrum-one-rpc.publicnode.com',
-    'Polygon': 'https://polygon-bor-rpc.publicnode.com',
-  };
-
-  const fallbackRpc = networkRpcs[network];
-  if (fallbackRpc) {
-    try {
-      const data = `${ERC721_BALANCE_OF}${padAddress(cleanWallet)}`;
-      const response = await fetch(fallbackRpc, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          id: 1,
-          method: 'eth_call',
-          params: [{ to: cleanContract, data }, 'latest'],
-        }),
-      });
-      const json = await response.json();
-      if (json.result && json.result !== '0x' && json.result !== '0x0') {
-        const balance = parseInt(json.result, 16);
-        if (!isNaN(balance) && balance > 0) {
-          return { isHolder: true, balance };
-        }
-      }
-    } catch (rpcErr) {
-      console.warn(`RPC check error:`, rpcErr);
-    }
-  }
-
-  // 3. If the user is connected with their wallet on Robinhood Chain or testing a registered contract
   return { isHolder: false, balance: 0 };
 }
 
@@ -136,7 +137,7 @@ export async function scanAllPartnerContracts(walletAddress, communities = []) {
   await Promise.all(
     communities.map(async (comm) => {
       try {
-        const res = await checkNftBalance(walletAddress, comm.contract_address, comm.network);
+        const res = await checkNftBalance(walletAddress, comm.contract_address, comm.network, comm.rpc_url);
         results[comm.id] = res;
       } catch (err) {
         results[comm.id] = { isHolder: false, balance: 0 };
