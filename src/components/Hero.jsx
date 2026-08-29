@@ -119,9 +119,13 @@ export const Hero = ({ onApplyClick }) => {
           </div>
 
           {/* Stat 4 */}
-          <div className="pixel-box-black p-4 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] border-3 border-black">
-            <div className="font-pixel text-xl sm:text-2xl text-[#FF2247] font-extrabold">TBA</div>
-            <div className="font-pixel text-[9px] text-gray-400 mt-1">MINT DATE</div>
+          <div className="pixel-box-black p-3.5 sm:p-4 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] border-3 border-black flex flex-col justify-center items-center">
+            <div className="font-pixel text-sm sm:text-base md:text-lg lg:text-xl text-[#FF2247] font-extrabold whitespace-nowrap">
+              SEP 3RD
+            </div>
+            <div className="font-pixel text-[8px] sm:text-[9px] text-gray-400 mt-1 whitespace-nowrap">
+              MINT DATE
+            </div>
           </div>
         </div>
       </div>
