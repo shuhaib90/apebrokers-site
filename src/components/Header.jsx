@@ -38,7 +38,16 @@ export const Header = ({ onApplyClick }) => {
         </a>
 
         {/* Right: Quick Buttons */}
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <a
+            href="/claim.html"
+            className="pixel-btn pixel-btn-gold px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[9px] sm:text-xs whitespace-nowrap font-extrabold text-black flex items-center gap-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+          >
+            <span>👑</span>
+            <span className="hidden sm:inline">CLAIM GTD</span>
+            <span className="sm:hidden">CLAIM</span>
+          </a>
+
           <button
             type="button"
             onClick={handleApply}

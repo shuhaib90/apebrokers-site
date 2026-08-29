@@ -184,3 +184,88 @@ export async function fetchActiveTasks() {
     return null;
   }
 }
+
+export async function fetchCommunities() {
+  try {
+    const { data, error } = await supabase
+      .from('apebrokers_communities')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.warn('Supabase communities fetch error:', error);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.error('Supabase communities error:', err);
+    return [];
+  }
+}
+
+export async function claimCommunityGtdSpot(communityId, appData) {
+  try {
+    // 1. Fetch community and verify remaining spots
+    const { data: comm, error: commErr } = await supabase
+      .from('apebrokers_communities')
+      .select('*')
+      .eq('id', communityId)
+      .single();
+
+    if (commErr || !comm) {
+      throw new Error('Partner project not found');
+    }
+
+    if (comm.claimed_spots >= comm.total_spots) {
+      throw new Error('All allocated GTD spots for this partner community have been claimed!');
+    }
+
+    // 2. Generate GTD syndicate artwork and broker ID
+    const gtdArtId = Math.floor(Math.random() * 3) + 1;
+    const randNum = Math.floor(1000 + Math.random() * 9000);
+    const brokerId = `#${randNum}`;
+
+    const payload = {
+      broker_id: brokerId,
+      x_username: appData.xUsername.trim(),
+      wallet_address: appData.walletAddress.toLowerCase().trim(),
+      status: 'APPROVED',
+      is_gtd: true,
+      card_tier: 'GOLDEN_GTD',
+      gtd_art_id: gtdArtId,
+      comment_link: appData.commentLink || null,
+      proof_links: appData.proofLinks || {},
+      community_id: communityId,
+      community_name: comm.name,
+      is_community_claim: true,
+    };
+
+    // 3. Insert application as guaranteed GTD
+    const { data: appResult, error: appErr } = await supabase
+      .from('apebrokers_applications')
+      .insert([payload])
+      .select()
+      .single();
+
+    if (appErr) throw appErr;
+
+    // 4. Increment claimed_spots in community
+    await supabase
+      .from('apebrokers_communities')
+      .update({ claimed_spots: (comm.claimed_spots || 0) + 1 })
+      .eq('id', communityId);
+
+    return {
+      success: true,
+      data: appResult,
+      gtdArtId,
+      brokerId,
+      communityName: comm.name,
+    };
+  } catch (err) {
+    console.error('Error claiming community GTD spot:', err);
+    throw err;
+  }
+}
+
