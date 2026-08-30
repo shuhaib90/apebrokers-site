@@ -16,8 +16,11 @@ export const ClaimPage = ({ onBackHome }) => {
   const [eligibility, setEligibility] = useState({}); // { [commId]: { isHolder, balance } }
   const [copiedContractId, setCopiedContractId] = useState(null);
 
-  // Claim Modal State
-  const [selectedCommunity, setSelectedCommunity] = useState(null);
+  // Selected Community Detail Modal (Pop-up on card click)
+  const [detailCommunity, setDetailCommunity] = useState(null);
+
+  // Claim Form State (When user proceeds to claim in modal)
+  const [isClaimFormOpen, setIsClaimFormOpen] = useState(false);
   const [xUsername, setXUsername] = useState('');
   const [commentLink, setCommentLink] = useState('');
   const [captchaToken, setCaptchaToken] = useState(null);
@@ -25,7 +28,7 @@ export const ClaimPage = ({ onBackHome }) => {
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Success Claim Modal
+  // Success Modal
   const [claimSuccessData, setClaimSuccessData] = useState(null);
 
   useEffect(() => {
@@ -93,9 +96,11 @@ export const ClaimPage = ({ onBackHome }) => {
     setTimeout(() => setCopiedContractId(null), 2000);
   };
 
-  const handleOpenClaim = (comm) => {
+  // Open Pop-up Detail Modal
+  const handleCardClick = (comm) => {
     sound?.playClick?.();
-    setSelectedCommunity(comm);
+    setDetailCommunity(comm);
+    setIsClaimFormOpen(false);
     setXUsername('');
     setCommentLink('');
     setCaptchaToken(null);
@@ -103,9 +108,10 @@ export const ClaimPage = ({ onBackHome }) => {
     setFormErrors({});
   };
 
-  const handleCloseClaim = () => {
+  const handleCloseModal = () => {
     sound?.playClick?.();
-    setSelectedCommunity(null);
+    setDetailCommunity(null);
+    setIsClaimFormOpen(false);
     setFormErrors({});
   };
 
@@ -160,7 +166,7 @@ export const ClaimPage = ({ onBackHome }) => {
       }
 
       // 2. Claim community GTD spot
-      const result = await claimCommunityGtdSpot(selectedCommunity.id, {
+      const result = await claimCommunityGtdSpot(detailCommunity.id, {
         xUsername,
         walletAddress,
         commentLink: commentLink.trim() || null,
@@ -177,14 +183,15 @@ export const ClaimPage = ({ onBackHome }) => {
 
       setClaimSuccessData({
         brokerId: result.brokerId,
-        communityName: selectedCommunity.name,
+        communityName: detailCommunity.name,
         xUsername,
         walletAddress,
         gtdArtId: result.gtdArtId,
         submittedAt: new Date().toISOString(),
       });
 
-      setSelectedCommunity(null);
+      setDetailCommunity(null);
+      setIsClaimFormOpen(false);
       await loadCommunities();
     } catch (err) {
       console.error('Error claiming spot:', err);
@@ -251,7 +258,7 @@ export const ClaimPage = ({ onBackHome }) => {
       </div>
 
       {/* Main Content Area */}
-      <main className="relative z-10 w-full max-w-6xl mx-auto px-4 py-6 text-center space-y-7">
+      <main className="relative z-10 w-full max-w-5xl mx-auto px-4 py-6 text-center space-y-7">
         {/* Title Header */}
         <div className="space-y-2.5">
           <div className="inline-block bg-black text-[#FFD700] px-4 py-1.5 border-3 border-black font-pixel text-[9px] sm:text-[10px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
@@ -260,62 +267,57 @@ export const ClaimPage = ({ onBackHome }) => {
           <h1 className="font-pixel text-2xl sm:text-4xl md:text-5xl text-white font-extrabold tracking-tight drop-shadow-[6px_6px_0px_rgba(0,0,0,1)]">
             NFT HOLDER GTD CLAIM
           </h1>
-          <div className="bg-black/90 max-w-2xl mx-auto p-4 border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+          <div className="bg-black/90 max-w-xl mx-auto p-3.5 border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
             <p className="font-mono text-xs sm:text-sm text-gray-200 font-semibold leading-relaxed">
-              Holders of verified Robinhood Chain partner collections can connect their wallet to check on-chain NFT ownership and claim dedicated guaranteed (GTD) whitelist passes.
+              Select your partner NFT collection below to verify on-chain holder status and claim your guaranteed (GTD) whitelist spot.
             </p>
           </div>
         </div>
 
-        {/* Wallet Connection / Status Bar */}
-        <div className="max-w-xl mx-auto bg-black/95 p-4 sm:p-5 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+        {/* Wallet Connection Bar */}
+        <div className="max-w-md mx-auto bg-black/95 p-4 border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
           {!walletAddress ? (
-            <div className="space-y-3">
-              <p className="font-mono text-xs text-gray-300 font-medium">
-                Connect your Web3 / Robinhood wallet to auto-scan your NFT holdings:
-              </p>
-              <button
-                type="button"
-                onClick={handleConnect}
-                className="w-full py-4 pixel-btn pixel-btn-lime font-pixel text-xs sm:text-sm text-black font-extrabold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-pulse"
-              >
-                [ CONNECT WEB3 / ROBINHOOD WALLET ]
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleConnect}
+              className="w-full py-3.5 pixel-btn pixel-btn-lime font-pixel text-xs sm:text-sm text-black font-extrabold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-pulse"
+            >
+              [ CONNECT WEB3 / ROBINHOOD WALLET ]
+            </button>
           ) : (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3.5">
+            <div className="flex items-center justify-between gap-3">
               <div className="text-left">
                 <div className="font-pixel text-[9px] text-[#00FF66] flex items-center gap-1.5 font-bold">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#00FF66] inline-block animate-blink" />
-                  <span>WALLET CONNECTED</span>
+                  <span className="w-2 h-2 rounded-full bg-[#00FF66] inline-block animate-blink" />
+                  <span>CONNECTED</span>
                 </div>
-                <div className="font-mono text-xs text-white font-bold mt-1 bg-black px-2.5 py-1 border border-[#2e4357] inline-block rounded">
-                  {walletAddress.substring(0, 8)}...{walletAddress.substring(walletAddress.length - 6)}
+                <div className="font-mono text-xs text-white font-bold mt-0.5">
+                  {walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => runScan(walletAddress, communities)}
                   disabled={scanning}
-                  className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-[#182330] hover:bg-[#233345] text-[#00FF66] font-pixel text-[9px] border-2 border-[#00FF66]/50 rounded transition-all font-bold"
+                  className="px-3 py-1.5 bg-[#182330] hover:bg-[#233345] text-[#00FF66] font-pixel text-[9px] border border-[#00FF66]/50 rounded font-bold"
                 >
-                  {scanning ? '[ SCANNING... ]' : '[ RE-SCAN ]'}
+                  {scanning ? '...' : '[ RE-SCAN ]'}
                 </button>
                 <button
                   type="button"
                   onClick={handleDisconnect}
-                  className="px-3.5 py-2.5 bg-[#FF2247]/15 hover:bg-[#FF2247]/30 text-[#FF2247] font-pixel text-[9px] border-2 border-[#FF2247]/40 rounded transition-colors font-bold"
+                  className="px-3 py-1.5 bg-[#FF2247]/15 hover:bg-[#FF2247]/30 text-[#FF2247] font-pixel text-[9px] border border-[#FF2247]/40 rounded font-bold"
                 >
-                  [ DISCONNECT ]
+                  [ EXIT ]
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Partner Communities Cards Grid */}
+        {/* Minimalist Cream Box Grid: ONLY Logo & Name */}
         {loading ? (
           <div className="py-16 text-center font-pixel text-xs text-gray-400 animate-pulse">
             LOADING PARTNER COMMUNITIES...
@@ -325,93 +327,155 @@ export const ClaimPage = ({ onBackHome }) => {
             <p className="font-pixel text-xs text-gray-400">NO PARTNER COMMUNITIES ACTIVE YET</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-2 text-left">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5 pt-2">
             {communities.map((comm) => {
               const elig = eligibility[comm.id];
+              const isHolder = elig?.isHolder;
               const claimed = comm.claimed_spots || 0;
               const total = comm.total_spots || 1;
               const remaining = Math.max(0, total - claimed);
               const isSoldOut = remaining === 0;
-              const isHolder = elig?.isHolder;
-              const holderCount = elig?.balance || 0;
 
               return (
-                /* Luxury Cream Card Box */
                 <div
                   key={comm.id}
-                  className={`bg-[#FFF9EE] text-black border-4 border-black p-5 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between transition-all duration-200 relative overflow-hidden group ${
-                    isHolder && !isSoldOut ? 'ring-4 ring-[#00FF66] shadow-[0_0_25px_rgba(0,255,102,0.4)]' : ''
+                  onClick={() => handleCardClick(comm)}
+                  className={`bg-[#FFF9EE] text-black border-4 border-black p-4 sm:p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1.5 transition-all duration-200 cursor-pointer flex flex-col items-center justify-between relative group ${
+                    isHolder && !isSoldOut ? 'ring-4 ring-[#00FF66] shadow-[0_0_20px_rgba(0,255,102,0.5)]' : ''
                   }`}
                 >
-                  {/* Card Inner Top Section */}
-                  <div>
-                    {/* Centered NFT Logo / Artwork Container */}
-                    <div className="relative w-full aspect-video sm:aspect-[4/3] bg-[#EFE8D8] border-3 border-black rounded-lg overflow-hidden flex items-center justify-center p-3 mb-4 shadow-[inset_0_2px_6px_rgba(0,0,0,0.15)]">
-                      {comm.logo_url ? (
-                        <img
-                          src={comm.logo_url}
-                          alt={comm.name}
-                          className="w-full h-full object-contain filter drop-shadow-md group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-amber-400 to-purple-600 border-3 border-black flex items-center justify-center font-pixel text-2xl font-extrabold text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                          {comm.name?.substring(0, 2)?.toUpperCase()}
-                        </div>
-                      )}
-
-                      {/* Tier Badge Ribbon */}
-                      <div className="absolute top-2 right-2 bg-black text-[#FFD700] font-pixel text-[8px] px-2 py-1 border-2 border-black font-extrabold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                        GTD ALLOCATION
+                  {/* NFT Logo Showcase */}
+                  <div className="w-full aspect-square bg-[#EFE8D8] border-3 border-black rounded-lg overflow-hidden flex items-center justify-center p-2 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] group-hover:bg-[#EAE1CE] transition-colors">
+                    {comm.logo_url ? (
+                      <img
+                        src={comm.logo_url}
+                        alt={comm.name}
+                        className="w-full h-full object-contain filter drop-shadow-sm group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-amber-400 to-purple-600 border-2 border-black flex items-center justify-center font-pixel text-xl font-extrabold text-white">
+                        {comm.name?.substring(0, 2)?.toUpperCase()}
                       </div>
+                    )}
+                  </div>
+
+                  {/* Project Name Only Under Logo */}
+                  <div className="mt-3.5 w-full text-center">
+                    <h3 className="font-pixel text-xs sm:text-sm text-black font-extrabold truncate uppercase tracking-tight">
+                      {comm.name}
+                    </h3>
+                  </div>
+
+                  {/* Status Indicator Pill */}
+                  <div className="mt-3 w-full">
+                    {isHolder && !isSoldOut ? (
+                      <div className="w-full py-1.5 bg-[#00FF66] text-black font-pixel text-[8px] border-2 border-black font-extrabold text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] animate-pulse">
+                        [ ELIGIBLE ]
+                      </div>
+                    ) : isSoldOut ? (
+                      <div className="w-full py-1.5 bg-gray-300 text-gray-600 font-pixel text-[8px] border-2 border-gray-400 font-bold text-center">
+                        [ SOLD OUT ]
+                      </div>
+                    ) : (
+                      <div className="w-full py-1.5 bg-black text-[#FFD700] font-pixel text-[8px] border-2 border-black font-extrabold text-center group-hover:bg-[#FFD700] group-hover:text-black transition-colors">
+                        [ VIEW PASS ]
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </main>
+
+      {/* Pop-up Detail & Claim Modal */}
+      {detailCommunity && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#FFF9EE] text-black border-4 border-black max-w-lg w-full p-5 sm:p-7 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] my-8">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b-3 border-black">
+              <div>
+                <span className="font-pixel text-[9px] text-[#007A33] font-extrabold">
+                  [ PARTNER GTD ALLOCATION ]
+                </span>
+                <h2 className="font-pixel text-base sm:text-lg text-black font-extrabold mt-0.5">
+                  {detailCommunity.name}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                className="w-8 h-8 flex items-center justify-center bg-black text-white font-pixel text-xs hover:bg-[#FF2247]"
+              >
+                [X]
+              </button>
+            </div>
+
+            {/* View Mode (Details, Eligibility, Spots) */}
+            {!isClaimFormOpen ? (
+              <div className="space-y-4 pt-4 text-left">
+                {/* Logo Banner & Network Tag */}
+                <div className="flex items-start gap-4 p-3.5 bg-[#EFE8D8] border-3 border-black rounded-lg">
+                  {detailCommunity.logo_url ? (
+                    <img
+                      src={detailCommunity.logo_url}
+                      alt={detailCommunity.name}
+                      className="w-20 h-20 object-contain rounded border-2 border-black bg-white shrink-0"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded bg-gradient-to-br from-amber-400 to-purple-600 border-2 border-black flex items-center justify-center font-pixel text-2xl font-extrabold text-white shrink-0">
+                      {detailCommunity.name?.substring(0, 2)?.toUpperCase()}
                     </div>
+                  )}
 
-                    {/* Project Name & Network */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 className="font-pixel text-sm sm:text-base text-black font-extrabold tracking-tight truncate">
-                          {comm.name}
-                        </h3>
-                        <span className="shrink-0 bg-[#007A33]/15 text-[#007A33] font-pixel text-[8px] px-2 py-0.5 rounded border border-[#007A33]/30 font-bold">
-                          ● {comm.network || 'Robinhood Chain'}
-                        </span>
-                      </div>
-
-                      {/* Contract Address Bar with Copy */}
-                      <div className="mt-2 bg-[#F2EADB] border-2 border-black rounded px-2.5 py-1.5 flex items-center justify-between gap-2">
-                        <div className="font-mono text-[10px] text-gray-700 font-bold truncate">
-                          <span className="text-gray-500">NFT:</span> {comm.contract_address}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyContract(comm.id, comm.contract_address)}
-                          className="shrink-0 px-2 py-0.5 bg-black text-white font-mono text-[9px] rounded font-bold hover:bg-gray-800 transition-colors"
-                          title="Copy Contract Address"
-                        >
-                          {copiedContractId === comm.id ? '[ COPIED ]' : '[ COPY ]'}
-                        </button>
-                      </div>
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <h3 className="font-pixel text-sm text-black font-extrabold truncate">
+                      {detailCommunity.name}
+                    </h3>
+                    <div className="font-pixel text-[8px] text-[#007A33] font-bold">
+                      ● {detailCommunity.network || 'Robinhood Chain'}
                     </div>
-
-                    {/* Description / Lore */}
-                    {comm.description && (
-                      <p className="font-mono text-xs text-gray-700 mt-2.5 line-clamp-2 leading-relaxed font-medium">
-                        {comm.description}
+                    {detailCommunity.description && (
+                      <p className="font-mono text-xs text-gray-700 line-clamp-2">
+                        {detailCommunity.description}
                       </p>
                     )}
+                  </div>
+                </div>
 
-                    {/* Spots Allocation Meter Box */}
-                    <div className="mt-4 p-3 bg-[#EFE7D5] border-3 border-black rounded space-y-1.5 shadow-[inset_0_1px_3px_rgba(0,0,0,0.1)]">
+                {/* Contract Address Bar with Copy */}
+                <div className="bg-[#F2EADB] border-2 border-black rounded px-3 py-2 flex items-center justify-between gap-2">
+                  <div className="font-mono text-xs text-gray-800 font-bold truncate">
+                    <span className="text-gray-500">NFT CONTRACT:</span> {detailCommunity.contract_address}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyContract(detailCommunity.id, detailCommunity.contract_address)}
+                    className="shrink-0 px-2.5 py-1 bg-black text-white font-mono text-[9px] rounded font-bold hover:bg-gray-800 transition-colors"
+                  >
+                    {copiedContractId === detailCommunity.id ? '[ COPIED ]' : '[ COPY ]'}
+                  </button>
+                </div>
+
+                {/* Spots Allocation Meter */}
+                {(() => {
+                  const claimed = detailCommunity.claimed_spots || 0;
+                  const total = detailCommunity.total_spots || 1;
+                  const remaining = Math.max(0, total - claimed);
+                  const isSoldOut = remaining === 0;
+
+                  return (
+                    <div className="p-3.5 bg-[#EFE7D5] border-3 border-black rounded space-y-2">
                       <div className="flex items-center justify-between font-mono text-xs font-bold">
-                        <span className="text-gray-700">GTD SPOTS REMAINING:</span>
-                        <span className="font-pixel text-[10px] text-black font-extrabold">
-                          {remaining} / {total} LEFT
+                        <span className="text-gray-700">GUARANTEED SPOTS LEFT:</span>
+                        <span className="font-pixel text-[11px] text-black font-extrabold">
+                          {remaining} / {total} AVAILABLE
                         </span>
                       </div>
-
-                      {/* Visual Progress Bar */}
                       <div className="w-full h-3 bg-white rounded-full overflow-hidden border-2 border-black">
                         <div
                           className={`h-full transition-all duration-500 rounded-full ${
@@ -425,196 +489,190 @@ export const ClaimPage = ({ onBackHome }) => {
                         />
                       </div>
                     </div>
+                  );
+                })()}
 
-                    {/* Live Eligibility Status Banner */}
-                    <div className="mt-3">
+                {/* On-Chain Eligibility Banner */}
+                {(() => {
+                  const elig = eligibility[detailCommunity.id];
+                  const isHolder = elig?.isHolder;
+                  const holderCount = elig?.balance || 0;
+                  const claimed = detailCommunity.claimed_spots || 0;
+                  const total = detailCommunity.total_spots || 1;
+                  const isSoldOut = Math.max(0, total - claimed) === 0;
+
+                  return (
+                    <div>
                       {!walletAddress ? (
-                        <div className="font-pixel text-[8px] sm:text-[9px] text-gray-700 text-center p-2.5 bg-white/70 border-2 border-dashed border-gray-400 font-bold">
-                          [ CONNECT WALLET TO SCAN ]
+                        <div className="font-pixel text-[9px] text-gray-700 text-center p-3 bg-white border-2 border-dashed border-gray-400 font-bold">
+                          [ CONNECT WALLET TO SCAN YOUR HOLDER BALANCE ]
                         </div>
                       ) : scanning ? (
-                        <div className="font-pixel text-[8px] sm:text-[9px] text-amber-800 text-center p-2.5 bg-amber-100 border-2 border-amber-400 animate-pulse font-extrabold">
+                        <div className="font-pixel text-[9px] text-amber-800 text-center p-3 bg-amber-100 border-2 border-amber-400 animate-pulse font-extrabold">
                           SCANNING ON-CHAIN BALANCE...
                         </div>
                       ) : isHolder ? (
-                        <div className="font-pixel text-[8px] sm:text-[9px] text-[#006622] text-center p-2.5 bg-[#00FF66]/25 border-3 border-[#00AA44] font-extrabold shadow-[0_0_10px_rgba(0,255,102,0.3)] flex items-center justify-center gap-1.5">
-                          <span>[✓]</span> <span>ELIGIBLE ({holderCount} NFT{holderCount > 1 ? 'S' : ''} DETECTED)</span>
+                        <div className="font-pixel text-[9px] text-[#006622] text-center p-3 bg-[#00FF66]/25 border-3 border-[#00AA44] font-extrabold shadow-[0_0_10px_rgba(0,255,102,0.3)]">
+                          [✓] ELIGIBLE TO CLAIM ({holderCount} NFT{holderCount > 1 ? 'S' : ''} VERIFIED IN WALLET)
                         </div>
                       ) : (
-                        <div className="font-pixel text-[8px] sm:text-[9px] text-[#CC0022] text-center p-2.5 bg-[#FF2247]/15 border-2 border-[#FF2247] font-bold">
-                          [X] NO NFT DETECTED IN WALLET
+                        <div className="font-pixel text-[9px] text-[#CC0022] text-center p-3 bg-[#FF2247]/15 border-2 border-[#FF2247] font-bold">
+                          [X] NO NFT DETECTED IN CONNECTED WALLET
                         </div>
                       )}
+
+                      {/* Modal Action Buttons */}
+                      <div className="pt-3">
+                        {!walletAddress ? (
+                          <button
+                            type="button"
+                            onClick={handleConnect}
+                            className="w-full py-3.5 pixel-btn pixel-btn-lime text-black font-pixel text-xs font-extrabold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                          >
+                            [ CONNECT WALLET ]
+                          </button>
+                        ) : isSoldOut ? (
+                          <button
+                            type="button"
+                            disabled
+                            className="w-full py-3.5 bg-gray-300 text-gray-600 font-pixel text-xs cursor-not-allowed border-3 border-gray-400 font-bold"
+                          >
+                            [ ALL SPOTS CLAIMED ]
+                          </button>
+                        ) : isHolder ? (
+                          <button
+                            type="button"
+                            onClick={() => setIsClaimFormOpen(true)}
+                            className="w-full py-4 bg-[#FFD700] hover:bg-[#FFE34D] text-black font-pixel text-xs font-extrabold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-pulse"
+                          >
+                            [ CLAIM GTD SPOT NOW ]
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled
+                            className="w-full py-3.5 bg-[#E8DEC8] text-gray-500 font-pixel text-xs cursor-not-allowed border-2 border-gray-400 font-bold"
+                          >
+                            [ NOT ELIGIBLE ]
+                          </button>
+                        )}
+                      </div>
                     </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              /* Claim Form Mode (When Eligible User clicks Claim GTD Spot) */
+              <form onSubmit={handleClaimSubmit} className="space-y-4 pt-4 text-left">
+                {formErrors.duplicateBanner && (
+                  <div className="p-3 bg-[#FF2247]/15 border-2 border-[#FF2247] font-pixel text-[9px] text-[#FF2247]">
+                    ! {formErrors.duplicateBanner}
                   </div>
+                )}
 
-                  {/* Card Bottom Action Button */}
-                  <div className="mt-5 pt-3 border-t-2 border-black/20">
-                    {!walletAddress ? (
-                      <button
-                        type="button"
-                        onClick={handleConnect}
-                        className="w-full py-3 pixel-btn pixel-btn-black text-white font-pixel text-[10px] font-extrabold border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                      >
-                        [ CONNECT WALLET ]
-                      </button>
-                    ) : isSoldOut ? (
-                      <button
-                        type="button"
-                        disabled
-                        className="w-full py-3 bg-gray-300 text-gray-600 font-pixel text-[9px] cursor-not-allowed border-3 border-gray-400 font-bold"
-                      >
-                        [ ALL SPOTS CLAIMED ]
-                      </button>
-                    ) : isHolder ? (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenClaim(comm)}
-                        className="w-full py-3.5 bg-[#FFD700] hover:bg-[#FFE34D] text-black font-pixel text-xs font-extrabold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all animate-bounce hover:animate-none"
-                      >
-                        [ CLAIM GTD SPOT ]
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled
-                        className="w-full py-3 bg-[#E8DEC8] text-gray-500 font-pixel text-[9px] cursor-not-allowed border-2 border-gray-400 font-bold"
-                      >
-                        [ NOT ELIGIBLE ]
-                      </button>
-                    )}
+                {/* Verified Wallet (Readonly) */}
+                <div>
+                  <label className="block font-pixel text-[9px] text-gray-700 mb-1">
+                    VERIFIED HOLDER WALLET
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={walletAddress || ''}
+                    className="w-full h-10 px-3 bg-[#EFE8D8] border-2 border-black font-mono text-xs text-gray-900 font-bold"
+                  />
+                </div>
+
+                {/* X Username */}
+                <div>
+                  <label className="block font-pixel text-[9px] text-gray-800 mb-1">
+                    YOUR X (TWITTER) USERNAME <span className="text-[#FF2247]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="@username"
+                    value={xUsername}
+                    onChange={(e) => {
+                      setXUsername(e.target.value);
+                      if (formErrors.xUsername) setFormErrors({ ...formErrors, xUsername: null });
+                    }}
+                    className={`w-full h-11 px-3 bg-white border-3 ${
+                      formErrors.xUsername ? 'border-[#FF2247]' : 'border-black'
+                    } font-mono text-sm text-black font-bold focus:outline-none focus:border-[#00FF66]`}
+                  />
+                  {formErrors.xUsername && (
+                    <p className="font-pixel text-[8px] text-[#FF2247] mt-1">! {formErrors.xUsername}</p>
+                  )}
+                </div>
+
+                {/* Optional Comment / Proof URL */}
+                <div>
+                  <label className="block font-pixel text-[8px] text-gray-700 mb-1">
+                    OPTIONAL: X COMMENT / PROOF URL
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://x.com/yourhandle/status/..."
+                    value={commentLink}
+                    onChange={(e) => {
+                      setCommentLink(e.target.value);
+                      if (formErrors.commentLink) setFormErrors({ ...formErrors, commentLink: null });
+                    }}
+                    className={`w-full h-10 px-3 bg-white border-2 ${
+                      formErrors.commentLink ? 'border-[#FF2247]' : 'border-black'
+                    } font-mono text-xs text-black`}
+                  />
+                  {formErrors.commentLink && (
+                    <p className="font-pixel text-[8px] text-[#FF2247] mt-1">! {formErrors.commentLink}</p>
+                  )}
+                </div>
+
+                {/* Security Clearance (Turnstile) */}
+                <div className="pt-1">
+                  <TurnstileWidget onVerify={(token) => setCaptchaToken(token)} />
+                  {formErrors.captcha && (
+                    <p className="font-pixel text-[8px] text-[#FF2247] mt-1">! {formErrors.captcha}</p>
+                  )}
+                </div>
+
+                {/* Golden Key Slider */}
+                <div className="pt-1">
+                  <HumanVerificationSlider onVerified={(sig) => setHumanSignature(sig)} />
+                  {formErrors.humanSlider && (
+                    <p className="font-pixel text-[8px] text-[#FF2247] mt-1">! {formErrors.humanSlider}</p>
+                  )}
+                </div>
+
+                {formErrors.submit && (
+                  <div className="p-2.5 bg-[#FF2247]/15 border-2 border-[#FF2247] font-pixel text-[9px] text-[#FF2247]">
+                    ! {formErrors.submit}
                   </div>
+                )}
+
+                {/* Submit & Back Buttons */}
+                <div className="pt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsClaimFormOpen(false)}
+                    className="px-4 py-3.5 bg-gray-200 hover:bg-gray-300 font-pixel text-[9px] font-bold border-2 border-black"
+                  >
+                    [ BACK ]
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !humanSignature}
+                    className={`flex-1 py-3.5 font-pixel text-xs font-extrabold transition-all border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
+                      humanSignature && !isSubmitting
+                        ? 'bg-[#FFD700] hover:bg-[#ffe033] text-black animate-pulse'
+                        : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                    }`}
+                  >
+                    {isSubmitting ? '[ CLAIMING SPOT... ]' : humanSignature ? '[ CONFIRM & CLAIM GTD ]' : '[ SLIDE KEY TO UNLOCK ]'}
+                  </button>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </main>
-
-      {/* Claim Modal */}
-      {selectedCommunity && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#FFF9EE] text-black border-4 border-black max-w-md w-full p-5 sm:p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] my-8">
-            <div className="flex items-center justify-between pb-3 border-b-3 border-black">
-              <div>
-                <span className="font-pixel text-[9px] text-[#007A33] font-extrabold">
-                  [ PARTNER GTD ALLOCATION ]
-                </span>
-                <h3 className="font-pixel text-sm sm:text-base text-black font-extrabold mt-0.5">
-                  {selectedCommunity.name}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={handleCloseClaim}
-                className="w-8 h-8 flex items-center justify-center bg-black text-white font-pixel text-xs hover:bg-[#FF2247]"
-              >
-                [X]
-              </button>
-            </div>
-
-            <form onSubmit={handleClaimSubmit} className="space-y-4 pt-4 text-left">
-              {formErrors.duplicateBanner && (
-                <div className="p-3 bg-[#FF2247]/15 border-2 border-[#FF2247] font-pixel text-[9px] text-[#FF2247]">
-                  ! {formErrors.duplicateBanner}
-                </div>
-              )}
-
-              {/* Wallet Address (Readonly) */}
-              <div>
-                <label className="block font-pixel text-[9px] text-gray-700 mb-1">
-                  VERIFIED HOLDER WALLET
-                </label>
-                <input
-                  type="text"
-                  readOnly
-                  value={walletAddress || ''}
-                  className="w-full h-10 px-3 bg-[#EFE8D8] border-2 border-black font-mono text-xs text-gray-900 font-bold"
-                />
-              </div>
-
-              {/* X Username */}
-              <div>
-                <label className="block font-pixel text-[9px] text-gray-800 mb-1">
-                  YOUR X (TWITTER) USERNAME <span className="text-[#FF2247]">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="@username"
-                  value={xUsername}
-                  onChange={(e) => {
-                    setXUsername(e.target.value);
-                    if (formErrors.xUsername) setFormErrors({ ...formErrors, xUsername: null });
-                  }}
-                  className={`w-full h-11 px-3 bg-white border-3 ${
-                    formErrors.xUsername ? 'border-[#FF2247]' : 'border-black'
-                  } font-mono text-sm text-black font-bold focus:outline-none focus:border-[#00FF66]`}
-                />
-                {formErrors.xUsername && (
-                  <p className="font-pixel text-[8px] text-[#FF2247] mt-1">! {formErrors.xUsername}</p>
-                )}
-              </div>
-
-              {/* Optional Comment / Quote Proof Link */}
-              <div>
-                <label className="block font-pixel text-[8px] text-gray-700 mb-1">
-                  OPTIONAL: X COMMENT / PROOF URL
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://x.com/yourhandle/status/..."
-                  value={commentLink}
-                  onChange={(e) => {
-                    setCommentLink(e.target.value);
-                    if (formErrors.commentLink) setFormErrors({ ...formErrors, commentLink: null });
-                  }}
-                  className={`w-full h-10 px-3 bg-white border-2 ${
-                    formErrors.commentLink ? 'border-[#FF2247]' : 'border-black'
-                  } font-mono text-xs text-black`}
-                />
-                {formErrors.commentLink && (
-                  <p className="font-pixel text-[8px] text-[#FF2247] mt-1">! {formErrors.commentLink}</p>
-                )}
-              </div>
-
-              {/* Security Clearance (Turnstile) */}
-              <div className="pt-1">
-                <TurnstileWidget onVerify={(token) => setCaptchaToken(token)} />
-                {formErrors.captcha && (
-                  <p className="font-pixel text-[8px] text-[#FF2247] mt-1">! {formErrors.captcha}</p>
-                )}
-              </div>
-
-              {/* Golden Key Slider */}
-              <div className="pt-1">
-                <HumanVerificationSlider onVerified={(sig) => setHumanSignature(sig)} />
-                {formErrors.humanSlider && (
-                  <p className="font-pixel text-[8px] text-[#FF2247] mt-1">! {formErrors.humanSlider}</p>
-                )}
-              </div>
-
-              {formErrors.submit && (
-                <div className="p-2.5 bg-[#FF2247]/15 border-2 border-[#FF2247] font-pixel text-[9px] text-[#FF2247]">
-                  ! {formErrors.submit}
-                </div>
-              )}
-
-              {/* Submit Button */}
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !humanSignature}
-                  className={`w-full py-4 font-pixel text-xs font-extrabold transition-all border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-                    humanSignature && !isSubmitting
-                      ? 'bg-[#FFD700] hover:bg-[#ffe033] text-black animate-pulse'
-                      : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                  }`}
-                >
-                  {isSubmitting ? '[ CLAIMING GTD SPOT... ]' : humanSignature ? '[ CONFIRM & CLAIM GTD SPOT ]' : '[ SLIDE KEY ABOVE TO UNLOCK ]'}
-                </button>
-              </div>
-            </form>
+              </form>
+            )}
           </div>
         </div>
       )}
