@@ -5,7 +5,7 @@ import { validateAndRedeemPromoCode, fetchActiveTasks } from '../utils/supabase'
 import { connectWallet, getConnectedAccount } from '../utils/web3Contract';
 import { TurnstileWidget } from './TurnstileWidget';
 import { HumanVerificationSlider } from './HumanVerificationSlider';
-import { downloadBrokerCardPng } from '../utils/generateBrokerCard';
+import { downloadCodeClaimerCardPng, generateCodeClaimerCardDataUrl } from '../utils/generateBrokerCard';
 
 export const CodeClaimPage = ({ onBackHome }) => {
   const [walletAddress, setWalletAddress] = useState('');
@@ -41,10 +41,27 @@ export const CodeClaimPage = ({ onBackHome }) => {
 
   // Success Claim Modal
   const [claimSuccessData, setClaimSuccessData] = useState(null);
+  const [cardPreviewUrl, setCardPreviewUrl] = useState(null);
 
   useEffect(() => {
     checkInitialWallet();
   }, []);
+
+  useEffect(() => {
+    if (claimSuccessData) {
+      generateCodeClaimerCardDataUrl({
+        brokerId: claimSuccessData.brokerId,
+        xUsername: claimSuccessData.xUsername,
+        walletAddress: claimSuccessData.walletAddress,
+        codeName: claimSuccessData.codeName,
+        campaignTag: claimSuccessData.campaignTag,
+      }).then((url) => {
+        if (url) setCardPreviewUrl(url);
+      });
+    } else {
+      setCardPreviewUrl(null);
+    }
+  }, [claimSuccessData]);
 
   const checkInitialWallet = async () => {
     const account = await getConnectedAccount();
@@ -180,15 +197,13 @@ export const CodeClaimPage = ({ onBackHome }) => {
 
   const handleDownloadCard = () => {
     sound?.playClick?.();
-    downloadBrokerCardPng({
+    downloadCodeClaimerCardPng({
       brokerId: claimSuccessData?.brokerId,
       xUsername: claimSuccessData?.xUsername,
       walletAddress: claimSuccessData?.walletAddress,
-      isGtd: true,
-      cardTier: 'GOLDEN_GTD',
-      gtdArtId: claimSuccessData?.gtdArtId || 1,
+      codeName: claimSuccessData?.codeName,
+      campaignTag: claimSuccessData?.campaignTag,
       submittedAt: claimSuccessData?.submittedAt,
-      communityName: `PROMO CODE: ${claimSuccessData?.codeName}`,
     });
   };
 
@@ -448,11 +463,11 @@ export const CodeClaimPage = ({ onBackHome }) => {
         </div>
       </main>
 
-      {/* Triumphant Success Modal */}
+      {/* Triumphant Success Modal with Live Card Preview */}
       {claimSuccessData && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-black text-white border-4 border-[#FFD700] max-w-md w-full p-6 text-center shadow-[0_0_35px_rgba(255,215,0,0.5)] space-y-4">
-            <div className="inline-block bg-[#FFD700] text-black font-pixel text-xs px-3 py-1 border-2 border-black font-extrabold shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-black text-white border-4 border-[#FFD700] max-w-lg w-full p-5 sm:p-6 text-center shadow-[0_0_40px_rgba(255,215,0,0.5)] space-y-4 my-8">
+            <div className="inline-block bg-[#FFD700] text-black font-pixel text-xs px-3.5 py-1.5 border-2 border-black font-extrabold shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
               [ SECRET CODE REDEEMED ]
             </div>
 
@@ -460,22 +475,33 @@ export const CodeClaimPage = ({ onBackHome }) => {
               <span className="font-pixel text-[9px] text-[#00FF66] tracking-widest font-extrabold">
                 GUARANTEED ALLOCATION CONFIRMED
               </span>
-              <h2 className="font-pixel text-xl sm:text-2xl text-white font-extrabold">
+              <h2 className="font-pixel text-lg sm:text-2xl text-white font-extrabold">
                 GTD SPOT CLAIMED!
               </h2>
             </div>
 
-            <div className="p-4 bg-[#111] border-2 border-[#FFD700]/40 text-left space-y-2 font-mono text-xs">
+            {/* Live Generated Card Artwork Preview */}
+            <div className="relative w-full aspect-[3/2] bg-[#050505] border-3 border-[#00FF66] rounded overflow-hidden shadow-[0_0_20px_rgba(0,255,102,0.3)]">
+              {cardPreviewUrl ? (
+                <img
+                  src={cardPreviewUrl}
+                  alt="ApeSyndicate Code GTD Pass"
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center space-y-2 text-gray-400 font-pixel text-[9px]">
+                  <div className="w-6 h-6 border-2 border-[#00FF66] border-t-transparent rounded-full animate-spin" />
+                  <span>GENERATING 24K GTD PASS...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Details Summary Bar */}
+            <div className="p-3 bg-[#111] border-2 border-[#FFD700]/40 text-left space-y-1.5 font-mono text-xs">
               <div className="flex justify-between">
                 <span className="text-gray-400">PROMO CODE:</span>
                 <span className="font-bold text-[#FFD700]">{claimSuccessData.codeName}</span>
               </div>
-              {claimSuccessData.campaignTag && (
-                <div className="flex justify-between">
-                  <span className="text-gray-400">CAMPAIGN:</span>
-                  <span className="font-bold text-gray-200">{claimSuccessData.campaignTag}</span>
-                </div>
-              )}
               <div className="flex justify-between">
                 <span className="text-gray-400">SYNDICATE ID:</span>
                 <span className="font-bold text-[#00FF66]">{claimSuccessData.brokerId}</span>
@@ -490,7 +516,8 @@ export const CodeClaimPage = ({ onBackHome }) => {
               </div>
             </div>
 
-            <div className="space-y-2.5 pt-2">
+            {/* Action Buttons */}
+            <div className="space-y-2.5 pt-1">
               <button
                 type="button"
                 onClick={handleDownloadCard}

@@ -396,3 +396,237 @@ export function downloadBrokerGif(gifUrl, gifId) {
   link.click();
   document.body.removeChild(link);
 }
+
+// Dedicated High-Resolution 24K GTD Pass Generator for Code Claimers
+export async function generateCodeClaimerCardDataUrl({ brokerId, xUsername, walletAddress, codeName, campaignTag }) {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const W = 1200;
+    const H = 800;
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    const cleanBrokerId = (brokerId || '#0000').replace('#', '');
+    const cleanUsername = (xUsername || '@broker').trim().replace(/^@/, '');
+    const shortWallet = walletAddress
+      ? walletAddress.length > 24
+        ? `${walletAddress.slice(0, 10)}...${walletAddress.slice(-8)}`
+        : walletAddress
+      : '0x000...000';
+
+    const bgImg = new Image();
+    bgImg.crossOrigin = 'anonymous';
+
+    const logoImg = new Image();
+    logoImg.crossOrigin = 'anonymous';
+
+    let loaded = 0;
+    const checkReady = () => {
+      loaded++;
+      if (loaded >= 2) {
+        render();
+      }
+    };
+
+    const render = () => {
+      try {
+        ctx.save();
+
+        // 1. Draw Background Vault Artwork
+        if (bgImg.complete && bgImg.naturalWidth > 0) {
+          ctx.drawImage(bgImg, 0, 0, W, H);
+        } else {
+          const grad = ctx.createLinearGradient(0, 0, W, H);
+          grad.addColorStop(0, '#041208');
+          grad.addColorStop(1, '#020503');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, W, H);
+        }
+
+        // 2. Cinematic Vignette & Bottom Readability Gradient
+        const vigGrad = ctx.createRadialGradient(W / 2, H / 2, 200, W / 2, H / 2, 700);
+        vigGrad.addColorStop(0, 'rgba(0, 0, 0, 0.15)');
+        vigGrad.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+        ctx.fillStyle = vigGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        const botGrad = ctx.createLinearGradient(0, H - 320, 0, H);
+        botGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        botGrad.addColorStop(0.4, 'rgba(0, 0, 0, 0.75)');
+        botGrad.addColorStop(1, 'rgba(0, 0, 0, 0.95)');
+        ctx.fillStyle = botGrad;
+        ctx.fillRect(0, H - 320, W, 320);
+
+        // 3. Glowing Neon Green & Gold Outer Frame
+        ctx.strokeStyle = '#00FF66';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(4, 4, W - 8, H - 8);
+
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(12, 12, W - 24, H - 24);
+
+        // 4. Top Header HUD Bar
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(16, 16, W - 32, 70);
+        ctx.strokeStyle = 'rgba(0, 255, 102, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(16, 16, W - 32, 70);
+
+        // Header Logo
+        if (logoImg.complete && logoImg.naturalWidth > 0) {
+          ctx.drawImage(logoImg, 32, 27, 48, 48);
+        }
+
+        // Header Brand Text
+        ctx.font = "bold 20px 'Press Start 2P', monospace, sans-serif";
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textAlign = 'left';
+        ctx.fillText('APESYNDICATE', 95, 58);
+
+        ctx.font = "bold 13px 'Courier New', monospace";
+        ctx.fillStyle = '#00FF66';
+        ctx.fillText('// SECRET CODE REDEMPTION VAULT', 360, 56);
+
+        // Header Right: 100% GTD Pill
+        const gtdPillX = W - 340;
+        ctx.fillStyle = '#FFD700';
+        ctx.fillRect(gtdPillX, 28, 305, 45);
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(gtdPillX, 28, 305, 45);
+
+        ctx.font = "bold 13px 'Press Start 2P', monospace, sans-serif";
+        ctx.fillStyle = '#000000';
+        ctx.textAlign = 'center';
+        ctx.fillText('★ 100% GTD PASS ★', gtdPillX + 152, 57);
+
+        // 5. Bottom Left: Information Cyber Panel
+        const panelX = 35;
+        const panelY = H - 250;
+        const panelW = 720;
+        const panelH = 200;
+
+        ctx.fillStyle = 'rgba(6, 12, 8, 0.88)';
+        ctx.fillRect(panelX, panelY, panelW, panelH);
+        ctx.strokeStyle = '#00FF66';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(panelX, panelY, panelW, panelH);
+
+        // Internal gold accent border
+        ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(panelX + 4, panelY + 4, panelW - 8, panelH - 8);
+
+        // Field 1: CODE REDEEMED
+        ctx.textAlign = 'left';
+        ctx.font = "bold 11px 'Press Start 2P', monospace, sans-serif";
+        ctx.fillStyle = '#999999';
+        ctx.fillText('REDEEMED CODE:', panelX + 25, panelY + 42);
+
+        ctx.font = "bold 22px 'Press Start 2P', monospace, sans-serif";
+        ctx.fillStyle = '#FFD700';
+        ctx.fillText(codeName ? `[${codeName}]` : '[VIP-CODE]', panelX + 200, panelY + 44);
+
+        // Field 2: BROKER ID
+        ctx.font = "bold 11px 'Press Start 2P', monospace, sans-serif";
+        ctx.fillStyle = '#999999';
+        ctx.fillText('BROKER ID:', panelX + 25, panelY + 86);
+
+        ctx.font = "bold 18px 'Courier New', monospace";
+        ctx.fillStyle = '#00FF66';
+        ctx.fillText(`#${cleanBrokerId}`, panelX + 200, panelY + 86);
+
+        // Field 3: X USERNAME
+        ctx.font = "bold 11px 'Press Start 2P', monospace, sans-serif";
+        ctx.fillStyle = '#999999';
+        ctx.fillText('X HANDLE:', panelX + 25, panelY + 128);
+
+        ctx.font = "bold 17px 'Courier New', monospace";
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText(`@${cleanUsername}`, panelX + 200, panelY + 128);
+
+        // Field 4: WALLET & NETWORK
+        ctx.font = "bold 11px 'Press Start 2P', monospace, sans-serif";
+        ctx.fillStyle = '#999999';
+        ctx.fillText('HOLDER WALLET:', panelX + 25, panelY + 170);
+
+        ctx.font = "bold 15px 'Courier New', monospace";
+        ctx.fillStyle = '#00DDFF';
+        ctx.fillText(shortWallet, panelX + 200, panelY + 170);
+
+        // 6. Bottom Right: Verification Badge & Stamp
+        const stampCenterX = W - 180;
+        const stampCenterY = H - 150;
+
+        ctx.save();
+        ctx.translate(stampCenterX, stampCenterY);
+        ctx.rotate((-10 * Math.PI) / 180);
+
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.15)';
+        ctx.fillRect(-130, -50, 260, 100);
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(-130, -50, 260, 100);
+
+        ctx.strokeStyle = '#FFF380';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(-123, -43, 246, 86);
+
+        ctx.font = "bold 12px 'Press Start 2P', monospace, sans-serif";
+        ctx.fillStyle = '#FFD700';
+        ctx.textAlign = 'center';
+        ctx.fillText('APPROVED', 0, -18);
+
+        ctx.font = "bold 10px 'Press Start 2P', monospace, sans-serif";
+        ctx.fillStyle = '#00FF66';
+        ctx.fillText('ROBINHOOD CHAIN', 0, 6);
+
+        ctx.font = "bold 8px 'Courier New', monospace";
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText('MINT DATE: SEP 3RD', 0, 28);
+
+        ctx.restore();
+
+        // 7. Security Micro-Print / Watermark
+        ctx.font = "bold 10px 'Courier New', monospace";
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.textAlign = 'right';
+        ctx.fillText(
+          `AUTH-HASH // RH-GTD-VAULT-2026 // #${cleanBrokerId} // GUARANTEED`,
+          W - 35,
+          H - 25
+        );
+
+        ctx.restore();
+
+        const dataUrl = canvas.toDataURL('image/png');
+        resolve(dataUrl);
+      } catch (err) {
+        console.error('Error rendering code claim card:', err);
+        resolve(null);
+      }
+    };
+
+    bgImg.onload = checkReady;
+    bgImg.onerror = checkReady;
+    logoImg.onload = checkReady;
+    logoImg.onerror = checkReady;
+
+    bgImg.src = '/code_card_bg.jpg';
+    logoImg.src = '/logo.png';
+  });
+}
+
+export async function downloadCodeClaimerCardPng(data) {
+  const dataUrl = await generateCodeClaimerCardDataUrl(data);
+  if (!dataUrl) return;
+  const link = document.createElement('a');
+  link.download = `ApeSyndicate_Code_GTD_Pass_${(data.brokerId || '0000').replace('#', '')}.png`;
+  link.href = dataUrl;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
