@@ -199,7 +199,7 @@ export const ClaimPage = ({ onBackHome }) => {
 
   const handleShareOnX = () => {
     sound?.playClick?.();
-    const text = `👑 I just claimed a GUARANTEED (GTD) Whitelist Spot for @Apesyndicates as a verified ${claimSuccessData?.communityName} NFT holder on Robinhood Chain! ⚡\n\nVerify your allocation here: https://apesyndicates.xyz/holders.html\n\n#ApeSyndicate #RobinhoodChain #GTD https://x.com/Apesyndicates/status/2093348238971846874/photo/1`;
+    const text = `I just claimed a GUARANTEED (GTD) Whitelist Spot for @Apesyndicates as a verified ${claimSuccessData?.communityName} NFT holder on Robinhood Chain!\n\nVerify your allocation here: https://apesyndicates.xyz/holders.html\n\n#ApeSyndicate #RobinhoodChain #GTD https://x.com/Apesyndicates/status/2093348238971846874/photo/1`;
     window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -255,7 +255,7 @@ export const ClaimPage = ({ onBackHome }) => {
         {/* Title Header */}
         <div className="space-y-2.5">
           <div className="inline-block bg-black text-[#FFD700] px-4 py-1.5 border-3 border-black font-pixel text-[9px] sm:text-[10px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            👑 EXCLUSIVE PARTNER NFT HOLDER ALLOCATIONS
+            [ PARTNER NFT HOLDER ALLOCATIONS ]
           </div>
           <h1 className="font-pixel text-2xl sm:text-4xl md:text-5xl text-white font-extrabold tracking-tight drop-shadow-[6px_6px_0px_rgba(0,0,0,1)]">
             NFT HOLDER GTD CLAIM
@@ -279,7 +279,7 @@ export const ClaimPage = ({ onBackHome }) => {
                 onClick={handleConnect}
                 className="w-full py-4 pixel-btn pixel-btn-lime font-pixel text-xs sm:text-sm text-black font-extrabold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-pulse"
               >
-                [ 🦊 CONNECT ROBINHOOD / WEB3 WALLET ]
+                [ CONNECT WEB3 / ROBINHOOD WALLET ]
               </button>
             </div>
           ) : (
@@ -301,14 +301,14 @@ export const ClaimPage = ({ onBackHome }) => {
                   disabled={scanning}
                   className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-[#182330] hover:bg-[#233345] text-[#00FF66] font-pixel text-[9px] border-2 border-[#00FF66]/50 rounded transition-all font-bold"
                 >
-                  {scanning ? '⏳ SCANNING...' : '🔄 RE-SCAN'}
+                  {scanning ? '[ SCANNING... ]' : '[ RE-SCAN ]'}
                 </button>
                 <button
                   type="button"
                   onClick={handleDisconnect}
                   className="px-3.5 py-2.5 bg-[#FF2247]/15 hover:bg-[#FF2247]/30 text-[#FF2247] font-pixel text-[9px] border-2 border-[#FF2247]/40 rounded transition-colors font-bold"
                 >
-                  DISCONNECT
+                  [ DISCONNECT ]
                 </button>
               </div>
             </div>
@@ -364,7 +364,7 @@ export const ClaimPage = ({ onBackHome }) => {
 
                       {/* Tier Badge Ribbon */}
                       <div className="absolute top-2 right-2 bg-black text-[#FFD700] font-pixel text-[8px] px-2 py-1 border-2 border-black font-extrabold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                        👑 GTD ALLOCATION
+                        GTD ALLOCATION
                       </div>
                     </div>
 
@@ -390,7 +390,7 @@ export const ClaimPage = ({ onBackHome }) => {
                           className="shrink-0 px-2 py-0.5 bg-black text-white font-mono text-[9px] rounded font-bold hover:bg-gray-800 transition-colors"
                           title="Copy Contract Address"
                         >
-                          {copiedContractId === comm.id ? 'COPIED!' : 'COPY'}
+                          {copiedContractId === comm.id ? '[ COPIED ]' : '[ COPY ]'}
                         </button>
                       </div>
                     </div>
@@ -430,19 +430,19 @@ export const ClaimPage = ({ onBackHome }) => {
                     <div className="mt-3">
                       {!walletAddress ? (
                         <div className="font-pixel text-[8px] sm:text-[9px] text-gray-700 text-center p-2.5 bg-white/70 border-2 border-dashed border-gray-400 font-bold">
-                          🔒 CONNECT WALLET TO SCAN
+                          [ CONNECT WALLET TO SCAN ]
                         </div>
                       ) : scanning ? (
                         <div className="font-pixel text-[8px] sm:text-[9px] text-amber-800 text-center p-2.5 bg-amber-100 border-2 border-amber-400 animate-pulse font-extrabold">
-                          ⏳ SCANNING ON-CHAIN BALANCE...
+                          SCANNING ON-CHAIN BALANCE...
                         </div>
                       ) : isHolder ? (
                         <div className="font-pixel text-[8px] sm:text-[9px] text-[#006622] text-center p-2.5 bg-[#00FF66]/25 border-3 border-[#00AA44] font-extrabold shadow-[0_0_10px_rgba(0,255,102,0.3)] flex items-center justify-center gap-1.5">
-                          <span>✓</span> <span>ELIGIBLE ({holderCount} NFT{holderCount > 1 ? 'S' : ''} DETECTED)</span>
+                          <span>[✓]</span> <span>ELIGIBLE ({holderCount} NFT{holderCount > 1 ? 'S' : ''} DETECTED)</span>
                         </div>
                       ) : (
                         <div className="font-pixel text-[8px] sm:text-[9px] text-[#CC0022] text-center p-2.5 bg-[#FF2247]/15 border-2 border-[#FF2247] font-bold">
-                          ✕ NO NFT DETECTED IN WALLET
+                          [X] NO NFT DETECTED IN WALLET
                         </div>
                       )}
                     </div>
@@ -456,7 +456,7 @@ export const ClaimPage = ({ onBackHome }) => {
                         onClick={handleConnect}
                         className="w-full py-3 pixel-btn pixel-btn-black text-white font-pixel text-[10px] font-extrabold border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                       >
-                        [ 🦊 CONNECT WALLET ]
+                        [ CONNECT WALLET ]
                       </button>
                     ) : isSoldOut ? (
                       <button
@@ -464,7 +464,7 @@ export const ClaimPage = ({ onBackHome }) => {
                         disabled
                         className="w-full py-3 bg-gray-300 text-gray-600 font-pixel text-[9px] cursor-not-allowed border-3 border-gray-400 font-bold"
                       >
-                        ALL SPOTS CLAIMED
+                        [ ALL SPOTS CLAIMED ]
                       </button>
                     ) : isHolder ? (
                       <button
@@ -472,7 +472,7 @@ export const ClaimPage = ({ onBackHome }) => {
                         onClick={() => handleOpenClaim(comm)}
                         className="w-full py-3.5 bg-[#FFD700] hover:bg-[#FFE34D] text-black font-pixel text-xs font-extrabold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all animate-bounce hover:animate-none"
                       >
-                        [ 🚀 CLAIM GTD SPOT ]
+                        [ CLAIM GTD SPOT ]
                       </button>
                     ) : (
                       <button
@@ -480,7 +480,7 @@ export const ClaimPage = ({ onBackHome }) => {
                         disabled
                         className="w-full py-3 bg-[#E8DEC8] text-gray-500 font-pixel text-[9px] cursor-not-allowed border-2 border-gray-400 font-bold"
                       >
-                        NOT ELIGIBLE
+                        [ NOT ELIGIBLE ]
                       </button>
                     )}
                   </div>
@@ -498,7 +498,7 @@ export const ClaimPage = ({ onBackHome }) => {
             <div className="flex items-center justify-between pb-3 border-b-3 border-black">
               <div>
                 <span className="font-pixel text-[9px] text-[#007A33] font-extrabold">
-                  👑 PARTNER GTD ALLOCATION
+                  [ PARTNER GTD ALLOCATION ]
                 </span>
                 <h3 className="font-pixel text-sm sm:text-base text-black font-extrabold mt-0.5">
                   {selectedCommunity.name}
@@ -509,7 +509,7 @@ export const ClaimPage = ({ onBackHome }) => {
                 onClick={handleCloseClaim}
                 className="w-8 h-8 flex items-center justify-center bg-black text-white font-pixel text-xs hover:bg-[#FF2247]"
               >
-                ✕
+                [X]
               </button>
             </div>
 
@@ -611,7 +611,7 @@ export const ClaimPage = ({ onBackHome }) => {
                       : 'bg-gray-300 text-gray-600 cursor-not-allowed'
                   }`}
                 >
-                  {isSubmitting ? 'CLAIMING GTD SPOT...' : humanSignature ? '[ 🚀 CONFIRM & CLAIM GTD SPOT ]' : '[ 🔒 SLIDE KEY ABOVE TO UNLOCK ]'}
+                  {isSubmitting ? '[ CLAIMING GTD SPOT... ]' : humanSignature ? '[ CONFIRM & CLAIM GTD SPOT ]' : '[ SLIDE KEY ABOVE TO UNLOCK ]'}
                 </button>
               </div>
             </form>
@@ -623,7 +623,9 @@ export const ClaimPage = ({ onBackHome }) => {
       {claimSuccessData && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-black text-white border-4 border-[#FFD700] max-w-md w-full p-6 text-center shadow-[0_0_30px_rgba(255,215,0,0.4)] space-y-4">
-            <div className="text-4xl">👑</div>
+            <div className="inline-block bg-[#FFD700] text-black font-pixel text-xs px-3 py-1 border-2 border-black font-extrabold shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+              [ GUARANTEED GTD PASS ]
+            </div>
             <div className="space-y-1">
               <span className="font-pixel text-[9px] text-[#FFD700] tracking-widest font-extrabold">
                 GUARANTEED ALLOCATION CONFIRMED
@@ -658,15 +660,18 @@ export const ClaimPage = ({ onBackHome }) => {
                 onClick={handleDownloadCard}
                 className="w-full py-3.5 pixel-btn pixel-btn-gold text-black font-pixel text-xs font-extrabold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
               >
-                [ 💾 DOWNLOAD 24K GOLDEN PASS ]
+                [ DOWNLOAD 24K GOLDEN PASS ]
               </button>
 
               <button
                 type="button"
                 onClick={handleShareOnX}
-                className="w-full py-3.5 bg-[#1DA1F2] hover:bg-[#0c85d0] text-white font-pixel text-xs font-bold border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                className="w-full py-3.5 bg-[#1DA1F2] hover:bg-[#0c85d0] text-white font-pixel text-xs font-bold border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2"
               >
-                [ 🐦 SHARE ON X ]
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+                <span>[ SHARE ON X ]</span>
               </button>
 
               <button
@@ -674,7 +679,7 @@ export const ClaimPage = ({ onBackHome }) => {
                 onClick={() => setClaimSuccessData(null)}
                 className="w-full py-2.5 bg-[#222] hover:bg-[#333] text-gray-300 font-pixel text-[10px] border-2 border-gray-600"
               >
-                CLOSE
+                [ CLOSE ]
               </button>
             </div>
           </div>
