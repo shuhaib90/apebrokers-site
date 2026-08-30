@@ -32,29 +32,83 @@ export const ClaimPage = ({ onBackHome }) => {
   const [claimSuccessData, setClaimSuccessData] = useState(null);
 
   useEffect(() => {
-    loadCommunities();
-    checkInitialWallet();
+    let mounted = true;
+
+    async function init() {
+      setLoading(true);
+      try {
+        const comms = await fetchCommunities();
+        if (!mounted) return;
+        setCommunities(comms);
+
+        // Auto-detect unlocked wallet and immediately trigger Auto-Scan!
+        const account = await getConnectedAccount();
+        if (account && mounted) {
+          setWalletAddress(account);
+          setScanning(true);
+          const results = await scanAllPartnerContracts(account, comms);
+          if (mounted) {
+            setEligibility(results);
+            sound?.playPowerUp?.();
+          }
+          setScanning(false);
+        }
+      } catch (err) {
+        console.error('Auto-scan init error:', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    init();
+
+    // Listen to MetaMask / Robinhood Wallet live account or chain changes
+    if (typeof window !== 'undefined' && window.ethereum?.on) {
+      const handleAccountsChanged = async (accounts) => {
+        if (accounts && accounts.length > 0) {
+          setWalletAddress(accounts[0]);
+          sound?.playPowerUp?.();
+          setScanning(true);
+          try {
+            const results = await scanAllPartnerContracts(accounts[0], communities);
+            setEligibility(results);
+          } finally {
+            setScanning(false);
+          }
+        } else {
+          setWalletAddress(null);
+          setEligibility({});
+        }
+      };
+
+      const handleChainChanged = async () => {
+        if (walletAddress) {
+          setScanning(true);
+          try {
+            const results = await scanAllPartnerContracts(walletAddress, communities);
+            setEligibility(results);
+          } finally {
+            setScanning(false);
+          }
+        }
+      };
+
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+
+      return () => {
+        mounted = false;
+        if (window.ethereum?.removeListener) {
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+          window.ethereum.removeListener('chainChanged', handleChainChanged);
+        }
+      };
+    }
+
+    return () => {
+      mounted = false;
+    };
   }, []);
-
-  const loadCommunities = async () => {
-    setLoading(true);
-    try {
-      const data = await fetchCommunities();
-      setCommunities(data);
-    } catch (err) {
-      console.error('Error fetching communities:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkInitialWallet = async () => {
-    const account = await getConnectedAccount();
-    if (account) {
-      setWalletAddress(account);
-      runScan(account, communities);
-    }
-  };
 
   const handleConnect = async () => {
     sound?.playClick?.();
@@ -62,6 +116,7 @@ export const ClaimPage = ({ onBackHome }) => {
     if (res.success && res.address) {
       setWalletAddress(res.address);
       sound?.playPowerUp?.();
+      // Immediately run auto-scan upon connection!
       runScan(res.address, communities);
     } else if (res.error) {
       sound?.playError?.();
@@ -82,6 +137,7 @@ export const ClaimPage = ({ onBackHome }) => {
     try {
       const results = await scanAllPartnerContracts(address, targetList);
       setEligibility(results);
+      sound?.playSuccess?.();
     } catch (err) {
       console.error('Error scanning contracts:', err);
     } finally {
@@ -192,7 +248,9 @@ export const ClaimPage = ({ onBackHome }) => {
 
       setDetailCommunity(null);
       setIsClaimFormOpen(false);
-      await loadCommunities();
+      const updatedComms = await fetchCommunities();
+      setCommunities(updatedComms);
+      if (walletAddress) runScan(walletAddress, updatedComms);
     } catch (err) {
       console.error('Error claiming spot:', err);
       setFormErrors({
@@ -223,6 +281,8 @@ export const ClaimPage = ({ onBackHome }) => {
       communityName: claimSuccessData?.communityName,
     });
   };
+
+  const eligibleCount = Object.values(eligibility).filter((e) => e?.isHolder).length;
 
   return (
     <div
@@ -274,7 +334,7 @@ export const ClaimPage = ({ onBackHome }) => {
           </div>
         </div>
 
-        {/* Wallet Connection Bar */}
+        {/* Wallet Connection & Auto-Scan Status Bar */}
         <div className="max-w-md mx-auto bg-black/95 p-4 border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
           {!walletAddress ? (
             <button
@@ -285,33 +345,53 @@ export const ClaimPage = ({ onBackHome }) => {
               [ CONNECT WEB3 / ROBINHOOD WALLET ]
             </button>
           ) : (
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-left">
-                <div className="font-pixel text-[9px] text-[#00FF66] flex items-center gap-1.5 font-bold">
-                  <span className="w-2 h-2 rounded-full bg-[#00FF66] inline-block animate-blink" />
-                  <span>CONNECTED</span>
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-left">
+                  <div className="font-pixel text-[9px] text-[#00FF66] flex items-center gap-1.5 font-bold">
+                    <span className="w-2 h-2 rounded-full bg-[#00FF66] inline-block animate-blink" />
+                    <span>CONNECTED</span>
+                  </div>
+                  <div className="font-mono text-xs text-white font-bold mt-0.5">
+                    {walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)}
+                  </div>
                 </div>
-                <div className="font-mono text-xs text-white font-bold mt-0.5">
-                  {walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => runScan(walletAddress, communities)}
+                    disabled={scanning}
+                    className="px-3 py-1.5 bg-[#182330] hover:bg-[#233345] text-[#00FF66] font-pixel text-[9px] border border-[#00FF66]/50 rounded font-bold"
+                  >
+                    {scanning ? '...' : '[ RE-SCAN ]'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDisconnect}
+                    className="px-3 py-1.5 bg-[#FF2247]/15 hover:bg-[#FF2247]/30 text-[#FF2247] font-pixel text-[9px] border border-[#FF2247]/40 rounded font-bold"
+                  >
+                    [ EXIT ]
+                  </button>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => runScan(walletAddress, communities)}
-                  disabled={scanning}
-                  className="px-3 py-1.5 bg-[#182330] hover:bg-[#233345] text-[#00FF66] font-pixel text-[9px] border border-[#00FF66]/50 rounded font-bold"
-                >
-                  {scanning ? '...' : '[ RE-SCAN ]'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDisconnect}
-                  className="px-3 py-1.5 bg-[#FF2247]/15 hover:bg-[#FF2247]/30 text-[#FF2247] font-pixel text-[9px] border border-[#FF2247]/40 rounded font-bold"
-                >
-                  [ EXIT ]
-                </button>
+              {/* Real-time Auto-Scan Ticker */}
+              <div className="pt-2 border-t border-gray-800">
+                {scanning ? (
+                  <div className="font-pixel text-[8px] text-[#FFD700] flex items-center justify-center gap-1.5 animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FFD700] inline-block animate-ping" />
+                    <span>AUTO-SCANNING ON-CHAIN PARTNER CONTRACTS...</span>
+                  </div>
+                ) : eligibleCount > 0 ? (
+                  <div className="font-pixel text-[8px] text-[#00FF66] font-bold">
+                    [✓] AUTO-SCAN COMPLETE: {eligibleCount} ELIGIBLE ALLOCATION{eligibleCount > 1 ? 'S' : ''} DETECTED!
+                  </div>
+                ) : (
+                  <div className="font-pixel text-[8px] text-gray-400">
+                    [✓] AUTO-SCAN ACTIVE • CLICK ANY CARD TO VIEW DETAILS
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -505,7 +585,7 @@ export const ClaimPage = ({ onBackHome }) => {
                     <div>
                       {!walletAddress ? (
                         <div className="font-pixel text-[9px] text-gray-700 text-center p-3 bg-white border-2 border-dashed border-gray-400 font-bold">
-                          [ CONNECT WALLET TO SCAN YOUR HOLDER BALANCE ]
+                          [ CONNECT WALLET TO AUTO-SCAN HOLDER BALANCE ]
                         </div>
                       ) : scanning ? (
                         <div className="font-pixel text-[9px] text-amber-800 text-center p-3 bg-amber-100 border-2 border-amber-400 animate-pulse font-extrabold">
