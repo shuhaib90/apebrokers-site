@@ -17,7 +17,7 @@ export const CodeClaimPage = ({ onBackHome }) => {
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Social Task Verification State
+  // Social Task Verification State (Only X tasks required)
   const [socialTasks, setSocialTasks] = useState([
     {
       id: 'follow',
@@ -29,12 +29,6 @@ export const CodeClaimPage = ({ onBackHome }) => {
       id: 'repost',
       title: 'REPOST WL ANNOUNCEMENT ON X',
       url: 'https://x.com/Apesyndicates/status/2093348238971846874',
-      verified: false,
-    },
-    {
-      id: 'discord',
-      title: 'JOIN APEBROKERS DISCORD',
-      url: 'https://discord.com',
       verified: false,
     },
   ]);
@@ -258,7 +252,7 @@ export const CodeClaimPage = ({ onBackHome }) => {
         </div>
 
         {/* Claim Form Box */}
-        <div className="bg-[#FFF9EE] text-black border-4 border-black p-5 sm:p-7 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] text-left space-y-5">
+        <div className="bg-[#FFF9EE] text-black border-4 border-black p-5 sm:p-7 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] text-left space-y-5 rounded-2xl overflow-hidden">
           <form onSubmit={handleSubmit} className="space-y-5">
             {formErrors.submit && (
               <div className="p-3 bg-[#FF2247]/15 border-3 border-[#FF2247] font-pixel text-[9px] text-[#FF2247]">
@@ -465,7 +459,7 @@ export const CodeClaimPage = ({ onBackHome }) => {
       {/* Triumphant Success Modal with Live Card Preview */}
       {claimSuccessData && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-black text-white border-4 border-[#FFD700] max-w-lg w-full p-5 sm:p-6 text-center shadow-[0_0_40px_rgba(255,215,0,0.5)] space-y-4 my-8">
+          <div className="bg-black text-white border-4 border-[#FFD700] max-w-lg w-full p-5 sm:p-6 text-center shadow-[0_0_40px_rgba(255,215,0,0.5)] space-y-4 my-8 rounded-2xl overflow-hidden">
             <div className="inline-block bg-[#FFD700] text-black font-pixel text-xs px-3.5 py-1.5 border-2 border-black font-extrabold shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
               [ SECRET CODE REDEEMED ]
             </div>

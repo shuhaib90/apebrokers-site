@@ -4,7 +4,7 @@ import { sound } from '../utils/audio';
 export const AboutBrokersModal = ({ onClose, onOpenTerminal }) => {
   return (
     <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fadeIn">
-      <div className="bg-broker-black border-4 border-black max-w-2xl w-full p-4 sm:p-6 shadow-pixel-xl relative space-y-5">
+      <div className="bg-broker-black border-4 border-black max-w-2xl w-full p-4 sm:p-6 shadow-pixel-xl relative space-y-5 rounded-2xl overflow-hidden">
         {/* Header Bar */}
         <div className="bg-broker-purple border-3 border-black p-3 flex items-center justify-between">
           <div className="flex items-center gap-2">

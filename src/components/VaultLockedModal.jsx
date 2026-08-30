@@ -7,7 +7,7 @@ export const VaultLockedModal = ({ isOpen, onClose, onApplyClick }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm select-none font-pixel animate-fadeIn">
       {/* Modal Box */}
-      <div className="relative w-full max-w-lg bg-[#140D24] text-white border-4 border-black p-6 sm:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-6">
+      <div className="relative w-full max-w-lg bg-[#140D24] text-white border-4 border-black p-6 sm:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-6 rounded-2xl overflow-hidden">
         {/* Top Header Bar */}
         <div className="flex items-center justify-between border-b-2 border-[#3d2e54] pb-3.5">
           <div className="flex items-center gap-2">

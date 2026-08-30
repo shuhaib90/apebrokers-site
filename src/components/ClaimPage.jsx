@@ -462,7 +462,7 @@ export const ClaimPage = ({ onBackHome }) => {
       {/* Pop-up Detail & Claim Modal */}
       {detailCommunity && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#FFF9EE] text-black border-4 border-black max-w-lg w-full p-5 sm:p-7 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] my-8">
+          <div className="bg-[#FFF9EE] text-black border-4 border-black max-w-lg w-full p-5 sm:p-7 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] my-8 rounded-2xl overflow-hidden">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b-3 border-black">
               <div>
@@ -767,7 +767,7 @@ export const ClaimPage = ({ onBackHome }) => {
       {/* Success Modal with Prominent Live 24K GTD Card Preview */}
       {claimSuccessData && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-black text-white border-4 border-[#FFD700] max-w-lg w-full p-5 sm:p-6 text-center shadow-[0_0_40px_rgba(255,215,0,0.5)] space-y-4 my-8">
+          <div className="bg-black text-white border-4 border-[#FFD700] max-w-lg w-full p-5 sm:p-6 text-center shadow-[0_0_40px_rgba(255,215,0,0.5)] space-y-4 my-8 rounded-2xl overflow-hidden">
             <div className="inline-block bg-[#FFD700] text-black font-pixel text-xs px-3.5 py-1.5 border-2 border-black font-extrabold shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
               [ GUARANTEED GTD PASS ]
             </div>
