@@ -1,5 +1,5 @@
-// Utility to generate and download a horizontal ID-card matching the official Broker Identification style
-export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress, gifId, gifUrl, isGtd, gtdArtId }) {
+// Utility to generate a horizontal ID-card DataURL matching the official Broker Identification style
+export async function generateBrokerCardDataUrl({ brokerId, xUsername, walletAddress, gifId, gifUrl, isGtd, gtdArtId, communityName }) {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
     const W = 1000;
@@ -357,23 +357,11 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
         ctx.fillText(isGtd ? '★ GTD PASS ★' : 'RECEIVED', 0, 0);
         ctx.restore();
 
-        ctx.restore();
-
-        // 11. Trigger PNG file download
         const dataUrl = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.download = isGtd
-          ? `ApeSyndicate_GOLDEN_GTD_Pass_${cleanBrokerId}.png`
-          : `ApeSyndicate_Identification_${cleanBrokerId}.png`;
-        link.href = dataUrl;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        resolve(true);
+        resolve(dataUrl);
       } catch (err) {
         console.error('Error creating ID card image:', err);
-        reject(err);
+        resolve(null);
       }
     };
 
@@ -382,9 +370,24 @@ export async function downloadBrokerCardPng({ brokerId, xUsername, walletAddress
     logoImg.onload = checkAndRender;
     logoImg.onerror = checkAndRender;
 
-    img.src = gifUrl;
+    img.src = gifUrl || (isGtd ? `/nfts/gold_${gtdArtId || 1}.png` : '/nfts/1.png');
     logoImg.src = '/logo.png';
   });
+}
+
+// Utility to generate and download a horizontal ID-card matching the official Broker Identification style
+export async function downloadBrokerCardPng(params) {
+  const dataUrl = await generateBrokerCardDataUrl(params);
+  if (!dataUrl) return;
+  const cleanBrokerId = (params.brokerId || '#0000').replace('#', '');
+  const link = document.createElement('a');
+  link.download = params.isGtd
+    ? `ApeSyndicate_GOLDEN_GTD_Pass_${cleanBrokerId}.png`
+    : `ApeSyndicate_Identification_${cleanBrokerId}.png`;
+  link.href = dataUrl;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 // Utility to directly download the animated GIF file

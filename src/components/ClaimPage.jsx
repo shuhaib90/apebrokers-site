@@ -6,7 +6,7 @@ import { scanAllPartnerContracts } from '../utils/web3Contract';
 import { TurnstileWidget } from './TurnstileWidget';
 import { HumanVerificationSlider } from './HumanVerificationSlider';
 import { validateTweetUrlFormat } from '../utils/xVerification';
-import { downloadBrokerCardPng } from '../utils/generateBrokerCard';
+import { downloadBrokerCardPng, generateBrokerCardDataUrl } from '../utils/generateBrokerCard';
 
 export const ClaimPage = ({ onBackHome }) => {
   const [communities, setCommunities] = useState([]);
@@ -36,8 +36,9 @@ export const ClaimPage = ({ onBackHome }) => {
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Success Modal
+  // Success Modal & Live Card Preview
   const [claimSuccessData, setClaimSuccessData] = useState(null);
+  const [cardPreviewUrl, setCardPreviewUrl] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -71,6 +72,25 @@ export const ClaimPage = ({ onBackHome }) => {
       mounted = false;
     };
   }, []);
+
+  // Generate 24K GTD Pass Card Preview whenever an allocation is claimed
+  useEffect(() => {
+    if (claimSuccessData) {
+      generateBrokerCardDataUrl({
+        brokerId: claimSuccessData.brokerId,
+        xUsername: claimSuccessData.xUsername,
+        walletAddress: claimSuccessData.walletAddress,
+        isGtd: true,
+        gtdArtId: claimSuccessData.gtdArtId || 1,
+        gifUrl: `/nfts/gold_${claimSuccessData.gtdArtId || 1}.png`,
+        communityName: claimSuccessData.communityName,
+      }).then((url) => {
+        if (url) setCardPreviewUrl(url);
+      });
+    } else {
+      setCardPreviewUrl(null);
+    }
+  }, [claimSuccessData]);
 
   const handleVerifyAddress = async (addrToVerify) => {
     sound?.playClick?.();
@@ -744,23 +764,41 @@ export const ClaimPage = ({ onBackHome }) => {
         </div>
       )}
 
-      {/* Success Modal */}
+      {/* Success Modal with Prominent Live 24K GTD Card Preview */}
       {claimSuccessData && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-black text-white border-4 border-[#FFD700] max-w-md w-full p-6 text-center shadow-[0_0_30px_rgba(255,215,0,0.4)] space-y-4">
-            <div className="inline-block bg-[#FFD700] text-black font-pixel text-xs px-3 py-1 border-2 border-black font-extrabold shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-black text-white border-4 border-[#FFD700] max-w-lg w-full p-5 sm:p-6 text-center shadow-[0_0_40px_rgba(255,215,0,0.5)] space-y-4 my-8">
+            <div className="inline-block bg-[#FFD700] text-black font-pixel text-xs px-3.5 py-1.5 border-2 border-black font-extrabold shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
               [ GUARANTEED GTD PASS ]
             </div>
+
             <div className="space-y-1">
-              <span className="font-pixel text-[9px] text-[#FFD700] tracking-widest font-extrabold">
+              <span className="font-pixel text-[9px] text-[#00FF66] tracking-widest font-extrabold">
                 GUARANTEED ALLOCATION CONFIRMED
               </span>
-              <h2 className="font-pixel text-xl sm:text-2xl text-white font-extrabold">
+              <h2 className="font-pixel text-lg sm:text-2xl text-white font-extrabold">
                 GTD SPOT CLAIMED!
               </h2>
             </div>
 
-            <div className="p-4 bg-[#111] border-2 border-[#FFD700]/40 text-left space-y-2 font-mono text-xs">
+            {/* Live 24K Golden GTD Pass Visual Artwork Card */}
+            <div className="relative w-full aspect-[1000/625] bg-[#050505] border-3 border-[#FFD700] rounded overflow-hidden shadow-[0_0_25px_rgba(255,215,0,0.35)]">
+              {cardPreviewUrl ? (
+                <img
+                  src={cardPreviewUrl}
+                  alt="ApeSyndicate 24K Golden GTD Pass"
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center space-y-2 text-gray-400 font-pixel text-[9px]">
+                  <div className="w-6 h-6 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin" />
+                  <span>MINTING 24K GOLDEN PASS...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Details Summary Bar */}
+            <div className="p-3 bg-[#111] border-2 border-[#FFD700]/40 text-left space-y-1.5 font-mono text-xs">
               <div className="flex justify-between">
                 <span className="text-gray-400">PARTNER:</span>
                 <span className="font-bold text-[#FFD700]">{claimSuccessData.communityName}</span>
@@ -779,7 +817,8 @@ export const ClaimPage = ({ onBackHome }) => {
               </div>
             </div>
 
-            <div className="space-y-2.5 pt-2">
+            {/* Action Buttons */}
+            <div className="space-y-2.5 pt-1">
               <button
                 type="button"
                 onClick={handleDownloadCard}
