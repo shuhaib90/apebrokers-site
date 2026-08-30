@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { sound } from '../utils/audio';
-import { fetchCommunities, claimCommunityGtdSpot, checkExistingApplication } from '../utils/supabase';
-import { connectWallet, getConnectedAccount, scanAllPartnerContracts } from '../utils/web3Contract';
+import { fetchCommunities, claimCommunityGtdSpot } from '../utils/supabase';
+import { scanAllPartnerContracts } from '../utils/web3Contract';
 import { TurnstileWidget } from './TurnstileWidget';
 import { HumanVerificationSlider } from './HumanVerificationSlider';
 import { validateTweetUrlFormat } from '../utils/xVerification';
@@ -11,13 +11,21 @@ import { downloadBrokerCardPng } from '../utils/generateBrokerCard';
 export const ClaimPage = ({ onBackHome }) => {
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [walletAddress, setWalletAddress] = useState(null);
+  const [walletInput, setWalletInput] = useState(() => {
+    return localStorage.getItem('apebrokers_holder_wallet') || '';
+  });
+  const [walletAddress, setWalletAddress] = useState(() => {
+    const saved = localStorage.getItem('apebrokers_holder_wallet');
+    return saved && /^0x[a-fA-F0-9]{40}$/.test(saved) ? saved.toLowerCase() : null;
+  });
   const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState(null);
   const [eligibility, setEligibility] = useState({}); // { [commId]: { isHolder, balance } }
   const [copiedContractId, setCopiedContractId] = useState(null);
 
   // Selected Community Detail Modal (Pop-up on card click)
   const [detailCommunity, setDetailCommunity] = useState(null);
+  const [modalWalletInput, setModalWalletInput] = useState('');
 
   // Claim Form State (When user proceeds to claim in modal)
   const [isClaimFormOpen, setIsClaimFormOpen] = useState(false);
@@ -41,20 +49,17 @@ export const ClaimPage = ({ onBackHome }) => {
         if (!mounted) return;
         setCommunities(comms);
 
-        // Auto-detect unlocked wallet and immediately trigger Auto-Scan!
-        const account = await getConnectedAccount();
-        if (account && mounted) {
-          setWalletAddress(account);
+        // If a valid wallet was previously verified / saved, scan on-chain automatically!
+        if (walletAddress && mounted) {
           setScanning(true);
-          const results = await scanAllPartnerContracts(account, comms);
+          const results = await scanAllPartnerContracts(walletAddress, comms);
           if (mounted) {
             setEligibility(results);
-            sound?.playPowerUp?.();
           }
           setScanning(false);
         }
       } catch (err) {
-        console.error('Auto-scan init error:', err);
+        console.error('Initialization error:', err);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -62,84 +67,60 @@ export const ClaimPage = ({ onBackHome }) => {
 
     init();
 
-    // Listen to MetaMask / Robinhood Wallet live account or chain changes
-    if (typeof window !== 'undefined' && window.ethereum?.on) {
-      const handleAccountsChanged = async (accounts) => {
-        if (accounts && accounts.length > 0) {
-          setWalletAddress(accounts[0]);
-          sound?.playPowerUp?.();
-          setScanning(true);
-          try {
-            const results = await scanAllPartnerContracts(accounts[0], communities);
-            setEligibility(results);
-          } finally {
-            setScanning(false);
-          }
-        } else {
-          setWalletAddress(null);
-          setEligibility({});
-        }
-      };
-
-      const handleChainChanged = async () => {
-        if (walletAddress) {
-          setScanning(true);
-          try {
-            const results = await scanAllPartnerContracts(walletAddress, communities);
-            setEligibility(results);
-          } finally {
-            setScanning(false);
-          }
-        }
-      };
-
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
-
-      return () => {
-        mounted = false;
-        if (window.ethereum?.removeListener) {
-          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-          window.ethereum.removeListener('chainChanged', handleChainChanged);
-        }
-      };
-    }
-
     return () => {
       mounted = false;
     };
   }, []);
 
-  const handleConnect = async () => {
+  const handleVerifyAddress = async (addrToVerify) => {
     sound?.playClick?.();
-    const res = await connectWallet();
-    if (res.success && res.address) {
-      setWalletAddress(res.address);
-      sound?.playPowerUp?.();
-      // Immediately run auto-scan upon connection!
-      runScan(res.address, communities);
-    } else if (res.error) {
+    setScanError(null);
+    const clean = (addrToVerify || '').trim().toLowerCase();
+
+    if (!clean) {
+      setScanError('Please enter an EVM wallet address.');
       sound?.playError?.();
-      alert(res.error);
+      return;
     }
+
+    if (!/^0x[a-fA-F0-9]{40}$/.test(clean)) {
+      setScanError('Invalid EVM address format. Must start with 0x and be 42 characters.');
+      sound?.playError?.();
+      return;
+    }
+
+    setWalletAddress(clean);
+    setWalletInput(clean);
+    localStorage.setItem('apebrokers_holder_wallet', clean);
+    await runScan(clean, communities);
   };
 
-  const handleDisconnect = () => {
+  const handleClearWallet = () => {
     sound?.playClick?.();
     setWalletAddress(null);
+    setWalletInput('');
     setEligibility({});
+    setScanError(null);
+    localStorage.removeItem('apebrokers_holder_wallet');
   };
 
   const runScan = async (address, commList) => {
     const targetList = commList && commList.length > 0 ? commList : communities;
     if (!address || targetList.length === 0) return;
     setScanning(true);
+    setScanError(null);
     try {
       const results = await scanAllPartnerContracts(address, targetList);
       setEligibility(results);
-      sound?.playSuccess?.();
+      const isAnyEligible = Object.values(results).some((r) => r?.isHolder);
+      if (isAnyEligible) {
+        sound?.playPowerUp?.();
+      } else {
+        sound?.playSuccess?.();
+      }
     } catch (err) {
       console.error('Error scanning contracts:', err);
+      setScanError('Failed to query RPC. Please try again.');
     } finally {
       setScanning(false);
     }
@@ -156,6 +137,7 @@ export const ClaimPage = ({ onBackHome }) => {
   const handleCardClick = (comm) => {
     sound?.playClick?.();
     setDetailCommunity(comm);
+    setModalWalletInput(walletAddress || '');
     setIsClaimFormOpen(false);
     setXUsername('');
     setCommentLink('');
@@ -271,8 +253,6 @@ export const ClaimPage = ({ onBackHome }) => {
     });
   };
 
-  const eligibleCount = Object.values(eligibility).filter((e) => e?.isHolder).length;
-
   return (
     <div
       className="min-h-screen text-white flex flex-col items-center justify-between relative bg-cover bg-center bg-no-repeat bg-fixed select-none"
@@ -318,50 +298,68 @@ export const ClaimPage = ({ onBackHome }) => {
           </h1>
           <div className="bg-black/90 max-w-xl mx-auto p-3.5 border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
             <p className="font-mono text-xs sm:text-sm text-gray-200 font-semibold leading-relaxed">
-              Select your partner NFT collection below to verify on-chain holder status and claim your guaranteed (GTD) whitelist spot.
+              Paste your wallet address below to verify on-chain NFT ownership and claim your guaranteed (GTD) spot. No wallet connection needed!
             </p>
           </div>
         </div>
 
-        {/* Wallet Connection & Auto-Scan Status Bar */}
-        <div className="max-w-md mx-auto bg-black/95 p-4 border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-          {!walletAddress ? (
+        {/* Manual Address Input & Direct On-Chain Scanner */}
+        <div className="max-w-xl mx-auto bg-black/95 p-4 sm:p-5 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-left space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="font-pixel text-[9px] sm:text-[10px] text-[#00FF66] font-extrabold">
+              PASTE EVM / ROBINHOOD WALLET ADDRESS:
+            </label>
+            {walletAddress && (
+              <button
+                type="button"
+                onClick={handleClearWallet}
+                className="font-pixel text-[8px] text-[#FF2247] hover:underline font-bold"
+              >
+                [ CLEAR ]
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              placeholder="0x..."
+              value={walletInput}
+              onChange={(e) => setWalletInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleVerifyAddress(walletInput);
+              }}
+              className="flex-1 h-11 px-3 bg-[#080d14] border-2 border-[#00FF66]/50 focus:border-[#00FF66] font-mono text-xs sm:text-sm text-white font-bold rounded outline-none"
+            />
             <button
               type="button"
-              onClick={handleConnect}
-              className="w-full py-3.5 pixel-btn pixel-btn-lime font-pixel text-xs sm:text-sm text-black font-extrabold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-pulse"
+              onClick={() => handleVerifyAddress(walletInput)}
+              disabled={scanning}
+              className="h-11 px-5 pixel-btn pixel-btn-lime text-black font-pixel text-xs font-extrabold shrink-0 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
             >
-              [ CONNECT WEB3 / ROBINHOOD WALLET ]
+              {scanning ? 'SCANNING...' : '[ VERIFY WALLET ]'}
             </button>
-          ) : (
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-left">
-                <div className="font-pixel text-[9px] text-[#00FF66] flex items-center gap-1.5 font-bold">
-                  <span className="w-2 h-2 rounded-full bg-[#00FF66] inline-block animate-blink" />
-                  <span>CONNECTED</span>
-                </div>
-                <div className="font-mono text-xs text-white font-bold mt-0.5">
-                  {walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)}
-                </div>
-              </div>
+          </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => runScan(walletAddress, communities)}
-                  disabled={scanning}
-                  className="px-3 py-1.5 bg-[#182330] hover:bg-[#233345] text-[#00FF66] font-pixel text-[9px] border border-[#00FF66]/50 rounded font-bold"
-                >
-                  {scanning ? '...' : '[ RE-SCAN ]'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDisconnect}
-                  className="px-3 py-1.5 bg-[#FF2247]/15 hover:bg-[#FF2247]/30 text-[#FF2247] font-pixel text-[9px] border border-[#FF2247]/40 rounded font-bold"
-                >
-                  [ EXIT ]
-                </button>
+          {scanError && (
+            <p className="font-pixel text-[8px] text-[#FF2247]">! {scanError}</p>
+          )}
+
+          {walletAddress && !scanning && (
+            <div className="pt-2 border-t border-gray-800 flex items-center justify-between font-mono text-xs text-gray-300">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#00FF66] inline-block animate-blink" />
+                <span className="text-[#00FF66] font-bold">VERIFIED ADDRESS:</span>
+                <span className="text-white">{walletAddress.substring(0, 8)}...{walletAddress.substring(walletAddress.length - 6)}</span>
               </div>
+              <button
+                type="button"
+                onClick={() => runScan(walletAddress, communities)}
+                disabled={scanning}
+                className="font-pixel text-[8px] text-[#FFD700] hover:underline"
+              >
+                [ RE-SCAN ]
+              </button>
             </div>
           )}
         </div>
@@ -541,6 +539,32 @@ export const ClaimPage = ({ onBackHome }) => {
                   );
                 })()}
 
+                {/* Inline Wallet Address Verification within Modal */}
+                {!walletAddress && (
+                  <div className="p-3.5 bg-[#EFE8D8] border-3 border-black rounded space-y-2">
+                    <label className="block font-pixel text-[9px] text-black font-extrabold">
+                      ENTER YOUR HOLDER WALLET ADDRESS:
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="0x..."
+                        value={modalWalletInput}
+                        onChange={(e) => setModalWalletInput(e.target.value)}
+                        className="flex-1 h-10 px-3 bg-white border-2 border-black font-mono text-xs text-black font-bold outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleVerifyAddress(modalWalletInput)}
+                        disabled={scanning}
+                        className="px-3.5 py-2 pixel-btn pixel-btn-lime text-black font-pixel text-[9px] font-extrabold shrink-0"
+                      >
+                        {scanning ? 'SCANNING...' : '[ VERIFY ]'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* On-Chain Eligibility Banner */}
                 {(() => {
                   const elig = eligibility[detailCommunity.id];
@@ -552,35 +576,27 @@ export const ClaimPage = ({ onBackHome }) => {
 
                   return (
                     <div>
-                      {!walletAddress ? (
-                        <div className="font-pixel text-[9px] text-gray-700 text-center p-3 bg-white border-2 border-dashed border-gray-400 font-bold">
-                          [ CONNECT WALLET TO AUTO-SCAN HOLDER BALANCE ]
-                        </div>
-                      ) : scanning ? (
+                      {scanning ? (
                         <div className="font-pixel text-[9px] text-amber-800 text-center p-3 bg-amber-100 border-2 border-amber-400 animate-pulse font-extrabold">
-                          SCANNING ON-CHAIN BALANCE...
+                          SCANNING ON-CHAIN BALANCE VIA ALCHEMY RPC...
+                        </div>
+                      ) : !walletAddress ? (
+                        <div className="font-pixel text-[9px] text-gray-700 text-center p-3 bg-white border-2 border-dashed border-gray-400 font-bold">
+                          [ PASTE YOUR WALLET ADDRESS ABOVE TO VERIFY ON-CHAIN ]
                         </div>
                       ) : isHolder ? (
                         <div className="font-pixel text-[9px] text-[#006622] text-center p-3 bg-[#00FF66]/25 border-3 border-[#00AA44] font-extrabold shadow-[0_0_10px_rgba(0,255,102,0.3)]">
-                          [✓] ELIGIBLE TO CLAIM ({holderCount} NFT{holderCount > 1 ? 'S' : ''} VERIFIED IN WALLET)
+                          [✓] ELIGIBLE TO CLAIM ({holderCount} NFT{holderCount > 1 ? 'S' : ''} VERIFIED ON-CHAIN)
                         </div>
                       ) : (
                         <div className="font-pixel text-[9px] text-[#CC0022] text-center p-3 bg-[#FF2247]/15 border-2 border-[#FF2247] font-bold">
-                          [X] NO NFT DETECTED IN CONNECTED WALLET
+                          [X] NO NFT DETECTED IN WALLET ({walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)})
                         </div>
                       )}
 
                       {/* Modal Action Buttons */}
                       <div className="pt-3">
-                        {!walletAddress ? (
-                          <button
-                            type="button"
-                            onClick={handleConnect}
-                            className="w-full py-3.5 pixel-btn pixel-btn-lime text-black font-pixel text-xs font-extrabold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                          >
-                            [ CONNECT WALLET ]
-                          </button>
-                        ) : isSoldOut ? (
+                        {isSoldOut ? (
                           <button
                             type="button"
                             disabled
@@ -602,7 +618,7 @@ export const ClaimPage = ({ onBackHome }) => {
                             disabled
                             className="w-full py-3.5 bg-[#E8DEC8] text-gray-500 font-pixel text-xs cursor-not-allowed border-2 border-gray-400 font-bold"
                           >
-                            [ NOT ELIGIBLE ]
+                            {walletAddress ? '[ NOT ELIGIBLE ]' : '[ VERIFY WALLET FIRST ]'}
                           </button>
                         )}
                       </div>
@@ -613,17 +629,25 @@ export const ClaimPage = ({ onBackHome }) => {
             ) : (
               /* Claim Form Mode (When Eligible User clicks Claim GTD Spot) */
               <form onSubmit={handleClaimSubmit} className="space-y-4 pt-4 text-left">
-                {/* Verified Wallet (Readonly) */}
+                {/* Verified Wallet (Readonly & Locked - Non Editable) */}
                 <div>
-                  <label className="block font-pixel text-[9px] text-gray-700 mb-1">
-                    VERIFIED HOLDER WALLET
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-pixel text-[9px] text-gray-800 font-extrabold">
+                      VERIFIED HOLDER WALLET
+                    </label>
+                    <span className="font-pixel text-[8px] text-[#007A33] font-bold">
+                      [ LOCKED • VERIFIED ]
+                    </span>
+                  </div>
                   <input
                     type="text"
                     readOnly
                     value={walletAddress || ''}
-                    className="w-full h-10 px-3 bg-[#EFE8D8] border-2 border-black font-mono text-xs text-gray-900 font-bold"
+                    className="w-full h-11 px-3 bg-[#E8DEC8] border-3 border-black font-mono text-xs text-black font-extrabold cursor-not-allowed select-all"
                   />
+                  <p className="font-mono text-[10px] text-gray-600 mt-1">
+                    Auto-locked to your verified on-chain NFT holder address.
+                  </p>
                 </div>
 
                 {/* X Username */}
