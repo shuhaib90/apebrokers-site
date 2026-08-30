@@ -210,18 +210,7 @@ export const ClaimPage = ({ onBackHome }) => {
     sound?.playClick?.();
 
     try {
-      // 1. Check existing application
-      const existing = await checkExistingApplication(xUsername, walletAddress);
-      if (existing.exists) {
-        setFormErrors({
-          duplicateBanner: 'This wallet or X handle has already submitted an application!',
-        });
-        sound?.playError?.();
-        setIsSubmitting(false);
-        return;
-      }
-
-      // 2. Claim community GTD spot
+      // Claim community GTD spot directly for verified on-chain holder
       const result = await claimCommunityGtdSpot(detailCommunity.id, {
         xUsername,
         walletAddress,
@@ -345,53 +334,33 @@ export const ClaimPage = ({ onBackHome }) => {
               [ CONNECT WEB3 / ROBINHOOD WALLET ]
             </button>
           ) : (
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-left">
-                  <div className="font-pixel text-[9px] text-[#00FF66] flex items-center gap-1.5 font-bold">
-                    <span className="w-2 h-2 rounded-full bg-[#00FF66] inline-block animate-blink" />
-                    <span>CONNECTED</span>
-                  </div>
-                  <div className="font-mono text-xs text-white font-bold mt-0.5">
-                    {walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)}
-                  </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-left">
+                <div className="font-pixel text-[9px] text-[#00FF66] flex items-center gap-1.5 font-bold">
+                  <span className="w-2 h-2 rounded-full bg-[#00FF66] inline-block animate-blink" />
+                  <span>CONNECTED</span>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => runScan(walletAddress, communities)}
-                    disabled={scanning}
-                    className="px-3 py-1.5 bg-[#182330] hover:bg-[#233345] text-[#00FF66] font-pixel text-[9px] border border-[#00FF66]/50 rounded font-bold"
-                  >
-                    {scanning ? '...' : '[ RE-SCAN ]'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDisconnect}
-                    className="px-3 py-1.5 bg-[#FF2247]/15 hover:bg-[#FF2247]/30 text-[#FF2247] font-pixel text-[9px] border border-[#FF2247]/40 rounded font-bold"
-                  >
-                    [ EXIT ]
-                  </button>
+                <div className="font-mono text-xs text-white font-bold mt-0.5">
+                  {walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)}
                 </div>
               </div>
 
-              {/* Real-time Auto-Scan Ticker */}
-              <div className="pt-2 border-t border-gray-800">
-                {scanning ? (
-                  <div className="font-pixel text-[8px] text-[#FFD700] flex items-center justify-center gap-1.5 animate-pulse">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#FFD700] inline-block animate-ping" />
-                    <span>AUTO-SCANNING ON-CHAIN PARTNER CONTRACTS...</span>
-                  </div>
-                ) : eligibleCount > 0 ? (
-                  <div className="font-pixel text-[8px] text-[#00FF66] font-bold">
-                    [✓] AUTO-SCAN COMPLETE: {eligibleCount} ELIGIBLE ALLOCATION{eligibleCount > 1 ? 'S' : ''} DETECTED!
-                  </div>
-                ) : (
-                  <div className="font-pixel text-[8px] text-gray-400">
-                    [✓] AUTO-SCAN ACTIVE • CLICK ANY CARD TO VIEW DETAILS
-                  </div>
-                )}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => runScan(walletAddress, communities)}
+                  disabled={scanning}
+                  className="px-3 py-1.5 bg-[#182330] hover:bg-[#233345] text-[#00FF66] font-pixel text-[9px] border border-[#00FF66]/50 rounded font-bold"
+                >
+                  {scanning ? '...' : '[ RE-SCAN ]'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDisconnect}
+                  className="px-3 py-1.5 bg-[#FF2247]/15 hover:bg-[#FF2247]/30 text-[#FF2247] font-pixel text-[9px] border border-[#FF2247]/40 rounded font-bold"
+                >
+                  [ EXIT ]
+                </button>
               </div>
             </div>
           )}
@@ -644,12 +613,6 @@ export const ClaimPage = ({ onBackHome }) => {
             ) : (
               /* Claim Form Mode (When Eligible User clicks Claim GTD Spot) */
               <form onSubmit={handleClaimSubmit} className="space-y-4 pt-4 text-left">
-                {formErrors.duplicateBanner && (
-                  <div className="p-3 bg-[#FF2247]/15 border-2 border-[#FF2247] font-pixel text-[9px] text-[#FF2247]">
-                    ! {formErrors.duplicateBanner}
-                  </div>
-                )}
-
                 {/* Verified Wallet (Readonly) */}
                 <div>
                   <label className="block font-pixel text-[9px] text-gray-700 mb-1">
