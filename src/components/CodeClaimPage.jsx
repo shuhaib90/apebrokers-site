@@ -66,7 +66,6 @@ export const CodeClaimPage = ({ onBackHome }) => {
   const handleOpenTask = (url, taskId) => {
     sound?.playClick?.();
     window.open(url, '_blank', 'noopener,noreferrer');
-    // Auto-enable verify button after visiting
     setTimeout(() => {
       setSocialTasks((prev) =>
         prev.map((t) => (t.id === taskId ? { ...t, canVerify: true } : t))
@@ -193,8 +192,6 @@ export const CodeClaimPage = ({ onBackHome }) => {
     });
   };
 
-  const allTasksDone = socialTasks.every((t) => t.verified);
-
   return (
     <div
       className="min-h-screen text-white flex flex-col items-center justify-between relative bg-cover bg-center bg-no-repeat bg-fixed select-none"
@@ -288,7 +285,7 @@ export const CodeClaimPage = ({ onBackHome }) => {
                   onClick={handleConnect}
                   className="font-pixel text-[8px] text-[#007A33] hover:underline font-extrabold"
                 >
-                  [ 🦊 AUTO-FILL FROM WALLET ]
+                  [ AUTO-FILL FROM WALLET ]
                 </button>
               </div>
               <input
@@ -443,8 +440,8 @@ export const CodeClaimPage = ({ onBackHome }) => {
                 {isSubmitting
                   ? '[ VERIFYING & REDEEMING CODE... ]'
                   : humanSignature
-                  ? '[ 🚀 REDEEM SECRET CODE & CLAIM GTD SPOT ]'
-                  : '[ 🔒 SLIDE KEY ABOVE TO UNLOCK ]'}
+                  ? '[ REDEEM SECRET CODE & CLAIM GTD SPOT ]'
+                  : '[ SLIDE KEY ABOVE TO UNLOCK ]'}
               </button>
             </div>
           </form>
@@ -456,7 +453,7 @@ export const CodeClaimPage = ({ onBackHome }) => {
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-black text-white border-4 border-[#FFD700] max-w-md w-full p-6 text-center shadow-[0_0_35px_rgba(255,215,0,0.5)] space-y-4">
             <div className="inline-block bg-[#FFD700] text-black font-pixel text-xs px-3 py-1 border-2 border-black font-extrabold shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-              [ 👑 SECRET CODE REDEEMED! ]
+              [ SECRET CODE REDEEMED ]
             </div>
 
             <div className="space-y-1">
@@ -499,7 +496,7 @@ export const CodeClaimPage = ({ onBackHome }) => {
                 onClick={handleDownloadCard}
                 className="w-full py-3.5 pixel-btn pixel-btn-gold text-black font-pixel text-xs font-extrabold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
               >
-                [ 💾 DOWNLOAD 24K GOLDEN PASS ]
+                [ DOWNLOAD 24K GOLDEN PASS ]
               </button>
 
               <button
@@ -510,7 +507,7 @@ export const CodeClaimPage = ({ onBackHome }) => {
                 <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                 </svg>
-                <span>[ 🐦 SHARE ON X ]</span>
+                <span>[ SHARE ON X ]</span>
               </button>
 
               <button

@@ -1,7 +1,7 @@
 import React from 'react';
 import { sound } from '../utils/audio';
 
-export const Header = ({ onApplyClick }) => {
+export const Header = () => {
   const handleFollowX = () => {
     sound?.playClick?.();
     window.open('https://x.com/Apesyndicates', '_blank', 'noopener,noreferrer');
@@ -12,21 +12,11 @@ export const Header = ({ onApplyClick }) => {
     window.open('https://discord.com', '_blank', 'noopener,noreferrer');
   };
 
-  const handleApply = () => {
-    sound?.playZoom?.();
-    if (onApplyClick) {
-      onApplyClick();
-    } else {
-      const el = document.getElementById('apply');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   return (
     <header className="sticky top-0 z-50 w-full bg-[#00FF66] border-b-4 border-black px-3 sm:px-8 py-2.5 sm:py-3.5 select-none">
       <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
         {/* Left: Brand */}
-        <a href="#" className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <a href="/" className="flex items-center gap-2 sm:gap-3 shrink-0">
           <img
             src="/logo.png"
             alt="ApeSyndicate Logo"
@@ -37,30 +27,27 @@ export const Header = ({ onApplyClick }) => {
           </span>
         </a>
 
-        {/* Right: Quick Buttons */}
+        {/* Right: Clean Navigation Buttons with SVG Icons */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           <a
             href="/code.html"
-            className="pixel-btn pixel-btn-black px-2 sm:px-3 py-1.5 sm:py-2 text-[9px] sm:text-xs whitespace-nowrap font-extrabold text-[#FFD700] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] border-2 border-black"
+            className="pixel-btn pixel-btn-black px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[9px] sm:text-xs whitespace-nowrap font-extrabold text-[#FFD700] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] border-2 border-black flex items-center gap-1.5"
           >
-            [ 🔑 CODE ]
+            <svg className="w-3 h-3 fill-[#FFD700] shrink-0" viewBox="0 0 24 24">
+              <path d="M7 14A5 5 0 0 1 7 4a5 5 0 0 1 4.58 3H21v4h-2v2h-2v-2h-2v2h-2v-2H11.58A5 5 0 0 1 7 14zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />
+            </svg>
+            <span>[ CODE ]</span>
           </a>
 
           <a
             href="/holders.html"
-            className="pixel-btn pixel-btn-gold px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[9px] sm:text-xs whitespace-nowrap font-extrabold text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+            className="pixel-btn pixel-btn-gold px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[9px] sm:text-xs whitespace-nowrap font-extrabold text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5"
           >
-            [ HOLDERS ]
+            <svg className="w-3 h-3 fill-black shrink-0" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            <span>[ HOLDERS ]</span>
           </a>
-
-          <button
-            type="button"
-            onClick={handleApply}
-            className="pixel-btn pixel-btn-black px-2.5 sm:px-4 py-1.5 sm:py-2 text-[9px] sm:text-xs whitespace-nowrap font-extrabold"
-          >
-            <span className="hidden sm:inline">[ APPLY FOR WL ]</span>
-            <span className="sm:hidden">[ APPLY ]</span>
-          </button>
 
           <button
             type="button"

@@ -52,7 +52,7 @@ export const HumanVerificationSlider = ({ onVerified, isVerified, error }) => {
   const completeVerification = () => {
     const elapsed = Date.now() - (dragStartTime || Date.now());
     
-    // Human check: must have taken at least 180ms and at least 3 movement samples (blocks instant script injection)
+    // Human check: must have taken at least 150ms and at least 2 movement samples (blocks instant script injection)
     if (elapsed >= 150 && jitterPoints >= 2) {
       setIsDragging(false);
       setSliderPos(100);
@@ -79,13 +79,15 @@ export const HumanVerificationSlider = ({ onVerified, isVerified, error }) => {
     <div className="w-full space-y-1.5 select-none pt-1">
       <div className="flex items-center justify-between">
         <label className="font-pixel text-[9px] sm:text-[10px] text-black font-extrabold flex items-center gap-1.5">
-          <span>🛡️</span>
+          <svg className="w-3 h-3 fill-black shrink-0" viewBox="0 0 24 24">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z" />
+          </svg>
           <span>HUMAN VERIFICATION</span>
           <span className="text-[#FF2247]">*</span>
         </label>
         {isVerified && (
           <span className="font-pixel text-[8px] sm:text-[9px] text-[#00AA44] font-extrabold flex items-center gap-1">
-            <span>✓</span> <span>VERIFIED HUMAN</span>
+            <span>[✓]</span> <span>VERIFIED HUMAN</span>
           </span>
         )}
       </div>
@@ -124,7 +126,7 @@ export const HumanVerificationSlider = ({ onVerified, isVerified, error }) => {
         >
           {isVerified ? (
             <span className="flex items-center justify-center gap-1.5 text-[#006622]">
-              <span>🔓</span> <span>SYNDICATE SECURITY CLEARED</span>
+              <span>[✓]</span> <span>SYNDICATE SECURITY CLEARED</span>
             </span>
           ) : (
             '>>> SLIDE GOLD KEY TO VERIFY >>>'
@@ -145,9 +147,13 @@ export const HumanVerificationSlider = ({ onVerified, isVerified, error }) => {
               : 'bg-[#FFD700] hover:bg-[#FFE033] text-black shadow-md'
           }`}
         >
-          <span className="text-lg leading-none transform active:scale-110 transition-transform select-none">
-            {isVerified ? '✓' : '🔑'}
-          </span>
+          {isVerified ? (
+            <span className="font-pixel text-xs font-extrabold">✓</span>
+          ) : (
+            <svg className="w-5 h-5 fill-black" viewBox="0 0 24 24">
+              <path d="M7 14A5 5 0 0 1 7 4a5 5 0 0 1 4.58 3H21v4h-2v2h-2v-2h-2v2h-2v-2H11.58A5 5 0 0 1 7 14zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />
+            </svg>
+          )}
         </div>
       </div>
 
