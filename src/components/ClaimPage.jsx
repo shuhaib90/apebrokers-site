@@ -327,7 +327,7 @@ export const ClaimPage = ({ onBackHome }) => {
         <div className="max-w-xl mx-auto bg-black/95 p-4 sm:p-5 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-left space-y-3">
           <div className="flex items-center justify-between">
             <label className="font-pixel text-[9px] sm:text-[10px] text-[#00FF66] font-extrabold">
-              PASTE EVM / ROBINHOOD WALLET ADDRESS:
+              PASTE ROBINHOOD WALLET ADDRESS:
             </label>
             {walletAddress && (
               <button
@@ -540,7 +540,7 @@ export const ClaimPage = ({ onBackHome }) => {
                       <div className="flex items-center justify-between font-mono text-xs font-bold">
                         <span className="text-gray-700">GUARANTEED SPOTS LEFT:</span>
                         <span className="font-pixel text-[11px] text-black font-extrabold">
-                          {remaining} / {total} AVAILABLE
+                          {remaining} OF {total} AVAILABLE
                         </span>
                       </div>
                       <div className="w-full h-3 bg-white rounded-full overflow-hidden border-2 border-black">
@@ -561,7 +561,7 @@ export const ClaimPage = ({ onBackHome }) => {
 
                 {/* Inline Wallet Address Verification within Modal */}
                 {!walletAddress && (
-                  <div className="p-3.5 bg-[#EFE8D8] border-3 border-black rounded space-y-2">
+                  <div className="p-3.5 bg-[#EFE8D8] border-3 border-black rounded-xl space-y-2">
                     <label className="block font-pixel text-[9px] text-black font-extrabold">
                       ENTER YOUR HOLDER WALLET ADDRESS:
                     </label>
@@ -571,13 +571,13 @@ export const ClaimPage = ({ onBackHome }) => {
                         placeholder="0x..."
                         value={modalWalletInput}
                         onChange={(e) => setModalWalletInput(e.target.value)}
-                        className="flex-1 h-10 px-3 bg-white border-2 border-black font-mono text-xs text-black font-bold outline-none"
+                        className="flex-1 h-10 px-3 bg-white border-2 border-black font-mono text-xs text-black font-bold outline-none rounded"
                       />
                       <button
                         type="button"
                         onClick={() => handleVerifyAddress(modalWalletInput)}
                         disabled={scanning}
-                        className="px-3.5 py-2 pixel-btn pixel-btn-lime text-black font-pixel text-[9px] font-extrabold shrink-0"
+                        className="px-3.5 py-2 pixel-btn pixel-btn-lime text-black font-pixel text-[9px] font-extrabold shrink-0 rounded"
                       >
                         {scanning ? 'SCANNING...' : '[ VERIFY ]'}
                       </button>
@@ -597,19 +597,19 @@ export const ClaimPage = ({ onBackHome }) => {
                   return (
                     <div>
                       {scanning ? (
-                        <div className="font-pixel text-[9px] text-amber-800 text-center p-3 bg-amber-100 border-2 border-amber-400 animate-pulse font-extrabold">
+                        <div className="font-pixel text-[9px] text-amber-800 text-center p-3 bg-amber-100 border-2 border-amber-400 animate-pulse font-extrabold rounded-lg">
                           SCANNING ON-CHAIN BALANCE VIA ALCHEMY RPC...
                         </div>
                       ) : !walletAddress ? (
-                        <div className="font-pixel text-[9px] text-gray-700 text-center p-3 bg-white border-2 border-dashed border-gray-400 font-bold">
+                        <div className="font-pixel text-[9px] text-gray-700 text-center p-3 bg-white border-2 border-dashed border-gray-400 font-bold rounded-lg">
                           [ PASTE YOUR WALLET ADDRESS ABOVE TO VERIFY ON-CHAIN ]
                         </div>
                       ) : isHolder ? (
-                        <div className="font-pixel text-[9px] text-[#006622] text-center p-3 bg-[#00FF66]/25 border-3 border-[#00AA44] font-extrabold shadow-[0_0_10px_rgba(0,255,102,0.3)]">
+                        <div className="font-pixel text-[9px] text-[#006622] text-center p-3 bg-[#00FF66]/25 border-3 border-[#00AA44] font-extrabold shadow-[0_0_10px_rgba(0,255,102,0.3)] rounded-lg">
                           [✓] ELIGIBLE TO CLAIM ({holderCount} NFT{holderCount > 1 ? 'S' : ''} VERIFIED ON-CHAIN)
                         </div>
                       ) : (
-                        <div className="font-pixel text-[9px] text-[#CC0022] text-center p-3 bg-[#FF2247]/15 border-2 border-[#FF2247] font-bold">
+                        <div className="font-pixel text-[9px] text-[#CC0022] text-center p-3 bg-[#FF2247]/15 border-2 border-[#FF2247] font-bold rounded-lg">
                           [X] NO NFT DETECTED IN WALLET ({walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)})
                         </div>
                       )}
@@ -620,7 +620,7 @@ export const ClaimPage = ({ onBackHome }) => {
                           <button
                             type="button"
                             disabled
-                            className="w-full py-3.5 bg-gray-300 text-gray-600 font-pixel text-xs cursor-not-allowed border-3 border-gray-400 font-bold"
+                            className="w-full py-3.5 bg-gray-300 text-gray-600 font-pixel text-xs cursor-not-allowed border-3 border-gray-400 font-bold rounded-xl"
                           >
                             [ ALL SPOTS CLAIMED ]
                           </button>
@@ -628,7 +628,7 @@ export const ClaimPage = ({ onBackHome }) => {
                           <button
                             type="button"
                             onClick={() => setIsClaimFormOpen(true)}
-                            className="w-full py-4 bg-[#FFD700] hover:bg-[#FFE34D] text-black font-pixel text-xs font-extrabold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-pulse"
+                            className="w-full py-4 bg-[#FFD700] hover:bg-[#FFE34D] text-black font-pixel text-xs font-extrabold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-pulse rounded-xl"
                           >
                             [ CLAIM GTD SPOT NOW ]
                           </button>
@@ -636,7 +636,7 @@ export const ClaimPage = ({ onBackHome }) => {
                           <button
                             type="button"
                             disabled
-                            className="w-full py-3.5 bg-[#E8DEC8] text-gray-500 font-pixel text-xs cursor-not-allowed border-2 border-gray-400 font-bold"
+                            className="w-full py-3.5 bg-[#E8DEC8] text-gray-500 font-pixel text-xs cursor-not-allowed border-2 border-gray-400 font-bold rounded-xl"
                           >
                             {walletAddress ? '[ NOT ELIGIBLE ]' : '[ VERIFY WALLET FIRST ]'}
                           </button>
@@ -663,7 +663,7 @@ export const ClaimPage = ({ onBackHome }) => {
                     type="text"
                     readOnly
                     value={walletAddress || ''}
-                    className="w-full h-11 px-3 bg-[#E8DEC8] border-3 border-black font-mono text-xs text-black font-extrabold cursor-not-allowed select-all"
+                    className="w-full h-11 px-3 bg-[#E8DEC8] border-3 border-black font-mono text-xs text-black font-extrabold cursor-not-allowed select-all rounded"
                   />
                   <p className="font-mono text-[10px] text-gray-600 mt-1">
                     Auto-locked to your verified on-chain NFT holder address.
@@ -686,7 +686,7 @@ export const ClaimPage = ({ onBackHome }) => {
                     }}
                     className={`w-full h-11 px-3 bg-white border-3 ${
                       formErrors.xUsername ? 'border-[#FF2247]' : 'border-black'
-                    } font-mono text-sm text-black font-bold focus:outline-none focus:border-[#00FF66]`}
+                    } font-mono text-sm text-black font-bold focus:outline-none focus:border-[#00FF66] rounded`}
                   />
                   {formErrors.xUsername && (
                     <p className="font-pixel text-[8px] text-[#FF2247] mt-1">! {formErrors.xUsername}</p>
@@ -696,7 +696,7 @@ export const ClaimPage = ({ onBackHome }) => {
                 {/* Optional Comment / Proof URL */}
                 <div>
                   <label className="block font-pixel text-[8px] text-gray-700 mb-1">
-                    OPTIONAL: X COMMENT / PROOF URL
+                    OPTIONAL: X COMMENT OR PROOF URL
                   </label>
                   <input
                     type="url"
@@ -708,7 +708,7 @@ export const ClaimPage = ({ onBackHome }) => {
                     }}
                     className={`w-full h-10 px-3 bg-white border-2 ${
                       formErrors.commentLink ? 'border-[#FF2247]' : 'border-black'
-                    } font-mono text-xs text-black`}
+                    } font-mono text-xs text-black rounded`}
                   />
                   {formErrors.commentLink && (
                     <p className="font-pixel text-[8px] text-[#FF2247] mt-1">! {formErrors.commentLink}</p>

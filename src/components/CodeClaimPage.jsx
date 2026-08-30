@@ -238,13 +238,13 @@ export const CodeClaimPage = ({ onBackHome }) => {
       <main className="relative z-10 w-full max-w-2xl mx-auto px-4 py-6 text-center space-y-6">
         {/* Title Header */}
         <div className="space-y-2.5">
-          <div className="inline-block bg-black text-[#FFD700] px-4 py-1.5 border-3 border-black font-pixel text-[9px] sm:text-[10px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            [ EXCLUSIVE INVITE / PROMO CODE CLAIM ]
+          <div className="inline-block bg-black text-[#FFD700] px-4 py-1.5 border-3 border-black font-pixel text-[9px] sm:text-[10px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg">
+            [ EXCLUSIVE SECRET PROMO CODE CLAIM ]
           </div>
           <h1 className="font-pixel text-2xl sm:text-4xl text-white font-extrabold tracking-tight drop-shadow-[6px_6px_0px_rgba(0,0,0,1)]">
             SECRET CODE GTD CLAIM
           </h1>
-          <div className="bg-black/90 max-w-xl mx-auto p-3.5 border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+          <div className="bg-black/90 max-w-xl mx-auto p-3.5 border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-lg">
             <p className="font-mono text-xs sm:text-sm text-gray-200 font-semibold leading-relaxed">
               Enter your exclusive secret invite or promotional code below to claim an instant 100% guaranteed (GTD) whitelist allocation.
             </p>
@@ -287,7 +287,7 @@ export const CodeClaimPage = ({ onBackHome }) => {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="font-pixel text-[10px] text-black font-extrabold">
-                  2. EVM / ROBINHOOD WALLET ADDRESS <span className="text-[#FF2247]">*</span>
+                  2. ROBINHOOD WALLET ADDRESS <span className="text-[#FF2247]">*</span>
                 </label>
                 <button
                   type="button"
@@ -322,7 +322,7 @@ export const CodeClaimPage = ({ onBackHome }) => {
                   3. REQUIRED SOCIAL TASKS
                 </label>
                 <span className="font-pixel text-[8px] px-2 py-0.5 bg-black text-[#FFD700] rounded">
-                  {socialTasks.filter((t) => t.verified).length} / {socialTasks.length} VERIFIED
+                  {socialTasks.filter((t) => t.verified).length} OF {socialTasks.length} VERIFIED
                 </span>
               </div>
 
@@ -379,7 +379,7 @@ export const CodeClaimPage = ({ onBackHome }) => {
             {/* Step 4: Secret Code Input */}
             <div className="p-3.5 bg-[#111] text-white border-3 border-black rounded-lg space-y-1.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
               <label className="block font-pixel text-[10px] text-[#FFD700] font-extrabold">
-                4. ENTER YOUR SECRET PROMO / INVITE CODE <span className="text-[#FF2247]">*</span>
+                4. ENTER YOUR SECRET PROMO CODE <span className="text-[#FF2247]">*</span>
               </label>
               <input
                 type="text"
@@ -407,7 +407,7 @@ export const CodeClaimPage = ({ onBackHome }) => {
             {/* Step 5: Optional Comment / Proof URL */}
             <div>
               <label className="block font-pixel text-[8px] text-gray-700 mb-1">
-                OPTIONAL: X COMMENT / PROOF LINK
+                OPTIONAL: X COMMENT OR PROOF LINK
               </label>
               <input
                 type="url"

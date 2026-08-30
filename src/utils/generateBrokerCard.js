@@ -311,7 +311,7 @@ export async function generateBrokerCardDataUrl({ brokerId, xUsername, walletAdd
         // Row 3: ROLE | ACCESS | DOB
         renderCell('ROLE:', isGtd ? '👑 VIP SYNDICATE' : 'APPLICANT', col1X, row3Y, isGtd ? '#FFE8A3' : '#f0e6d2');
         renderCell('ACCESS:', isGtd ? 'UNRESTRICTED' : 'PENDING', col2X, row3Y, isGtd ? '#00FFAA' : '#FFD700');
-        renderCell('DOB:', '2026 / RH', col3X, row3Y, '#FF3366');
+        renderCell('DOB:', '2026 • RH', col3X, row3Y, '#FF3366');
 
         // 9. Bottom Footer Bar
         const footerY = infoY + 282;
@@ -327,8 +327,8 @@ export async function generateBrokerCardDataUrl({ brokerId, xUsername, walletAdd
         ctx.fillStyle = isGtd ? '#aa8c52' : '#8c7b60';
         ctx.fillText(
           isGtd
-            ? `AUTHENTICATED // RH-GTD-5555 // #${cleanBrokerId}`
-            : `APE-RH-5555 // #${cleanBrokerId}`,
+            ? `AUTHENTICATED • RH-GTD-5555 • #${cleanBrokerId}`
+            : `APE-RH-5555 • #${cleanBrokerId}`,
           infoX,
           footerY + 16
         );
@@ -490,7 +490,7 @@ export async function generateCodeClaimerCardDataUrl({ brokerId, xUsername, wall
 
         ctx.font = "bold 13px 'Courier New', monospace";
         ctx.fillStyle = '#00FF66';
-        ctx.fillText('// SECRET CODE REDEMPTION VAULT', 360, 56);
+        ctx.fillText('• SECRET CODE REDEMPTION VAULT', 360, 56);
 
         // Header Right: 100% GTD Pill
         const gtdPillX = W - 340;
@@ -597,8 +597,8 @@ export async function generateCodeClaimerCardDataUrl({ brokerId, xUsername, wall
         ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
         ctx.textAlign = 'right';
         ctx.fillText(
-          `AUTH-HASH // RH-GTD-VAULT-2026 // #${cleanBrokerId} // GUARANTEED`,
-          W - 35,
+          `AUTH-HASH • RH-GTD-VAULT-2026 • #${cleanBrokerId} • GUARANTEED`,
+          W - 40,
           H - 25
         );
 
