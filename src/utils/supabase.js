@@ -269,3 +269,76 @@ export async function claimCommunityGtdSpot(communityId, appData) {
   }
 }
 
+export async function validateAndRedeemPromoCode(codeString, appData) {
+  try {
+    const cleanCode = (codeString || '').trim().toUpperCase();
+    if (!cleanCode) throw new Error('Please enter a valid code.');
+
+    // 1. Fetch promo code from DB
+    const { data: promo, error: promoErr } = await supabase
+      .from('apebrokers_promo_codes')
+      .select('*')
+      .ilike('code', cleanCode)
+      .single();
+
+    if (promoErr || !promo) {
+      throw new Error('Invalid secret code. Please check your spelling.');
+    }
+
+    if (!promo.is_active) {
+      throw new Error('This promo code is currently paused or inactive.');
+    }
+
+    if (promo.claimed_uses >= promo.max_uses) {
+      throw new Error('This code has reached its maximum claim limit!');
+    }
+
+    // 2. Generate GTD syndicate artwork and broker ID
+    const gtdArtId = Math.floor(Math.random() * 3) + 1;
+    const randNum = Math.floor(1000 + Math.random() * 9000);
+    const brokerId = `#${randNum}`;
+
+    const payload = {
+      broker_id: brokerId,
+      x_username: appData.xUsername.trim(),
+      wallet_address: appData.walletAddress.toLowerCase().trim(),
+      status: 'APPROVED',
+      is_gtd: true,
+      card_tier: 'GOLDEN_GTD',
+      gtd_art_id: gtdArtId,
+      comment_link: appData.commentLink || null,
+      proof_links: appData.proofLinks || {},
+      claimed_via_code: promo.code,
+      is_code_claim: true,
+    };
+
+    // 3. Insert application as guaranteed GTD
+    const { data: appResult, error: appErr } = await supabase
+      .from('apebrokers_applications')
+      .insert([payload])
+      .select()
+      .single();
+
+    if (appErr) throw appErr;
+
+    // 4. Increment claimed_uses
+    await supabase
+      .from('apebrokers_promo_codes')
+      .update({ claimed_uses: (promo.claimed_uses || 0) + 1 })
+      .eq('id', promo.id);
+
+    return {
+      success: true,
+      data: appResult,
+      gtdArtId,
+      brokerId,
+      codeName: promo.code,
+      campaignTag: promo.campaign_tag,
+    };
+  } catch (err) {
+    console.error('Error redeeming promo code:', err);
+    throw err;
+  }
+}
+
+

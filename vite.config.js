@@ -13,6 +13,7 @@ export default defineConfig({
         apply: resolve(__dirname, 'apply.html'),
         claim: resolve(__dirname, 'claim.html'),
         holders: resolve(__dirname, 'holders.html'),
+        code: resolve(__dirname, 'code.html'),
       },
     },
   },

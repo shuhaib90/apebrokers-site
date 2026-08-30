@@ -3,6 +3,7 @@
   "rewrites": [
     { "source": "/holders", "destination": "/holders.html" },
     { "source": "/claim", "destination": "/holders.html" },
+    { "source": "/code", "destination": "/code.html" },
     { "source": "/apply", "destination": "/apply.html" },
     { "source": "/brokers", "destination": "/brokers.html" }
   ]
