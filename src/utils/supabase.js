@@ -274,7 +274,31 @@ export async function validateAndRedeemPromoCode(codeString, appData) {
     const cleanCode = (codeString || '').trim().toUpperCase();
     if (!cleanCode) throw new Error('Please enter a valid code.');
 
-    // 1. Fetch promo code from DB
+    const cleanUser = (appData.xUsername || '').trim().replace(/^@/, '');
+    const cleanWallet = (appData.walletAddress || '').toLowerCase().trim();
+
+    if (!cleanUser) throw new Error('Please enter your X username.');
+    if (!cleanWallet) throw new Error('Please enter your wallet address.');
+
+    // 1. Check if this wallet or X username has ALREADY claimed via ANY promo code
+    const { data: existingClaims, error: checkErr } = await supabase
+      .from('apebrokers_applications')
+      .select('id, x_username, wallet_address, claimed_via_code')
+      .eq('is_code_claim', true);
+
+    if (!checkErr && existingClaims && existingClaims.length > 0) {
+      const alreadyClaimed = existingClaims.some((app) => {
+        const appWallet = (app.wallet_address || '').toLowerCase().trim();
+        const appUser = (app.x_username || '').replace(/^@/, '').toLowerCase().trim();
+        return appWallet === cleanWallet || appUser === cleanUser.toLowerCase();
+      });
+
+      if (alreadyClaimed) {
+        throw new Error('This wallet or X handle has already claimed a GTD spot via a secret code! (Limit: 1 code claim per user)');
+      }
+    }
+
+    // 2. Fetch promo code from DB
     const { data: promo, error: promoErr } = await supabase
       .from('apebrokers_promo_codes')
       .select('*')
@@ -293,15 +317,15 @@ export async function validateAndRedeemPromoCode(codeString, appData) {
       throw new Error('This code has reached its maximum claim limit!');
     }
 
-    // 2. Generate GTD syndicate artwork and broker ID
+    // 3. Generate GTD syndicate artwork and broker ID
     const gtdArtId = Math.floor(Math.random() * 3) + 1;
     const randNum = Math.floor(1000 + Math.random() * 9000);
     const brokerId = `#${randNum}`;
 
     const payload = {
       broker_id: brokerId,
-      x_username: appData.xUsername.trim(),
-      wallet_address: appData.walletAddress.toLowerCase().trim(),
+      x_username: `@${cleanUser}`,
+      wallet_address: cleanWallet,
       status: 'APPROVED',
       is_gtd: true,
       card_tier: 'GOLDEN_GTD',
@@ -312,7 +336,7 @@ export async function validateAndRedeemPromoCode(codeString, appData) {
       is_code_claim: true,
     };
 
-    // 3. Insert application as guaranteed GTD
+    // 4. Insert application as guaranteed GTD
     const { data: appResult, error: appErr } = await supabase
       .from('apebrokers_applications')
       .insert([payload])
@@ -321,7 +345,7 @@ export async function validateAndRedeemPromoCode(codeString, appData) {
 
     if (appErr) throw appErr;
 
-    // 4. Increment claimed_uses
+    // 5. Increment claimed_uses
     await supabase
       .from('apebrokers_promo_codes')
       .update({ claimed_uses: (promo.claimed_uses || 0) + 1 })
