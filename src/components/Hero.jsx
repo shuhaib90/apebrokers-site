@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { sound } from '../utils/audio';
 
 export const Hero = ({ onApplyClick }) => {
-  const [collectionText, setCollectionText] = useState('[ COLLECTION ]');
+  const [collectionText, setCollectionText] = useState('[ OPENSEA ]');
   const [animatedPrice, setAnimatedPrice] = useState('0.00? ETH');
 
   useEffect(() => {
@@ -24,11 +24,11 @@ export const Hero = ({ onApplyClick }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleBrokers = () => {
+  const handleOpenSea = () => {
     sound?.playClick?.();
     setCollectionText('[ COMING SOON ]');
     setTimeout(() => {
-      setCollectionText('[ COLLECTION ]');
+      setCollectionText('[ OPENSEA ]');
     }, 2500);
   };
 
@@ -81,7 +81,7 @@ export const Hero = ({ onApplyClick }) => {
 
           <button
             type="button"
-            onClick={handleBrokers}
+            onClick={handleOpenSea}
             className={`w-full sm:w-auto min-h-[52px] pixel-btn px-8 py-3.5 font-pixel text-xs sm:text-sm font-bold transition-all ${
               collectionText.includes('SOON')
                 ? 'pixel-btn-black text-[#FFD700] border-[#FFD700]'
