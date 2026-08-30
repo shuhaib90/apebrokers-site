@@ -352,27 +352,26 @@ export const CodeClaimPage = ({ onBackHome }) => {
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {!task.verified ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenTask(task.url, task.id)}
-                            className="px-2.5 py-1 bg-black text-white font-pixel text-[8px] hover:bg-gray-800 rounded"
-                          >
-                            [ OPEN ]
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleVerifyTask(task.id)}
-                            className="px-2.5 py-1 bg-[#00AA44] text-white font-pixel text-[8px] hover:bg-[#008833] rounded font-bold"
-                          >
-                            [ VERIFY ]
-                          </button>
-                        </>
-                      ) : (
-                        <span className="font-pixel text-[8px] text-[#006622] font-extrabold px-2 py-0.5 bg-[#00FF66]/40 rounded">
-                          DONE
+                      {task.verified ? (
+                        <span className="font-pixel text-[8px] text-[#006622] font-extrabold px-3 py-1.5 bg-[#00FF66]/40 rounded border border-[#00AA44]">
+                          ✓ DONE
                         </span>
+                      ) : task.canVerify ? (
+                        <button
+                          type="button"
+                          onClick={() => handleVerifyTask(task.id)}
+                          className="px-3.5 py-1.5 bg-[#00AA44] hover:bg-[#008833] text-white font-pixel text-[8px] sm:text-[9px] rounded font-extrabold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] animate-pulse"
+                        >
+                          [ VERIFY ]
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenTask(task.url, task.id)}
+                          className="px-3.5 py-1.5 bg-black hover:bg-gray-800 text-[#FFD700] hover:text-white font-pixel text-[8px] sm:text-[9px] rounded font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          [ OPEN ]
+                        </button>
                       )}
                     </div>
                   </div>
