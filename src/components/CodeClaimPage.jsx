@@ -283,6 +283,7 @@ export const CodeClaimPage = ({ onBackHome }) => {
                 required
                 placeholder="@username"
                 value={xUsername}
+                onKeyDown={() => sound?.playTypewriterKey?.()}
                 onChange={(e) => {
                   setXUsername(e.target.value);
                   if (formErrors.xUsername) setFormErrors({ ...formErrors, xUsername: null });
@@ -315,6 +316,7 @@ export const CodeClaimPage = ({ onBackHome }) => {
                 required
                 placeholder="0x..."
                 value={walletAddress}
+                onKeyDown={() => sound?.playTypewriterKey?.()}
                 onChange={(e) => {
                   setWalletAddress(e.target.value);
                   if (formErrors.wallet) setFormErrors({ ...formErrors, wallet: null });
@@ -399,6 +401,10 @@ export const CodeClaimPage = ({ onBackHome }) => {
                 required
                 placeholder="e.g. VIPAPE2026"
                 value={promoCode}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') sound?.playTypewriterDing?.();
+                  else sound?.playTypewriterKey?.();
+                }}
                 onChange={(e) => {
                   setPromoCode(e.target.value.toUpperCase());
                   if (formErrors.promoCode) setFormErrors({ ...formErrors, promoCode: null });
@@ -426,6 +432,7 @@ export const CodeClaimPage = ({ onBackHome }) => {
                 type="url"
                 placeholder="https://x.com/yourhandle/status/..."
                 value={commentLink}
+                onKeyDown={() => sound?.playTypewriterKey?.()}
                 onChange={(e) => setCommentLink(e.target.value)}
                 className="w-full h-10 px-3 bg-white border-2 border-black font-mono text-xs text-black rounded"
               />

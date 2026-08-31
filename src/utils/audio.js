@@ -68,21 +68,76 @@ class SoundFX {
 
   // Keyboard typing tap
   playTyping() {
+    this.playTypewriterKey();
+  }
+
+  // Authentic Mechanical Typewriter Key Clack
+  playTypewriterKey() {
     if (this.muted) return;
     try {
       this.init();
       if (!this.ctx) return;
+
+      const t = this.ctx.currentTime;
+
+      // 1. Mechanical strike noise burst
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.035);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1500 + Math.random() * 500, t);
+      filter.Q.setValueAtTime(3.0, t);
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.08, t);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(this.ctx.destination);
+      noise.start(t);
+
+      // 2. Metallic key lever resonance
+      const osc = this.ctx.createOscillator();
+      const oscGain = this.ctx.createGain();
+      osc.type = 'triangle';
+      const baseFreq = 420 + Math.random() * 160;
+      osc.frequency.setValueAtTime(baseFreq, t);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.4, t + 0.04);
+      oscGain.gain.setValueAtTime(0.05, t);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+
+      osc.connect(oscGain);
+      oscGain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.04);
+    } catch (e) {}
+  }
+
+  // Mechanical Typewriter Carriage Bell Ding
+  playTypewriterDing() {
+    if (this.muted) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      const t = this.ctx.currentTime;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-      osc.type = 'triangle';
-      const freq = 300 + Math.random() * 200;
-      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-      gain.gain.setValueAtTime(0.03, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.03);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1760, t); // A6 bell chime
+      gain.gain.setValueAtTime(0.12, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
-      osc.start();
-      osc.stop(this.ctx.currentTime + 0.03);
+      osc.start(t);
+      osc.stop(t + 0.45);
     } catch (e) {}
   }
 

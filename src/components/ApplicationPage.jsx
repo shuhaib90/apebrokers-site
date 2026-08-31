@@ -704,6 +704,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                     type="text"
                     placeholder="@username"
                     value={formData.xUsername}
+                    onKeyDown={() => sound?.playTypewriterKey?.()}
                     onChange={(e) => handleInputChange('xUsername', e.target.value)}
                     className={`w-full h-12 px-3.5 bg-white text-black font-mono text-sm font-semibold pixel-input ${
                       errors.xUsername ? 'border-[#FF2247]' : ''
@@ -730,6 +731,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                     type="text"
                     placeholder="Enter Robinhood / EVM wallet address (0x...)"
                     value={formData.walletAddress}
+                    onKeyDown={() => sound?.playTypewriterKey?.()}
                     onChange={(e) => handleInputChange('walletAddress', e.target.value)}
                     className={`w-full h-12 px-3.5 bg-white text-black font-mono text-sm font-semibold pixel-input ${
                       errors.walletAddress ? 'border-[#FF2247]' : ''

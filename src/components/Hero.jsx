@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { sound } from '../utils/audio';
+import { TypewriterText } from './TypewriterText';
 
 export const Hero = ({ onApplyClick }) => {
   const [collectionText, setCollectionText] = useState('[ OPENSEA ]');
@@ -57,15 +58,34 @@ export const Hero = ({ onApplyClick }) => {
           <h1 className="font-pixel text-3xl sm:text-5xl md:text-6xl text-white tracking-tight font-extrabold leading-tight drop-shadow-[6px_6px_0px_rgba(0,0,0,1)]">
             APESYNDICATE
           </h1>
-          <h2 className="font-pixel text-xl sm:text-3xl md:text-4xl text-[#00FF66] tracking-tight font-extrabold drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]">
-            GET ON THE LIST.
+          <h2 className="font-pixel text-xl sm:text-3xl md:text-4xl text-[#00FF66] tracking-tight font-extrabold drop-shadow-[4px_4px_0px_rgba(0,0,0,1)] min-h-[38px] sm:min-h-[50px] flex items-center justify-center">
+            <TypewriterText
+              text={[
+                'GET ON THE LIST.',
+                'CLAIM YOUR ALLOCATION.',
+                'ROBINHOOD CHAIN.',
+                'BECOME A BROKER.',
+              ]}
+              speed={60}
+              delay={350}
+              pauseBetween={3000}
+              loop={true}
+              playSound={true}
+              cursorChar="█"
+            />
           </h2>
         </div>
 
-        {/* Description Box */}
-        <div className="bg-black/90 backdrop-blur-md p-4 sm:p-5 border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] max-w-xl mx-auto">
+        {/* Description Box with Typewriter Animation */}
+        <div className="bg-black/90 backdrop-blur-md p-4 sm:p-5 border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] max-w-xl mx-auto min-h-[75px] sm:min-h-[85px] flex items-center justify-center">
           <p className="font-mono text-sm sm:text-base text-gray-100 font-semibold leading-relaxed">
-            5,555 unique pixel apes launching on Robinhood Chain. Complete the application below to secure your whitelist allocation.
+            <TypewriterText
+              text="5,555 unique pixel apes launching on Robinhood Chain. Complete the application below to secure your whitelist allocation."
+              speed={20}
+              delay={800}
+              playSound={false}
+              cursor={false}
+            />
           </p>
         </div>
 
