@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { sound } from '../utils/audio';
-import { fetchCommunities, claimCommunityGtdSpot } from '../utils/supabase';
+import { fetchCommunities, claimCommunityGtdSpot, checkExistingPartnerClaim } from '../utils/supabase';
 import { scanAllPartnerContracts } from '../utils/web3Contract';
 import { TurnstileWidget } from './TurnstileWidget';
 import { HumanVerificationSlider } from './HumanVerificationSlider';
@@ -22,6 +22,7 @@ export const ClaimPage = ({ onBackHome }) => {
   const [scanError, setScanError] = useState(null);
   const [eligibility, setEligibility] = useState({}); // { [commId]: { isHolder, balance } }
   const [copiedContractId, setCopiedContractId] = useState(null);
+  const [existingPartnerClaim, setExistingPartnerClaim] = useState(null);
 
   // Selected Community Detail Modal (Pop-up on card click)
   const [detailCommunity, setDetailCommunity] = useState(null);
@@ -54,8 +55,10 @@ export const ClaimPage = ({ onBackHome }) => {
         if (walletAddress && mounted) {
           setScanning(true);
           const results = await scanAllPartnerContracts(walletAddress, comms);
+          const existing = await checkExistingPartnerClaim(null, walletAddress);
           if (mounted) {
             setEligibility(results);
+            setExistingPartnerClaim(existing);
           }
           setScanning(false);
         }
@@ -120,6 +123,7 @@ export const ClaimPage = ({ onBackHome }) => {
     setWalletAddress(null);
     setWalletInput('');
     setEligibility({});
+    setExistingPartnerClaim(null);
     setScanError(null);
     localStorage.removeItem('apebrokers_holder_wallet');
   };
@@ -132,6 +136,11 @@ export const ClaimPage = ({ onBackHome }) => {
     try {
       const results = await scanAllPartnerContracts(address, targetList);
       setEligibility(results);
+
+      // Check if this wallet has already claimed via ANY partner collection
+      const existing = await checkExistingPartnerClaim(null, address);
+      setExistingPartnerClaim(existing);
+
       const isAnyEligible = Object.values(results).some((r) => r?.isHolder);
       if (isAnyEligible) {
         sound?.playPowerUp?.();
@@ -197,6 +206,10 @@ export const ClaimPage = ({ onBackHome }) => {
       errs.humanSlider = 'Slide the Golden Key to complete human verification.';
     }
 
+    if (existingPartnerClaim) {
+      errs.submit = `This wallet has already claimed a GTD allocation with "${existingPartnerClaim.community_name || 'a partner collection'}". (Limit: 1 claim per wallet & X across all collections)`;
+    }
+
     setFormErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -212,7 +225,18 @@ export const ClaimPage = ({ onBackHome }) => {
     sound?.playClick?.();
 
     try {
-      // Claim community GTD spot directly for verified on-chain holder
+      // 1. Double check duplicate across partner collections
+      const existing = await checkExistingPartnerClaim(xUsername, walletAddress);
+      if (existing) {
+        setExistingPartnerClaim(existing);
+        setFormErrors({
+          submit: `This wallet or X account has already claimed a GTD spot with "${existing.community_name || 'a partner collection'}"! (Limit: 1 claim per wallet & X across all partner collections)`,
+        });
+        sound?.playError?.();
+        return;
+      }
+
+      // 2. Claim community GTD spot directly for verified on-chain holder
       const result = await claimCommunityGtdSpot(detailCommunity.id, {
         xUsername,
         walletAddress,
@@ -383,6 +407,45 @@ export const ClaimPage = ({ onBackHome }) => {
             </div>
           )}
         </div>
+
+        {/* Already Claimed GTD Allocation Alert Banner */}
+        {existingPartnerClaim && (
+          <div className="max-w-xl mx-auto p-4 bg-[#141002] border-3 border-[#FFD700] rounded-2xl text-left space-y-2.5 shadow-[0_0_25px_rgba(255,215,0,0.25)]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 bg-[#FFD700] inline-block animate-blink" />
+                <span className="font-pixel text-[10px] sm:text-[11px] text-[#FFD700] font-extrabold">
+                  ⚠️ GTD ALLOCATION ALREADY CLAIMED
+                </span>
+              </div>
+              <span className="px-2.5 py-0.5 bg-[#FFD700] text-black font-pixel text-[8px] font-extrabold rounded">
+                1 OF 1 CLAIMED
+              </span>
+            </div>
+            <p className="font-mono text-xs text-yellow-100/90 leading-relaxed">
+              This wallet or X account has already claimed a Guaranteed (GTD) spot with <strong>{existingPartnerClaim.community_name || 'a partner collection'}</strong>.
+              <br />
+              <span className="text-gray-300">Holders can only claim once across all partner collections.</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setClaimSuccessData({
+                  brokerId: existingPartnerClaim.broker_id || `#${existingPartnerClaim.id}`,
+                  communityName: existingPartnerClaim.community_name || 'Partner Community',
+                  xUsername: existingPartnerClaim.x_username,
+                  walletAddress: existingPartnerClaim.wallet_address,
+                  gtdArtId: existingPartnerClaim.gtd_art_id || 1,
+                  submittedAt: existingPartnerClaim.created_at || new Date().toISOString(),
+                });
+              }}
+              className="px-4 py-2.5 bg-black hover:bg-gray-900 text-[#00FF66] font-pixel text-[9px] sm:text-[10px] font-extrabold border-2 border-black rounded-lg shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2"
+            >
+              <span>🪪</span>
+              <span>[ VIEW YOUR REGISTERED GTD ID CARD ]</span>
+            </button>
+          </div>
+        )}
 
         {/* Minimalist Cream Box Grid: ONLY Logo & Name */}
         {loading ? (
@@ -616,7 +679,36 @@ export const ClaimPage = ({ onBackHome }) => {
 
                       {/* Modal Action Buttons */}
                       <div className="pt-3">
-                        {isSoldOut ? (
+                        {existingPartnerClaim ? (
+                          <div className="space-y-2">
+                            <div className="p-3 bg-[#FFD700]/20 border-2 border-[#FFD700] rounded-xl text-center space-y-1">
+                              <div className="font-pixel text-[9px] text-black font-extrabold">
+                                ⚠️ 1 CLAIM LIMIT REACHED
+                              </div>
+                              <p className="font-mono text-xs text-gray-800">
+                                This wallet already claimed a GTD allocation with <strong>{existingPartnerClaim.community_name || 'a partner collection'}</strong>. Holders can only claim once across all partner collections.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setClaimSuccessData({
+                                  brokerId: existingPartnerClaim.broker_id || `#${existingPartnerClaim.id}`,
+                                  communityName: existingPartnerClaim.community_name || 'Partner Community',
+                                  xUsername: existingPartnerClaim.x_username,
+                                  walletAddress: existingPartnerClaim.wallet_address,
+                                  gtdArtId: existingPartnerClaim.gtd_art_id || 1,
+                                  submittedAt: existingPartnerClaim.created_at || new Date().toISOString(),
+                                });
+                                setDetailCommunity(null);
+                              }}
+                              className="w-full py-3.5 bg-black hover:bg-gray-900 text-[#00FF66] font-pixel text-[10px] font-extrabold border-3 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-xl flex items-center justify-center gap-2"
+                            >
+                              <span>🪪</span>
+                              <span>[ VIEW YOUR REGISTERED GTD ID CARD ]</span>
+                            </button>
+                          </div>
+                        ) : isSoldOut ? (
                           <button
                             type="button"
                             disabled

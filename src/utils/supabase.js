@@ -204,9 +204,53 @@ export async function fetchCommunities() {
   }
 }
 
+export async function checkExistingPartnerClaim(xUsername, walletAddress) {
+  try {
+    const cleanUser = (xUsername || '').replace(/^@/, '').toLowerCase().trim();
+    const cleanWallet = (walletAddress || '').toLowerCase().trim();
+
+    if (!cleanUser && !cleanWallet) return null;
+
+    const { data, error } = await supabase
+      .from('apebrokers_applications')
+      .select('id, x_username, wallet_address, community_name, broker_id, gtd_art_id, created_at, is_gtd, status')
+      .or('is_community_claim.eq.true,is_partner_claim.eq.true');
+
+    if (error || !data || data.length === 0) return null;
+
+    const match = data.find((app) => {
+      const w = (app.wallet_address || '').toLowerCase().trim();
+      const u = (app.x_username || '').replace(/^@/, '').toLowerCase().trim();
+      if (cleanWallet && w === cleanWallet) return true;
+      if (cleanUser && u === cleanUser) return true;
+      return false;
+    });
+
+    return match || null;
+  } catch (err) {
+    console.error('Error checking existing partner claim:', err);
+    return null;
+  }
+}
+
 export async function claimCommunityGtdSpot(communityId, appData) {
   try {
-    // 1. Fetch community and verify remaining spots
+    const cleanUser = (appData.xUsername || '').trim().replace(/^@/, '');
+    const cleanWallet = (appData.walletAddress || '').toLowerCase().trim();
+
+    if (!cleanUser) throw new Error('Please enter your X username.');
+    if (!cleanWallet) throw new Error('Please enter your wallet address.');
+
+    // 1. Check if this wallet or X username has ALREADY claimed via ANY partner collection
+    const existingClaim = await checkExistingPartnerClaim(cleanUser, cleanWallet);
+    if (existingClaim) {
+      const commText = existingClaim.community_name ? ` with "${existingClaim.community_name}"` : '';
+      throw new Error(
+        `This wallet or X handle has already claimed a GTD allocation${commText}! Limit: 1 GTD claim per wallet and X handle across all partner collections.`
+      );
+    }
+
+    // 2. Fetch community and verify remaining spots
     const { data: comm, error: commErr } = await supabase
       .from('apebrokers_communities')
       .select('*')
@@ -221,15 +265,15 @@ export async function claimCommunityGtdSpot(communityId, appData) {
       throw new Error('All allocated GTD spots for this partner community have been claimed!');
     }
 
-    // 2. Generate GTD syndicate artwork and broker ID
+    // 3. Generate GTD syndicate artwork and broker ID
     const gtdArtId = Math.floor(Math.random() * 3) + 1;
     const randNum = Math.floor(1000 + Math.random() * 9000);
     const brokerId = `#${randNum}`;
 
     const payload = {
       broker_id: brokerId,
-      x_username: appData.xUsername.trim(),
-      wallet_address: appData.walletAddress.toLowerCase().trim(),
+      x_username: `@${cleanUser}`,
+      wallet_address: cleanWallet,
       status: 'APPROVED',
       is_gtd: true,
       card_tier: 'GOLDEN_GTD',
@@ -241,7 +285,7 @@ export async function claimCommunityGtdSpot(communityId, appData) {
       is_community_claim: true,
     };
 
-    // 3. Insert application as guaranteed GTD
+    // 4. Insert application as guaranteed GTD
     const { data: appResult, error: appErr } = await supabase
       .from('apebrokers_applications')
       .insert([payload])
