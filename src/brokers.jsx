@@ -10,17 +10,17 @@ function BrokersLockedPage() {
 
   return (
     <div className="min-h-screen bg-[#00FF66] text-black flex flex-col justify-between font-pixel selection:bg-black selection:text-[#00FF66]">
-      <Header onApplyClick={() => (window.location.href = '/apply.html')} />
+      <Header onApplyClick={() => (window.location.href = '/apply')} />
       <main className="flex-grow flex flex-col items-center justify-center w-full">
         <Hero
-          onApplyClick={() => (window.location.href = '/apply.html')}
+          onApplyClick={() => (window.location.href = '/apply')}
           onBrokersClick={() => setIsOpen(true)}
         />
       </main>
       <VaultLockedModal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
-        onApplyClick={() => (window.location.href = '/apply.html')}
+        onApplyClick={() => (window.location.href = '/apply')}
       />
     </div>
   );

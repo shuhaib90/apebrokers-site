@@ -255,7 +255,7 @@ export const ClaimPage = ({ onBackHome }) => {
 
   const handleShareOnX = () => {
     sound?.playClick?.();
-    const text = `I just claimed a GUARANTEED (GTD) Whitelist Spot for @Apesyndicates as a verified ${claimSuccessData?.communityName} NFT holder on Robinhood Chain!\n\nVerify your allocation here: https://apesyndicates.xyz/holders.html\n\n#ApeSyndicate #RobinhoodChain #GTD https://x.com/Apesyndicates/status/2093348238971846874/photo/1`;
+    const text = `I just claimed a GUARANTEED (GTD) Whitelist Spot for @Apesyndicates as a verified ${claimSuccessData?.communityName} NFT holder on Robinhood Chain!\n\nVerify your allocation here: https://apesyndicates.xyz/holders\n\n#ApeSyndicate #RobinhoodChain #GTD https://x.com/Apesyndicates/status/2093348238971846874/photo/1`;
     window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
   };
 

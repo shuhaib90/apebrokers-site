@@ -186,7 +186,7 @@ export const CodeClaimPage = ({ onBackHome }) => {
 
   const handleShareOnX = () => {
     sound?.playClick?.();
-    const text = `I just redeemed an exclusive SECRET INVITE CODE and secured a GUARANTEED (GTD) Whitelist Spot for @Apesyndicates on Robinhood Chain!\n\nRedeem your code here: https://apesyndicates.xyz/code.html\n\n#ApeSyndicate #RobinhoodChain #GTD https://x.com/Apesyndicates/status/2093348238971846874/photo/1`;
+    const text = `I just redeemed an exclusive SECRET INVITE CODE and secured a GUARANTEED (GTD) Whitelist Spot for @Apesyndicates on Robinhood Chain!\n\nRedeem your code here: https://apesyndicates.xyz/code\n\n#ApeSyndicate #RobinhoodChain #GTD https://x.com/Apesyndicates/status/2093348238971846874/photo/1`;
     window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
   };
 
