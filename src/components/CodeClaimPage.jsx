@@ -6,6 +6,7 @@ import { connectWallet, getConnectedAccount } from '../utils/web3Contract';
 import { TurnstileWidget } from './TurnstileWidget';
 import { HumanVerificationSlider } from './HumanVerificationSlider';
 import { downloadCodeClaimerCardPng, generateCodeClaimerCardDataUrl } from '../utils/generateBrokerCard';
+import { TypewriterText } from './TypewriterText';
 
 export const CodeClaimPage = ({ onBackHome }) => {
   const [walletAddress, setWalletAddress] = useState('');
@@ -259,8 +260,15 @@ export const CodeClaimPage = ({ onBackHome }) => {
               ⚠️ SYNDICATE VERIFICATION & MINT CLEARANCE
             </span>
           </div>
-          <p className="font-mono text-xs sm:text-[13px] text-gray-200 leading-relaxed">
-            Redeeming a secret code is <strong className="text-[#FFD700]">provisional</strong> and not final. All submitted wallets and X accounts will undergo activity and authenticity verification before the official mint list is locked. Once verified authentic, you are <strong className="text-[#00FF66]">directly eligible for the GTD mint</strong> on Robinhood Chain. We prioritize real supporters and active community members — automated bots and duplicate farmers will be filtered out.
+          <p className="font-mono text-xs sm:text-[13px] text-gray-200 leading-relaxed min-h-[48px]">
+            <TypewriterText
+              text="Redeeming a secret code is provisional and not final. All submitted wallets and X accounts will undergo activity and authenticity verification before the official mint list is locked. Once verified authentic, you are directly eligible for the GTD mint on Robinhood Chain. We prioritize real supporters and active community members — automated bots and duplicate farmers will be filtered out."
+              speed={16}
+              delay={400}
+              playSound={true}
+              cursor={true}
+              cursorChar="█"
+            />
           </p>
         </div>
 
