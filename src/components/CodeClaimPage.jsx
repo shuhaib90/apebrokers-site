@@ -246,9 +246,22 @@ export const CodeClaimPage = ({ onBackHome }) => {
           </h1>
           <div className="bg-black/90 max-w-xl mx-auto p-3.5 border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-lg">
             <p className="font-mono text-xs sm:text-sm text-gray-200 font-semibold leading-relaxed">
-              Enter your exclusive secret invite or promotional code below to claim an instant 100% guaranteed (GTD) whitelist allocation.
+              Enter your exclusive secret invite or promotional code below to claim a guaranteed (GTD) whitelist allocation.
             </p>
           </div>
+        </div>
+
+        {/* Syndicate Community Verification Notice */}
+        <div className="bg-[#140D24] text-white border-3 border-[#FFD700] p-4 sm:p-5 rounded-2xl text-left space-y-2 shadow-[0_0_20px_rgba(255,215,0,0.2)]">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 bg-[#FFD700] inline-block animate-blink" />
+            <span className="font-pixel text-[10px] sm:text-[11px] text-[#FFD700] font-extrabold tracking-wide">
+              ⚠️ SYNDICATE VERIFICATION & MINT CLEARANCE
+            </span>
+          </div>
+          <p className="font-mono text-xs sm:text-[13px] text-gray-200 leading-relaxed">
+            Redeeming a secret code is <strong className="text-[#FFD700]">provisional</strong> and not final. All submitted wallets and X accounts will undergo activity and authenticity verification before the official mint list is locked. Once verified authentic, you are <strong className="text-[#00FF66]">directly eligible for the GTD mint</strong> on Robinhood Chain. We prioritize real supporters and active community members — automated bots and duplicate farmers will be filtered out.
+          </p>
         </div>
 
         {/* Claim Form Box */}
@@ -507,6 +520,17 @@ export const CodeClaimPage = ({ onBackHome }) => {
                 <span className="text-gray-400">STATUS:</span>
                 <span className="text-[#00FF66] font-bold">100% GUARANTEED (GTD)</span>
               </div>
+            </div>
+
+            {/* Provisional Clearance Notice */}
+            <div className="p-3 bg-[#161005] border-2 border-[#FFD700]/60 rounded-xl text-left space-y-1">
+              <div className="flex items-center gap-1.5 font-pixel text-[9px] text-[#FFD700] font-extrabold">
+                <span>⚠️</span>
+                <span>PROVISIONAL ALLOCATION NOTICE</span>
+              </div>
+              <p className="font-mono text-[11px] text-gray-300 leading-relaxed">
+                Your GTD spot is reserved! Final wallet & X verification will take place before mint. Once verified authentic, your address is directly whitelisted to mint on Robinhood Chain.
+              </p>
             </div>
 
             {/* Action Buttons */}

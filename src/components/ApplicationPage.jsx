@@ -536,8 +536,8 @@ export const ApplicationPage = ({ onBackHome }) => {
                     <div className="pt-2 flex items-center justify-between border-t border-[#805d00]/60">
                       <div className="text-[10px] text-[#aa8c52] font-mono">
                         {submissionData.isGtd
-                          ? `AUTHENTICATED // RH-GTD-5555 // #${submissionData.brokerId.replace('#', '')}`
-                          : `APE-RH-5555 // #${submissionData.brokerId.replace('#', '')}`}
+                          ? `AUTHENTICATED • RH-GTD-5555 • #${submissionData.brokerId.replace('#', '')}`
+                          : `APE-RH-5555 • #${submissionData.brokerId.replace('#', '')}`}
                       </div>
 
                       <div className="flex items-center gap-3">
@@ -551,6 +551,17 @@ export const ApplicationPage = ({ onBackHome }) => {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Provisional Clearance Notice */}
+              <div className="p-3.5 bg-[#161005] border-2 border-[#FFD700]/70 rounded-xl text-left space-y-1 shadow-[0_0_15px_rgba(255,215,0,0.15)]">
+                <div className="flex items-center gap-1.5 font-pixel text-[9px] sm:text-[10px] text-[#FFD700] font-extrabold">
+                  <span>⚠️</span>
+                  <span>PROVISIONAL APPLICATION NOTICE</span>
+                </div>
+                <p className="font-mono text-xs text-gray-300 leading-relaxed">
+                  Your application has been registered! Final wallet & X verification will take place before mint. Once verified authentic, your address is directly whitelisted for the official Robinhood Chain mint.
+                </p>
               </div>
 
               {/* Actions Grid */}
@@ -628,6 +639,19 @@ export const ApplicationPage = ({ onBackHome }) => {
                 </h1>
                 <p className="font-mono text-xs text-gray-700 font-semibold">
                   Submit your X username, wallet address, and complete social tasks.
+                </p>
+              </div>
+
+              {/* Syndicate Community Verification Notice */}
+              <div className="bg-[#140D24] text-white border-3 border-[#FFD700] p-4 sm:p-5 rounded-xl text-left space-y-2 shadow-[0_0_20px_rgba(255,215,0,0.2)]">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 bg-[#FFD700] inline-block animate-blink" />
+                  <span className="font-pixel text-[10px] sm:text-[11px] text-[#FFD700] font-extrabold tracking-wide">
+                    ⚠️ SYNDICATE VERIFICATION & MINT CLEARANCE
+                  </span>
+                </div>
+                <p className="font-mono text-xs sm:text-[13px] text-gray-200 leading-relaxed">
+                  Submitting your broker application is <strong className="text-[#FFD700]">provisional</strong> and not final. All submitted wallets and X accounts will undergo activity and authenticity verification before the official mint list is locked. Once verified authentic, you are <strong className="text-[#00FF66]">directly eligible for the GTD / WL mint</strong> on Robinhood Chain. We prioritize real supporters and active community members — automated bots and duplicate farmers will be filtered out.
                 </p>
               </div>
 
