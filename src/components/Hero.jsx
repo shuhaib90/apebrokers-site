@@ -98,14 +98,14 @@ export const Hero = ({ onApplyClick }) => {
       <div className="mt-12 sm:mt-16 w-full max-w-4xl mx-auto">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           {/* Stat 1 */}
-          <div className="pixel-box-black p-4 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] border-3 border-black">
-            <div className="font-pixel text-xl sm:text-2xl text-[#00FF66] font-extrabold">5,555</div>
-            <div className="font-pixel text-[9px] text-gray-400 mt-1">TOTAL SUPPLY</div>
+          <div className="pixel-box-black p-3 sm:p-4 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] border-3 border-black min-h-[85px] sm:min-h-[95px] flex flex-col justify-center items-center">
+            <div className="font-pixel text-lg sm:text-2xl text-[#00FF66] font-extrabold">5,555</div>
+            <div className="font-pixel text-[8px] sm:text-[9px] text-gray-400 mt-1">TOTAL SUPPLY</div>
           </div>
 
-          {/* Stat 2: Official Mint Price */}
-          <div className="pixel-box-black p-3.5 sm:p-4 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] border-3 border-black flex flex-col justify-center items-center">
-            <div className="font-pixel text-sm sm:text-base md:text-lg lg:text-xl text-[#FFD700] font-extrabold whitespace-nowrap tracking-wider">
+          {/* Stat 2: Official Mint Price (Perfect Fit) */}
+          <div className="pixel-box-black p-2.5 sm:p-4 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] border-3 border-black min-h-[85px] sm:min-h-[95px] flex flex-col justify-center items-center overflow-hidden">
+            <div className="font-pixel text-[11px] sm:text-sm md:text-base text-[#FFD700] font-extrabold whitespace-nowrap tracking-tight">
               {mintPrice}
             </div>
             <div className="font-pixel text-[8px] sm:text-[9px] text-gray-400 mt-1 whitespace-nowrap">
@@ -114,14 +114,16 @@ export const Hero = ({ onApplyClick }) => {
           </div>
 
           {/* Stat 3 */}
-          <div className="pixel-box-black p-4 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] border-3 border-black">
-            <div className="font-pixel text-lg sm:text-xl text-white font-extrabold">ROBINHOOD</div>
-            <div className="font-pixel text-[9px] text-gray-400 mt-1">NETWORK</div>
+          <div className="pixel-box-black p-3 sm:p-4 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] border-3 border-black min-h-[85px] sm:min-h-[95px] flex flex-col justify-center items-center">
+            <div className="font-pixel text-xs sm:text-base md:text-lg text-white font-extrabold whitespace-nowrap tracking-tight">
+              ROBINHOOD
+            </div>
+            <div className="font-pixel text-[8px] sm:text-[9px] text-gray-400 mt-1">NETWORK</div>
           </div>
 
           {/* Stat 4 */}
-          <div className="pixel-box-black p-3.5 sm:p-4 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] border-3 border-black flex flex-col justify-center items-center">
-            <div className="font-pixel text-sm sm:text-base md:text-lg lg:text-xl text-[#FF2247] font-extrabold whitespace-nowrap">
+          <div className="pixel-box-black p-3 sm:p-4 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] border-3 border-black min-h-[85px] sm:min-h-[95px] flex flex-col justify-center items-center">
+            <div className="font-pixel text-xs sm:text-base md:text-lg text-[#FF2247] font-extrabold whitespace-nowrap tracking-tight">
               SEP 3RD
             </div>
             <div className="font-pixel text-[8px] sm:text-[9px] text-gray-400 mt-1 whitespace-nowrap">
