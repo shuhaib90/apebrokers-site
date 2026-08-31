@@ -12,7 +12,7 @@ const FAQ_DATA = [
   },
   {
     q: 'When is the mint date and price?',
-    a: 'Mint date and mint price are TBA (To Be Announced) exclusively via our official X (@ApeBrokers) and Discord announcement channels.',
+    a: 'Mint date is Sep 3rd with a mint price of 0.0016 ETH exclusively on Robinhood Chain.',
   },
   {
     q: 'Which chain is ApeBrokers on?',

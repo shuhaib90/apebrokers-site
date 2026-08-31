@@ -4,26 +4,7 @@ import { TypewriterText } from './TypewriterText';
 
 export const Hero = ({ onApplyClick }) => {
   const [collectionText, setCollectionText] = useState('[ OPENSEA ]');
-  const [animatedPrice, setAnimatedPrice] = useState('0.00? ETH');
-
-  useEffect(() => {
-    const priceSequence = [
-      '0.00? ETH',
-      '0.001 ETH',
-      '0.00X ETH',
-      '0.002 ETH',
-      '0.00~ ETH',
-      '0.00# ETH',
-      '0.002 ETH',
-      '0.00X ETH',
-    ];
-    let idx = 0;
-    const interval = setInterval(() => {
-      idx = (idx + 1) % priceSequence.length;
-      setAnimatedPrice(priceSequence[idx]);
-    }, 450);
-    return () => clearInterval(interval);
-  }, []);
+  const mintPrice = '0.0016 ETH';
 
   const handleOpenSea = () => {
     sound?.playClick?.();
@@ -122,10 +103,10 @@ export const Hero = ({ onApplyClick }) => {
             <div className="font-pixel text-[9px] text-gray-400 mt-1">TOTAL SUPPLY</div>
           </div>
 
-          {/* Stat 2: Animated Rotating Mystery Mint Price */}
+          {/* Stat 2: Official Mint Price */}
           <div className="pixel-box-black p-3.5 sm:p-4 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] border-3 border-black flex flex-col justify-center items-center">
-            <div className="font-pixel text-sm sm:text-base md:text-lg lg:text-xl text-[#FFD700] font-extrabold whitespace-nowrap tracking-wider transition-all duration-150 animate-pulse">
-              {animatedPrice}
+            <div className="font-pixel text-sm sm:text-base md:text-lg lg:text-xl text-[#FFD700] font-extrabold whitespace-nowrap tracking-wider">
+              {mintPrice}
             </div>
             <div className="font-pixel text-[8px] sm:text-[9px] text-gray-400 mt-1 whitespace-nowrap">
               MINT PRICE
