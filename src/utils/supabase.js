@@ -484,8 +484,46 @@ export async function verifyAndClearForMint(applicationId, { xUsername, walletAd
       throw new Error('Application record not found.');
     }
 
-    // 2. Fetch live verification counts to respect caps
-    const { data: verifiedRows, error: countErr } = await supabase
+    // 2. Check for duplicate verification security attempt
+    const cleanWallet = (walletAddress || app.wallet_address || '').trim().toLowerCase();
+    const cleanUser = (xUsername || app.x_username || '').replace(/^@/, '').trim().toLowerCase();
+
+    // Check if this wallet or user is already verified in ANY row
+    const { data: existingVerified } = await supabase
+      .from('apebrokers_applications')
+      .select('id, broker_id, mint_tier, is_gtd, gtd_art_id, mint_verified_at, chain_activity')
+      .eq('is_mint_verified', true)
+      .or(`wallet_address.ilike.${cleanWallet},x_username.ilike.%${cleanUser}%`)
+      .limit(2);
+
+    const alreadyVerifiedMatch = existingVerified && existingVerified.length > 0 ? existingVerified[0] : null;
+
+    if (app.is_mint_verified || (alreadyVerifiedMatch && alreadyVerifiedMatch.id !== app.id)) {
+      // Mark duplicate attempt in database for security audit log
+      await supabase
+        .from('apebrokers_applications')
+        .update({
+          notes: `${app.notes || ''} [DUPLICATE_VERIFY_LOGGED: ${new Date().toISOString()}]`.trim(),
+        })
+        .eq('id', app.id);
+
+      const targetApp = alreadyVerifiedMatch || app;
+      return {
+        success: true,
+        isDuplicate: true,
+        alreadyVerified: true,
+        application: targetApp,
+        brokerId: targetApp.broker_id || `#${targetApp.id}`,
+        mintTier: targetApp.mint_tier || (targetApp.is_gtd ? 'GTD' : 'FCFS'),
+        isGtd: targetApp.mint_tier === 'GTD' || targetApp.is_gtd,
+        gtdArtId: targetApp.gtd_art_id || 1,
+        verifiedAt: targetApp.mint_verified_at || new Date().toISOString(),
+        chainActivity: targetApp.chain_activity || chainActivity || {},
+      };
+    }
+
+    // 3. Fetch live verification counts to respect caps
+    const { data: verifiedRows } = await supabase
       .from('apebrokers_applications')
       .select('id, mint_tier, is_gtd')
       .eq('is_mint_verified', true);
@@ -493,20 +531,34 @@ export async function verifyAndClearForMint(applicationId, { xUsername, walletAd
     const verifiedGtdCount = verifiedRows ? verifiedRows.filter((r) => r.mint_tier === 'GTD' || r.is_gtd).length : 0;
     const verifiedFcfsCount = verifiedRows ? verifiedRows.filter((r) => r.mint_tier === 'FCFS').length : 0;
 
-    // 3. Resolve allocation tier
+    // 4. Resolve weighted allocation tier based on token/ETH balance and on-chain activity
     let assignedTier = 'FCFS';
     let isGtdWinner = false;
 
-    // Partner NFT holders / Secret Code claimers / Approved GTD winners directly get GTD
+    // Partner NFT holders / Secret Code claimers / Approved GTD winners directly get 100% GTD
     if (app.is_gtd || app.is_code_claim || app.is_partner_claim || app.card_tier === 'GOLDEN_GTD') {
       assignedTier = 'GTD';
       isGtdWinner = true;
     } else {
-      // Standard form applicant: resolve random chance if under 3,000 cap
+      // Standard form applicant: calculate weighted chance based on Robinhood Chain balance & txns
+      const rhBal = Number(chainActivity?.robinhoodBalance || 0);
+      const rhTx = Number(chainActivity?.robinhoodTxCount || 0);
+      const evmTx = Number(chainActivity?.totalEvmTxns || 0);
+
+      let gtdProbability = 0.40; // Base 40% chance
+
+      // High token/ETH holdings or active Robinhood chain footprint increases GTD chance
+      if (rhBal >= 0.05 || rhTx >= 8) {
+        gtdProbability = 0.95; // 95% chance for high balance / active holders
+      } else if (rhBal >= 0.01 || rhTx >= 3 || evmTx >= 15) {
+        gtdProbability = 0.85; // 85% chance
+      } else if (rhBal > 0 || rhTx > 0 || evmTx >= 5) {
+        gtdProbability = 0.70; // 70% chance
+      }
+
       if (verifiedGtdCount < GTD_CAP) {
-        // High 60% probability for verified active on-chain wallets to win GTD
-        const wonGtdRandom = Math.random() < 0.6;
-        if (wonGtdRandom) {
+        const wonGtd = Math.random() < gtdProbability;
+        if (wonGtd) {
           assignedTier = 'GTD';
           isGtdWinner = true;
         } else {
@@ -522,7 +574,7 @@ export async function verifyAndClearForMint(applicationId, { xUsername, walletAd
     const gtdArtId = app.gtd_art_id || Math.floor(Math.random() * 3) + 1;
     const verifiedAt = new Date().toISOString();
 
-    // 4. Update application with verified mint clearance
+    // 5. Update application with verified mint clearance
     const { data: updatedApp, error: updateErr } = await supabase
       .from('apebrokers_applications')
       .update({

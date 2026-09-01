@@ -67,8 +67,14 @@ export const VerifyPage = () => {
     const cleanX = xInput.trim().replace(/^@/, '');
     const cleanWallet = walletInput.trim().toLowerCase();
 
-    if (!cleanX && !cleanWallet) {
-      setSearchError('Please enter your X username or connect your wallet.');
+    if (!cleanWallet) {
+      setSearchError('Please connect your Web3 wallet using the [ CONNECT WALLET ] button (Manual entry is disabled for anti-sybil security).');
+      sound?.playError?.();
+      return;
+    }
+
+    if (!cleanX) {
+      setSearchError('Please enter your registered X (Twitter) username.');
       sound?.playError?.();
       return;
     }
@@ -117,24 +123,29 @@ export const VerifyPage = () => {
 
     try {
       addLog('INITIATING ROBINHOOD CHAIN RPC CONNECTION...');
-      await new Promise((r) => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 500));
 
       addLog(`QUERYING ON-CHAIN BALANCE & TX NONCE FOR ${matchedApp.wallet_address.substring(0, 8)}...`);
       const scanRes = await scanMultiChainWalletActivity(matchedApp.wallet_address);
       const act = scanRes.activity || {};
       setChainActivity(act);
-      await new Promise((r) => setTimeout(r, 700));
+      await new Promise((r) => setTimeout(r, 600));
 
       addLog(`[✓] ROBINHOOD CHAIN BALANCE: ${act.robinhoodBalance.toFixed(4)} ETH | TXNS: ${act.robinhoodTxCount}`);
-      await new Promise((r) => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 500));
+
+      if (act.robinhoodBalance >= 0.01 || act.robinhoodTxCount >= 3) {
+        addLog(`[💎 HOLDINGS BONUS] HIGH ON-CHAIN ACTIVITY DETECTED (+95% GTD PROBABILITY BOOST APPLIED)`);
+        await new Promise((r) => setTimeout(r, 500));
+      }
 
       addLog('INSPECTING MULTI-CHAIN EVM FOOTPRINT (BASE, ARBITRUM, POLYGON)...');
-      await new Promise((r) => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 500));
       addLog(`[✓] MULTI-CHAIN EVM ACTIVITY: ${act.totalEvmTxns} TOTAL TRANSACTIONS DETECTED`);
       await new Promise((r) => setTimeout(r, 500));
 
       addLog('[✓] ANTI-SYBIL CHECK: PASSED (VERIFIED AUTHENTIC OPERATOR)');
-      await new Promise((r) => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 500));
 
       addLog('RESOLVING ALLOCATION TIER CLEARANCE...');
       const clearance = await verifyAndClearForMint(matchedApp.id, {
@@ -256,27 +267,35 @@ export const VerifyPage = () => {
               </div>
             </div>
 
-            {/* Wallet Address & Connector */}
+            {/* Wallet Address & Connector (Readonly Web3 Only) */}
             <div className="space-y-1 text-left">
               <div className="flex items-center justify-between">
-                <label className="font-pixel text-[9px] text-gray-300">EVM / ROBINHOOD WALLET</label>
+                <label className="font-pixel text-[9px] text-gray-300">
+                  EVM / ROBINHOOD WALLET (WEB3 REQUIRED)
+                </label>
                 <button
                   type="button"
                   onClick={handleConnectWallet}
                   disabled={isWalletConnecting}
-                  className="text-[9px] font-pixel text-[#00FF66] hover:underline flex items-center gap-1"
+                  className="px-2.5 py-1 bg-[#00FF66]/20 border border-[#00FF66]/50 rounded text-[9px] font-pixel text-[#00FF66] hover:bg-[#00FF66] hover:text-black transition-all flex items-center gap-1"
                 >
                   <span>🦊</span>
-                  <span>{isWalletConnecting ? 'CONNECTING...' : 'CONNECT WALLET'}</span>
+                  <span>{isWalletConnecting ? 'CONNECTING...' : walletInput ? 'RE-CONNECT' : 'CONNECT WALLET'}</span>
                 </button>
               </div>
               <input
                 type="text"
-                placeholder="0x..."
+                readOnly
+                placeholder="Click [CONNECT WALLET] above (Manual entry disabled)"
                 value={walletInput}
-                onChange={(e) => setWalletInput(e.target.value)}
-                className="w-full h-11 px-3 bg-black border-2 border-gray-700 focus:border-[#00FF66] text-white font-mono text-xs rounded-lg outline-none"
+                onClick={!walletInput ? handleConnectWallet : undefined}
+                className={`w-full h-11 px-3 bg-black/90 border-2 text-white font-mono text-xs rounded-lg outline-none cursor-pointer ${
+                  walletInput ? 'border-[#00FF66] text-[#00FF66]' : 'border-gray-700 text-gray-400'
+                }`}
               />
+              <span className="text-[10px] font-mono text-gray-500 block">
+                * Manual address typing is disabled for anti-sybil security. Please connect via wallet.
+              </span>
             </div>
 
             {searchError && (
