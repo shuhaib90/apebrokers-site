@@ -1,13 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { PrivyWrapper } from './providers/PrivyWrapper';
+import { Web3Provider } from './providers/Web3Provider';
 import { CodeClaimPage } from './components/CodeClaimPage';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <PrivyWrapper>
+    <Web3Provider>
       <CodeClaimPage onBackHome={() => (window.location.href = '/')} />
-    </PrivyWrapper>
+    </Web3Provider>
   </React.StrictMode>
 );

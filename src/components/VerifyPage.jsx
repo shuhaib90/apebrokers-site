@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { useAccount, useDisconnect } from 'wagmi';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 import confetti from 'canvas-confetti';
 import { sound } from '../utils/audio';
-import { connectWallet, getConnectedAccount, scanMultiChainWalletActivity } from '../utils/web3Contract';
+import { scanMultiChainWalletActivity } from '../utils/web3Contract';
 import { lookupApplicationForVerification, verifyAndClearForMint } from '../utils/supabase';
+import { startTwitterOAuth, checkTwitterOAuthCallback } from '../utils/xAuth';
 
 export const VerifyPage = ({ onBackHome }) => {
-  // Privy Auth Hooks
-  const { ready: isPrivyReady, authenticated, user, login, logout, linkTwitter, linkWallet } = usePrivy();
-  const { wallets } = useWallets();
+  // RainbowKit & Wagmi Web3 Hooks
+  const { address, isConnected } = useAccount();
+  const { openConnectModal } = useConnectModal();
+  const { disconnect } = useDisconnect();
 
   // Input State
   const [xInput, setXInput] = useState('');
   const [walletInput, setWalletInput] = useState('');
-  const [isWalletConnecting, setIsWalletConnecting] = useState(false);
+  const [isXAuthenticating, setIsXAuthenticating] = useState(false);
 
   // Verification & Application State
   const [isSearching, setIsSearching] = useState(false);
@@ -28,62 +31,44 @@ export const VerifyPage = ({ onBackHome }) => {
   // Final Clearance State
   const [clearanceResult, setClearanceResult] = useState(null);
 
-  // Sync Privy Twitter & Wallet if logged in via Privy
+  // Sync connected wallet from RainbowKit / Wagmi
   useEffect(() => {
-    if (authenticated && user) {
-      if (user.twitter?.username && !xInput) {
-        setXInput(user.twitter.username);
-      }
-      const privyWallet = user.wallet?.address || wallets?.[0]?.address;
-      if (privyWallet && !walletInput) {
-        setWalletInput(privyWallet.toLowerCase());
+    if (isConnected && address) {
+      setWalletInput(address.toLowerCase());
+    } else {
+      setWalletInput('');
+    }
+  }, [isConnected, address]);
+
+  // Check for Twitter OAuth return callback
+  useEffect(() => {
+    const authResult = checkTwitterOAuthCallback();
+    if (authResult) {
+      if (authResult.success) {
+        sound?.playSuccess?.();
+      } else if (authResult.error) {
+        setSearchError(authResult.error);
+        sound?.playError?.();
       }
     }
-  }, [authenticated, user, wallets]);
-
-  useEffect(() => {
-    // Also auto-check injected Web3 wallet if available
-    getConnectedAccount().then((acc) => {
-      if (acc && !walletInput) setWalletInput(acc);
-    });
   }, []);
 
-  const handlePrivyLoginX = async () => {
+  const handleTwitterLogin = async () => {
     sound?.playClick?.();
+    setIsXAuthenticating(true);
     try {
-      if (!authenticated) {
-        login({ loginMethods: ['twitter'] });
-      } else if (!user?.twitter?.username) {
-        linkTwitter();
-      }
+      await startTwitterOAuth();
     } catch (e) {
-      console.warn('Privy X login:', e);
+      console.error('Twitter OAuth start failed:', e);
+      setIsXAuthenticating(false);
     }
   };
 
-  const handleConnectWallet = async () => {
+  const handleConnectWallet = () => {
     sound?.playClick?.();
-    setIsWalletConnecting(true);
     setSearchError(null);
-    try {
-      if (isPrivyReady && !authenticated) {
-        login({ loginMethods: ['wallet'] });
-      } else if (authenticated && !user?.wallet?.address) {
-        linkWallet();
-      } else {
-        const res = await connectWallet();
-        if (res.success && res.address) {
-          setWalletInput(res.address.toLowerCase());
-          sound?.playPowerUp?.();
-        } else if (res.error) {
-          setSearchError(res.error);
-          sound?.playError?.();
-        }
-      }
-    } catch (e) {
-      setSearchError(e.message || 'Failed to connect wallet.');
-    } finally {
-      setIsWalletConnecting(false);
+    if (openConnectModal) {
+      openConnectModal();
     }
   };
 
@@ -100,13 +85,13 @@ export const VerifyPage = ({ onBackHome }) => {
     const cleanWallet = walletInput.trim().toLowerCase();
 
     if (!cleanWallet) {
-      setSearchError('Please connect your Web3 wallet via [ CONNECT WALLET ] (Manual typing is disabled for security).');
+      setSearchError('Please connect your Web3 wallet via [ CONNECT WALLET ] (Manual typing is disabled for anti-sybil security).');
       sound?.playError?.();
       return;
     }
 
     if (!cleanX) {
-      setSearchError('Please enter or connect your registered X (Twitter) username.');
+      setSearchError('Please enter your registered X (Twitter) handle.');
       sound?.playError?.();
       return;
     }
@@ -252,14 +237,14 @@ export const VerifyPage = ({ onBackHome }) => {
         {/* Title Header */}
         <div className="space-y-2.5">
           <div className="inline-block bg-black text-[#00FF66] px-4 py-1.5 border-3 border-black font-pixel text-[9px] sm:text-[10px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg">
-            [ PRIVY AUTH • ROBINHOOD CHAIN PRE-MINT VERIFY ]
+            [ RAINBOWKIT WEB3 • ROBINHOOD CHAIN PRE-MINT VERIFY ]
           </div>
           <h1 className="font-pixel text-2xl sm:text-4xl text-white font-extrabold tracking-tight drop-shadow-[6px_6px_0px_rgba(0,0,0,1)]">
             VERIFY FOR MINT
           </h1>
           <div className="bg-black/90 max-w-xl mx-auto p-3.5 border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-lg">
             <p className="font-mono text-xs sm:text-sm text-gray-200 font-semibold leading-relaxed">
-              Connect your registered X handle & Web3 wallet using Privy to verify on-chain activity on Robinhood Chain and secure your official Mint Clearance Pass.
+              Connect your registered X handle & Web3 wallet via RainbowKit to verify on-chain activity on Robinhood Chain and secure your official Mint Clearance Pass.
             </p>
           </div>
         </div>
@@ -283,11 +268,12 @@ export const VerifyPage = ({ onBackHome }) => {
                 </label>
                 <button
                   type="button"
-                  onClick={handlePrivyLoginX}
+                  onClick={handleTwitterLogin}
+                  disabled={isXAuthenticating}
                   className="px-2.5 py-1 bg-[#1da1f2]/20 border border-[#1da1f2]/50 rounded text-[9px] font-pixel text-[#1da1f2] hover:bg-[#1da1f2] hover:text-white transition-all flex items-center gap-1"
                 >
                   <span>𝕏</span>
-                  <span>{user?.twitter?.username ? `@${user.twitter.username}` : 'LOGIN WITH X'}</span>
+                  <span>{isXAuthenticating ? 'CONNECTING...' : 'LOGIN WITH X'}</span>
                 </button>
               </div>
               <div className="relative">
@@ -308,15 +294,24 @@ export const VerifyPage = ({ onBackHome }) => {
                 <label className="font-pixel text-[9px] text-[#00FF66] tracking-wider">
                   EVM / ROBINHOOD WALLET (WEB3)
                 </label>
-                <button
-                  type="button"
-                  onClick={handleConnectWallet}
-                  disabled={isWalletConnecting}
-                  className="px-2.5 py-1 bg-[#00FF66] text-black border-2 border-black text-[9px] font-pixel font-bold hover:bg-[#00e65c] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded transition-all flex items-center gap-1"
-                >
-                  <span>🦊</span>
-                  <span>{isWalletConnecting ? 'CONNECTING...' : walletInput ? 'RE-CONNECT' : 'CONNECT WALLET'}</span>
-                </button>
+                {isConnected ? (
+                  <button
+                    type="button"
+                    onClick={() => disconnect()}
+                    className="px-2.5 py-1 bg-red-950 text-red-400 border border-red-800 text-[9px] font-pixel hover:bg-red-900 rounded transition-all"
+                  >
+                    DISCONNECT
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleConnectWallet}
+                    className="px-2.5 py-1 bg-[#00FF66] text-black border-2 border-black text-[9px] font-pixel font-bold hover:bg-[#00e65c] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded transition-all flex items-center gap-1"
+                  >
+                    <span>🌈</span>
+                    <span>CONNECT WALLET</span>
+                  </button>
+                )}
               </div>
               <input
                 type="text"
@@ -329,7 +324,7 @@ export const VerifyPage = ({ onBackHome }) => {
                 }`}
               />
               <span className="text-[10px] font-mono text-gray-400 block">
-                * Powered by Privy & Web3. Manual address typing is disabled for security.
+                * Powered by RainbowKit. Supports MetaMask, Robinhood, Coinbase, Rabby & WalletConnect.
               </span>
             </div>
 
