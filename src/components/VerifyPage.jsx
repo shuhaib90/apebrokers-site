@@ -195,19 +195,11 @@ export const VerifyPage = ({ onBackHome }) => {
       addLog(`SCANNING ON-CHAIN ACTIVITY FOR ${matchedApp.wallet_address.substring(0, 8)}...`);
       const scanRes = await scanMultiChainWalletActivity(matchedApp.wallet_address);
       const act = scanRes.activity || {};
+      const totalTx = (act.robinhoodTxCount || 0) + (act.totalEvmTxns || 0);
       setChainActivity(act);
       await new Promise((r) => setTimeout(r, 500));
 
-      const totalTx = (act.robinhoodTxCount || 0) + (act.totalEvmTxns || 0);
-
-      // Enforce at least 1 on-chain transaction
-      if (totalTx < 1) {
-        setScanProgress(0);
-        setIsScanningChain(false);
-        throw new Error('On-Chain Verification Failed: Wallet must have at least 1 on-chain transaction history (Robinhood Chain or EVM).');
-      }
-
-      addLog(`[✓] TRANSACTION HISTORY DETECTED: ${totalTx} TOTAL ON-CHAIN TXNS`);
+      addLog(`[✓] TRANSACTION HISTORY: ${totalTx} TOTAL ON-CHAIN TXNS`);
       addLog(`[✓] ROBINHOOD CHAIN BALANCE: ${act.robinhoodBalance.toFixed(4)} ETH | ${act.robinhoodTxCount} TXNS`);
       await new Promise((r) => setTimeout(r, 450));
 
