@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import confetti from 'canvas-confetti';
 import { sound } from '../utils/audio';
 import { connectWallet, getConnectedAccount, scanMultiChainWalletActivity } from '../utils/web3Contract';
 import { lookupApplicationForVerification, verifyAndClearForMint } from '../utils/supabase';
 
 export const VerifyPage = ({ onBackHome }) => {
+  // Privy Auth Hooks
+  const { ready: isPrivyReady, authenticated, user, login, logout, linkTwitter, linkWallet } = usePrivy();
+  const { wallets } = useWallets();
+
   // Input State
   const [xInput, setXInput] = useState('');
   const [walletInput, setWalletInput] = useState('');
@@ -23,25 +28,57 @@ export const VerifyPage = ({ onBackHome }) => {
   // Final Clearance State
   const [clearanceResult, setClearanceResult] = useState(null);
 
+  // Sync Privy Twitter & Wallet if logged in via Privy
   useEffect(() => {
-    // Auto-check connected wallet if available
+    if (authenticated && user) {
+      if (user.twitter?.username && !xInput) {
+        setXInput(user.twitter.username);
+      }
+      const privyWallet = user.wallet?.address || wallets?.[0]?.address;
+      if (privyWallet && !walletInput) {
+        setWalletInput(privyWallet.toLowerCase());
+      }
+    }
+  }, [authenticated, user, wallets]);
+
+  useEffect(() => {
+    // Also auto-check injected Web3 wallet if available
     getConnectedAccount().then((acc) => {
-      if (acc) setWalletInput(acc);
+      if (acc && !walletInput) setWalletInput(acc);
     });
   }, []);
+
+  const handlePrivyLoginX = async () => {
+    sound?.playClick?.();
+    try {
+      if (!authenticated) {
+        login({ loginMethods: ['twitter'] });
+      } else if (!user?.twitter?.username) {
+        linkTwitter();
+      }
+    } catch (e) {
+      console.warn('Privy X login:', e);
+    }
+  };
 
   const handleConnectWallet = async () => {
     sound?.playClick?.();
     setIsWalletConnecting(true);
     setSearchError(null);
     try {
-      const res = await connectWallet();
-      if (res.success && res.address) {
-        setWalletInput(res.address.toLowerCase());
-        sound?.playPowerUp?.();
-      } else if (res.error) {
-        setSearchError(res.error);
-        sound?.playError?.();
+      if (isPrivyReady && !authenticated) {
+        login({ loginMethods: ['wallet'] });
+      } else if (authenticated && !user?.wallet?.address) {
+        linkWallet();
+      } else {
+        const res = await connectWallet();
+        if (res.success && res.address) {
+          setWalletInput(res.address.toLowerCase());
+          sound?.playPowerUp?.();
+        } else if (res.error) {
+          setSearchError(res.error);
+          sound?.playError?.();
+        }
       }
     } catch (e) {
       setSearchError(e.message || 'Failed to connect wallet.');
@@ -69,7 +106,7 @@ export const VerifyPage = ({ onBackHome }) => {
     }
 
     if (!cleanX) {
-      setSearchError('Please enter your registered X (Twitter) username.');
+      setSearchError('Please enter or connect your registered X (Twitter) username.');
       sound?.playError?.();
       return;
     }
@@ -145,7 +182,7 @@ export const VerifyPage = ({ onBackHome }) => {
       addLog('[✓] ANTI-SYBIL VERIFICATION: PASSED (VERIFIED OPERATOR)');
       await new Promise((r) => setTimeout(r, 450));
 
-      addLog('ISSUING OFFICIAL MINT CLEARANCE PASS...');
+      addLog('ISSUING OFFICIAL MINT CLEARANCE PASS (2,000 GTD / 3,000 FCFS)...');
       const clearance = await verifyAndClearForMint(matchedApp.id, {
         xUsername: matchedApp.x_username,
         walletAddress: matchedApp.wallet_address,
@@ -215,14 +252,14 @@ export const VerifyPage = ({ onBackHome }) => {
         {/* Title Header */}
         <div className="space-y-2.5">
           <div className="inline-block bg-black text-[#00FF66] px-4 py-1.5 border-3 border-black font-pixel text-[9px] sm:text-[10px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg">
-            [ ROBINHOOD CHAIN • PRE-MINT VERIFICATION ]
+            [ PRIVY AUTH • ROBINHOOD CHAIN PRE-MINT VERIFY ]
           </div>
           <h1 className="font-pixel text-2xl sm:text-4xl text-white font-extrabold tracking-tight drop-shadow-[6px_6px_0px_rgba(0,0,0,1)]">
             VERIFY FOR MINT
           </h1>
           <div className="bg-black/90 max-w-xl mx-auto p-3.5 border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-lg">
             <p className="font-mono text-xs sm:text-sm text-gray-200 font-semibold leading-relaxed">
-              Connect your registered X handle & Web3 wallet to verify on-chain activity on Robinhood Chain and secure your official Mint Clearance Pass.
+              Connect your registered X handle & Web3 wallet using Privy to verify on-chain activity on Robinhood Chain and secure your official Mint Clearance Pass.
             </p>
           </div>
         </div>
@@ -240,9 +277,19 @@ export const VerifyPage = ({ onBackHome }) => {
           <form onSubmit={handleLookupApplication} className="space-y-4">
             {/* X Username */}
             <div className="space-y-1.5">
-              <label className="font-pixel text-[9px] text-[#00FF66] tracking-wider block">
-                X (TWITTER) USERNAME
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="font-pixel text-[9px] text-[#00FF66] tracking-wider block">
+                  X (TWITTER) USERNAME
+                </label>
+                <button
+                  type="button"
+                  onClick={handlePrivyLoginX}
+                  className="px-2.5 py-1 bg-[#1da1f2]/20 border border-[#1da1f2]/50 rounded text-[9px] font-pixel text-[#1da1f2] hover:bg-[#1da1f2] hover:text-white transition-all flex items-center gap-1"
+                >
+                  <span>𝕏</span>
+                  <span>{user?.twitter?.username ? `@${user.twitter.username}` : 'LOGIN WITH X'}</span>
+                </button>
+              </div>
               <div className="relative">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 font-mono text-xs font-bold">@</span>
                 <input
@@ -274,7 +321,7 @@ export const VerifyPage = ({ onBackHome }) => {
               <input
                 type="text"
                 readOnly
-                placeholder="Click [CONNECT WALLET] above (Manual typing disabled)"
+                placeholder="Click [CONNECT WALLET] above"
                 value={walletInput}
                 onClick={!walletInput ? handleConnectWallet : undefined}
                 className={`w-full h-12 px-3 bg-[#111] border-3 border-black text-white font-mono text-xs rounded-lg outline-none cursor-pointer shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.5)] ${
@@ -282,7 +329,7 @@ export const VerifyPage = ({ onBackHome }) => {
                 }`}
               />
               <span className="text-[10px] font-mono text-gray-400 block">
-                * Manual address typing is disabled for security. Connect via Web3 wallet.
+                * Powered by Privy & Web3. Manual address typing is disabled for security.
               </span>
             </div>
 
