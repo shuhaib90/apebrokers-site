@@ -264,6 +264,9 @@ export const VerifyPage = ({ onBackHome }) => {
       }
       await new Promise((r) => setTimeout(r, 400));
 
+      if (clearance.application) {
+        setMatchedApp(clearance.application);
+      }
       setClearanceResult(clearance);
     } catch (err) {
       console.error('Error during on-chain verification:', err);
