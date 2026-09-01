@@ -114,7 +114,17 @@ export const VerifyPage = ({ onBackHome }) => {
     setClearanceResult(null);
   };
 
-  const handleLookupApplication = async (e) => {
+  // Auto-check application status on page load / refresh if both X and Wallet are connected
+  useEffect(() => {
+    const cleanX = (xInput || xUser?.username || '').trim().replace(/^@/, '');
+    const cleanWallet = (walletInput || address || '').trim().toLowerCase();
+
+    if (cleanX && cleanWallet && !clearanceResult && !matchedApp && !isSearching) {
+      handleLookupApplication(null, cleanX, cleanWallet);
+    }
+  }, [xInput, xUser, walletInput, address]);
+
+  const handleLookupApplication = async (e, directX = null, directWallet = null) => {
     if (e) e.preventDefault();
     sound?.playClick?.();
     setSearchError(null);
@@ -123,8 +133,8 @@ export const VerifyPage = ({ onBackHome }) => {
     setChainActivity(null);
     setScanLogs([]);
 
-    const cleanX = (xInput || xUser?.username || '').trim().replace(/^@/, '');
-    const cleanWallet = (walletInput || address || '').trim().toLowerCase();
+    const cleanX = (directX || xInput || xUser?.username || '').trim().replace(/^@/, '');
+    const cleanWallet = (directWallet || walletInput || address || '').trim().toLowerCase();
 
     if (!cleanX) {
       setSearchError('Please connect your X (Twitter) account first.');
@@ -148,7 +158,7 @@ export const VerifyPage = ({ onBackHome }) => {
         setMatchedApp(result.application);
         sound?.playSuccess?.();
 
-        // If user is already verified for mint, show existing clearance immediately!
+        // If user is already verified for mint, show existing clearance immediately after refresh!
         if (result.application.is_mint_verified) {
           setClearanceResult({
             brokerId: result.application.broker_id || `#${result.application.id}`,
@@ -486,7 +496,7 @@ export const VerifyPage = ({ onBackHome }) => {
               <span>[ VIEW YOUR ALLOCATION ON /HOLDERS ]</span>
             </a>
           </div>
-        ) : matchedApp && (
+        ) : matchedApp && !clearanceResult && (
           <div className="bg-black/95 border-4 border-[#00FF66] shadow-[8px_8px_0px_0px_rgba(0,255,102,0.3)] p-6 sm:p-8 rounded-2xl text-left space-y-5 animate-fade-in">
             <div className="flex items-center justify-between border-b-2 border-[#222] pb-3">
               <div className="flex items-center gap-2">
