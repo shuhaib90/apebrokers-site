@@ -409,4 +409,179 @@ export async function validateAndRedeemPromoCode(codeString, appData) {
   }
 }
 
+/**
+ * Lookup application for pre-mint on-chain verification
+ * Only registered applicants (Standard form, Code claims, or Form GTD winners) can verify
+ */
+export async function lookupApplicationForVerification(xUsername, walletAddress) {
+  try {
+    const cleanUser = (xUsername || '').replace(/^@/, '').trim().toLowerCase();
+    const cleanWallet = (walletAddress || '').trim().toLowerCase();
 
+    if (!cleanUser && !cleanWallet) {
+      return { found: false, error: 'Please enter your X username and wallet address.' };
+    }
+
+    const filters = [];
+    if (cleanWallet) filters.push(`wallet_address.ilike.${cleanWallet}`);
+    if (cleanUser) filters.push(`x_username.ilike.%${cleanUser}%`);
+
+    const { data, error } = await supabase
+      .from('apebrokers_applications')
+      .select('*')
+      .or(filters.join(','))
+      .limit(5);
+
+    if (error) {
+      console.warn('Error querying application for verification:', error);
+      return { found: false, error: 'Database query failed. Please try again.' };
+    }
+
+    if (!data || data.length === 0) {
+      return {
+        found: false,
+        error: 'No registered application found for this account. You must submit an application before verifying.',
+      };
+    }
+
+    // Best match: both wallet and user match, or wallet match, or user match
+    const exactMatch = data.find((app) => {
+      const appWallet = (app.wallet_address || '').toLowerCase().trim();
+      const appUser = (app.x_username || '').replace(/^@/, '').toLowerCase().trim();
+      return appWallet === cleanWallet && appUser === cleanUser;
+    });
+
+    const match = exactMatch || data.find((app) => (app.wallet_address || '').toLowerCase().trim() === cleanWallet) || data[0];
+
+    return {
+      found: true,
+      application: match,
+    };
+  } catch (err) {
+    console.error('Error looking up application:', err);
+    return { found: false, error: err.message || 'Lookup failed.' };
+  }
+}
+
+/**
+ * Verifies on-chain activity and clears applicant for Mint Day
+ * - Existing GTD winners / Secret Code claimers: Directly assigned GTD Mint Tier
+ * - Standard Form Applicants: Assigned GTD (cap: 3,000) or FCFS (cap: 2,000)
+ */
+export async function verifyAndClearForMint(applicationId, { xUsername, walletAddress, chainActivity }) {
+  try {
+    const GTD_CAP = 3000;
+    const FCFS_CAP = 2000;
+
+    // 1. Fetch current application record
+    const { data: app, error: appErr } = await supabase
+      .from('apebrokers_applications')
+      .select('*')
+      .eq('id', applicationId)
+      .single();
+
+    if (appErr || !app) {
+      throw new Error('Application record not found.');
+    }
+
+    // 2. Fetch live verification counts to respect caps
+    const { data: verifiedRows, error: countErr } = await supabase
+      .from('apebrokers_applications')
+      .select('id, mint_tier, is_gtd')
+      .eq('is_mint_verified', true);
+
+    const verifiedGtdCount = verifiedRows ? verifiedRows.filter((r) => r.mint_tier === 'GTD' || r.is_gtd).length : 0;
+    const verifiedFcfsCount = verifiedRows ? verifiedRows.filter((r) => r.mint_tier === 'FCFS').length : 0;
+
+    // 3. Resolve allocation tier
+    let assignedTier = 'FCFS';
+    let isGtdWinner = false;
+
+    // Partner NFT holders / Secret Code claimers / Approved GTD winners directly get GTD
+    if (app.is_gtd || app.is_code_claim || app.is_partner_claim || app.card_tier === 'GOLDEN_GTD') {
+      assignedTier = 'GTD';
+      isGtdWinner = true;
+    } else {
+      // Standard form applicant: resolve random chance if under 3,000 cap
+      if (verifiedGtdCount < GTD_CAP) {
+        // High 60% probability for verified active on-chain wallets to win GTD
+        const wonGtdRandom = Math.random() < 0.6;
+        if (wonGtdRandom) {
+          assignedTier = 'GTD';
+          isGtdWinner = true;
+        } else {
+          assignedTier = 'FCFS';
+        }
+      } else if (verifiedFcfsCount < FCFS_CAP) {
+        assignedTier = 'FCFS';
+      } else {
+        assignedTier = 'STANDBY';
+      }
+    }
+
+    const gtdArtId = app.gtd_art_id || Math.floor(Math.random() * 3) + 1;
+    const verifiedAt = new Date().toISOString();
+
+    // 4. Update application with verified mint clearance
+    const { data: updatedApp, error: updateErr } = await supabase
+      .from('apebrokers_applications')
+      .update({
+        is_mint_verified: true,
+        mint_tier: assignedTier,
+        is_gtd: isGtdWinner || app.is_gtd,
+        card_tier: isGtdWinner ? 'GOLDEN_GTD' : (app.card_tier || 'CYBER_STANDARD'),
+        gtd_art_id: gtdArtId,
+        mint_verified_at: verifiedAt,
+        chain_activity: chainActivity || {},
+        status: 'APPROVED',
+      })
+      .eq('id', applicationId)
+      .select()
+      .single();
+
+    if (updateErr) {
+      console.warn('Update mint clearance note:', updateErr);
+    }
+
+    return {
+      success: true,
+      application: updatedApp || app,
+      brokerId: app.broker_id || `#${app.id}`,
+      mintTier: assignedTier,
+      isGtd: isGtdWinner,
+      gtdArtId,
+      verifiedAt,
+      chainActivity,
+    };
+  } catch (err) {
+    console.error('Error verifying user for mint:', err);
+    throw err;
+  }
+}
+
+/**
+ * Fetch total live mint verification statistics
+ */
+export async function fetchMintVerificationStats() {
+  try {
+    const { data, error } = await supabase
+      .from('apebrokers_applications')
+      .select('id, is_mint_verified, mint_tier, is_gtd, is_partner_claim, is_code_claim');
+
+    if (error || !data) return { totalVerified: 0, gtdCount: 0, fcfsCount: 0, partnerCount: 0 };
+
+    const totalVerified = data.filter((a) => a.is_mint_verified).length;
+    const gtdCount = data.filter((a) => a.is_mint_verified && (a.mint_tier === 'GTD' || a.is_gtd)).length;
+    const fcfsCount = data.filter((a) => a.is_mint_verified && a.mint_tier === 'FCFS').length;
+    const partnerCount = data.filter((a) => a.is_partner_claim || !!a.community_name).length;
+
+    return {
+      totalVerified,
+      gtdCount,
+      fcfsCount,
+      partnerCount,
+    };
+  } catch (err) {
+    return { totalVerified: 0, gtdCount: 0, fcfsCount: 0, partnerCount: 0 };
+  }
+}
