@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { SiteHeader } from './SiteHeader';
-import { SiteFooter } from './SiteFooter';
-import { TypewriterText } from './TypewriterText';
-import { connectWallet, getConnectedAccount, scanMultiChainWalletActivity } from '../utils/web3Contract';
-import { lookupApplicationForVerification, verifyAndClearForMint, fetchMintVerificationStats } from '../utils/supabase';
 import { sound } from '../utils/audio';
+import { connectWallet, getConnectedAccount, scanMultiChainWalletActivity } from '../utils/web3Contract';
+import { lookupApplicationForVerification, verifyAndClearForMint } from '../utils/supabase';
 
-export const VerifyPage = () => {
+export const VerifyPage = ({ onBackHome }) => {
   // Input State
   const [xInput, setXInput] = useState('');
   const [walletInput, setWalletInput] = useState('');
@@ -25,10 +22,8 @@ export const VerifyPage = () => {
 
   // Final Clearance State
   const [clearanceResult, setClearanceResult] = useState(null);
-  const [stats, setStats] = useState({ totalVerified: 0, gtdCount: 0, fcfsCount: 0, partnerCount: 0 });
 
   useEffect(() => {
-    fetchMintVerificationStats().then((st) => setStats(st));
     // Auto-check connected wallet if available
     getConnectedAccount().then((acc) => {
       if (acc) setWalletInput(acc);
@@ -68,7 +63,7 @@ export const VerifyPage = () => {
     const cleanWallet = walletInput.trim().toLowerCase();
 
     if (!cleanWallet) {
-      setSearchError('Please connect your Web3 wallet using the [ CONNECT WALLET ] button (Manual entry is disabled for anti-sybil security).');
+      setSearchError('Please connect your Web3 wallet via [ CONNECT WALLET ] (Manual typing is disabled for security).');
       sound?.playError?.();
       return;
     }
@@ -122,38 +117,35 @@ export const VerifyPage = () => {
     };
 
     try {
-      addLog('INITIATING ROBINHOOD CHAIN RPC CONNECTION...');
-      await new Promise((r) => setTimeout(r, 500));
+      addLog('CONNECTING TO ROBINHOOD CHAIN RPC...');
+      await new Promise((r) => setTimeout(r, 450));
 
-      addLog(`QUERYING ON-CHAIN BALANCE & TX NONCE FOR ${matchedApp.wallet_address.substring(0, 8)}...`);
+      addLog(`SCANNING ON-CHAIN BALANCE & TX NONCE FOR ${matchedApp.wallet_address.substring(0, 8)}...`);
       const scanRes = await scanMultiChainWalletActivity(matchedApp.wallet_address);
       const act = scanRes.activity || {};
       setChainActivity(act);
-      await new Promise((r) => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 550));
 
-      addLog(`[✓] ROBINHOOD CHAIN BALANCE: ${act.robinhoodBalance.toFixed(4)} ETH | TXNS: ${act.robinhoodTxCount}`);
-      await new Promise((r) => setTimeout(r, 500));
+      addLog(`[✓] ROBINHOOD CHAIN: ${act.robinhoodBalance.toFixed(4)} ETH | ${act.robinhoodTxCount} TXNS`);
+      await new Promise((r) => setTimeout(r, 450));
 
       if (matchedApp.is_gtd || matchedApp.is_code_claim || matchedApp.is_partner_claim || matchedApp.card_tier === 'GOLDEN_GTD') {
-        addLog('[👑 GTD ALLOCATION VERIFIED] CONFIRMED GTD WINNER -> DIRECT 100% GUARANTEED GTD CLEARANCE');
-        await new Promise((r) => setTimeout(r, 500));
+        addLog('[👑 GTD WINNER DETECTED] DIRECT 100% GUARANTEED GTD MINT CLEARANCE APPLIED');
+        await new Promise((r) => setTimeout(r, 450));
       } else if (act.robinhoodBalance >= 0.0035 || act.robinhoodTxCount >= 3) {
-        addLog(`[💎 HOLDINGS BONUS] HOLDING >= $10 ON ROBINHOOD CHAIN (${act.robinhoodBalance.toFixed(4)} ETH) -> +90% GTD CHANCE BOOST APPLIED!`);
-        await new Promise((r) => setTimeout(r, 500));
-      } else {
-        addLog('[ℹ️ STANDARD RESOLUTION] EVALUATING ALLOCATION TIER (GTD CAP 3,000 / FCFS CAP 2,000)...');
-        await new Promise((r) => setTimeout(r, 500));
+        addLog(`[💎 HOLDINGS BONUS] HOLDING >= $10 ON ROBINHOOD CHAIN -> +90% GTD CHANCE BOOST!`);
+        await new Promise((r) => setTimeout(r, 450));
       }
 
       addLog('INSPECTING MULTI-CHAIN EVM FOOTPRINT (BASE, ARBITRUM, POLYGON)...');
-      await new Promise((r) => setTimeout(r, 500));
-      addLog(`[✓] MULTI-CHAIN EVM ACTIVITY: ${act.totalEvmTxns} TOTAL TRANSACTIONS DETECTED`);
-      await new Promise((r) => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 450));
+      addLog(`[✓] MULTI-CHAIN ACTIVITY: ${act.totalEvmTxns} TOTAL TRANSACTIONS DETECTED`);
+      await new Promise((r) => setTimeout(r, 450));
 
-      addLog('[✓] ANTI-SYBIL CHECK: PASSED (VERIFIED AUTHENTIC OPERATOR)');
-      await new Promise((r) => setTimeout(r, 500));
+      addLog('[✓] ANTI-SYBIL VERIFICATION: PASSED (VERIFIED OPERATOR)');
+      await new Promise((r) => setTimeout(r, 450));
 
-      addLog('RESOLVING ALLOCATION TIER CLEARANCE...');
+      addLog('ISSUING OFFICIAL MINT CLEARANCE PASS...');
       const clearance = await verifyAndClearForMint(matchedApp.id, {
         xUsername: matchedApp.x_username,
         walletAddress: matchedApp.wallet_address,
@@ -163,14 +155,11 @@ export const VerifyPage = () => {
       setClearanceResult(clearance);
       sound?.playPowerUp?.();
       confetti({
-        particleCount: 150,
-        spread: 90,
-        origin: { y: 0.6 },
+        particleCount: 160,
+        spread: 100,
+        origin: { y: 0.55 },
         colors: clearance.isGtd ? ['#FFD700', '#00FF66', '#FFFFFF'] : ['#00DDFF', '#00FF66', '#FFFFFF'],
       });
-
-      // Refresh stats
-      fetchMintVerificationStats().then((st) => setStats(st));
     } catch (err) {
       console.error('Error during on-chain verification:', err);
       addLog(`[X] VERIFICATION ERROR: ${err.message}`);
@@ -180,121 +169,103 @@ export const VerifyPage = () => {
     }
   };
 
-  const getTwitterShareUrl = () => {
-    if (!clearanceResult) return '#';
+  const handleShareOnX = () => {
+    if (!clearanceResult) return;
+    sound?.playClick?.();
     const tierName = clearanceResult.mintTier === 'GTD' ? '👑 GUARANTEED (GTD) MINT' : '⚡ FIRST-COME (FCFS) MINT';
-    const text = `I just verified my on-chain activity for @ApebrokersNft mint on Robinhood Chain! 🪪\n\n🛡️ Clearance: ${tierName}\n🆔 Broker ID: ${clearanceResult.brokerId}\n\nVerify your pre-mint allocation:`;
-    return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent('https://apesyndicates.xyz/verify')}`;
+    const text = `I just verified my on-chain activity for @Apesyndicates mint on Robinhood Chain! 🪪\n\n🛡️ Clearance: ${tierName}\n🆔 Broker ID: ${clearanceResult.brokerId}\n\nVerify your pre-mint allocation: https://apesyndicates.xyz/verify\n\n#ApeSyndicate #RobinhoodChain #GTD`;
+    window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   return (
-    <div className="min-h-screen bg-[#08060e] text-white flex flex-col antialiased selection:bg-[#00FF66] selection:text-black">
-      <SiteHeader />
+    <div
+      className="min-h-screen text-white flex flex-col items-center justify-between relative bg-cover bg-center bg-no-repeat bg-fixed select-none"
+      style={{
+        backgroundImage: 'url(/landscape_bg.gif)',
+        backgroundColor: '#0a0612',
+      }}
+    >
+      {/* Background Dimmer */}
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-[2px] pointer-events-none" />
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-8 sm:py-12 space-y-8">
-        {/* Hero Section */}
-        <div className="text-center space-y-3.5">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#00FF66]/10 border border-[#00FF66]/30 text-[#00FF66] font-pixel text-[9px] sm:text-[10px] rounded-full shadow-[0_0_15px_rgba(0,255,102,0.2)]">
-            <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse" />
-            <span>MINT CLEARANCE & ON-CHAIN VERIFICATION</span>
-          </div>
+      {/* Top Navigation Bar */}
+      <div className="relative z-20 w-full max-w-5xl mx-auto px-4 py-4 sm:py-6 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => {
+            sound?.playClick?.();
+            if (onBackHome) onBackHome();
+            else window.location.href = '/';
+          }}
+          className="pixel-btn pixel-btn-black px-3.5 sm:px-4 py-2 text-[10px] sm:text-xs font-pixel text-white border-2 border-white hover:border-[#00FF66] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-lg"
+        >
+          [ ← HOME ]
+        </button>
 
-          <h1 className="font-pixel text-xl sm:text-3xl md:text-4xl text-white tracking-wide leading-tight">
-            VERIFY YOUR PRE-MINT ELIGIBILITY
-          </h1>
-
-          <p className="font-mono text-xs sm:text-sm text-gray-400 max-w-2xl mx-auto">
-            Connect your registered X handle & Web3 wallet to verify on-chain activity, clear anti-sybil checks, and receive your official <strong>GTD or FCFS Mint Clearance Pass</strong>.
-          </p>
-
-          {/* Important Rules Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl mx-auto text-left font-mono text-xs">
-            <div className="p-3.5 bg-[#141208] border border-[#FFD700]/50 rounded-xl space-y-1 text-yellow-100/90 shadow-[0_0_15px_rgba(255,215,0,0.1)]">
-              <div className="font-pixel text-[9px] text-[#FFD700] flex items-center gap-1.5 font-bold">
-                <span>👑</span>
-                <span>EXISTING GTD & SECRET CODES</span>
-              </div>
-              <p className="text-[11px] leading-relaxed text-yellow-100/80">
-                Connect X & Web3 wallet to verify wallet transactions. You are <strong>directly cleared for 100% Guaranteed GTD Mint</strong>.
-              </p>
-            </div>
-
-            <div className="p-3.5 bg-[#0a1a0f] border border-[#00FF66]/50 rounded-xl space-y-1 text-emerald-100/90 shadow-[0_0_15px_rgba(0,255,102,0.1)]">
-              <div className="font-pixel text-[9px] text-[#00FF66] flex items-center gap-1.5 font-bold">
-                <span>💎</span>
-                <span>STANDARD APPLICANTS ($10+ BOOST)</span>
-              </div>
-              <p className="text-[11px] leading-relaxed text-emerald-100/80">
-                Holding <strong>≥ $10 equivalent</strong> (~0.0035 ETH) on Robinhood Chain significantly boosts your probability of winning a <strong>GTD Mint Spot</strong>!
-              </p>
-            </div>
-          </div>
+        <div className="flex items-center gap-2 bg-black/90 px-3.5 py-1.5 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg">
+          <span className="w-2.5 h-2.5 bg-[#00FF66] inline-block animate-blink" />
+          <span className="font-pixel text-[10px] text-[#00FF66] font-extrabold tracking-wider">
+            PRE-MINT VERIFICATION VAULT
+          </span>
         </div>
+      </div>
 
-        {/* Live Allocation Quotas Bar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="p-4 bg-[#141208] border-2 border-[#FFD700] rounded-xl text-center space-y-1 shadow-[0_0_15px_rgba(255,215,0,0.15)]">
-            <div className="font-pixel text-[9px] text-[#FFD700]">👑 GTD ALLOCATION CAP</div>
-            <div className="font-pixel text-lg text-white font-extrabold">{stats.gtdCount} / 3,000</div>
-            <div className="font-mono text-[10px] text-yellow-100/60">Guaranteed Mint Spots</div>
+      {/* Main Container */}
+      <main className="relative z-10 w-full max-w-2xl mx-auto px-4 py-4 sm:py-6 text-center space-y-6">
+        {/* Title Header */}
+        <div className="space-y-2.5">
+          <div className="inline-block bg-black text-[#00FF66] px-4 py-1.5 border-3 border-black font-pixel text-[9px] sm:text-[10px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg">
+            [ ROBINHOOD CHAIN • PRE-MINT VERIFICATION ]
           </div>
-
-          <div className="p-4 bg-[#0a141e] border-2 border-[#00DDFF] rounded-xl text-center space-y-1">
-            <div className="font-pixel text-[9px] text-[#00DDFF]">⚡ FCFS ALLOCATION CAP</div>
-            <div className="font-pixel text-lg text-white font-extrabold">{stats.fcfsCount} / 2,000</div>
-            <div className="font-mono text-[10px] text-cyan-100/60">Fastest Fingers Mint</div>
-          </div>
-
-          <div className="p-4 bg-[#0a1a0f] border-2 border-[#00FF66] rounded-xl text-center space-y-1">
-            <div className="font-pixel text-[9px] text-[#00FF66]">🛡️ TOTAL VERIFIED</div>
-            <div className="font-pixel text-lg text-white font-extrabold">{stats.totalVerified}</div>
-            <div className="font-mono text-[10px] text-emerald-100/60">Cleared for Mint Day</div>
-          </div>
-
-          <div className="p-4 bg-[#120e1f] border-2 border-[#b388ff] rounded-xl text-center space-y-1">
-            <div className="font-pixel text-[9px] text-[#b388ff]">🏛️ PARTNER DIRECT</div>
-            <div className="font-pixel text-lg text-white font-extrabold">{stats.partnerCount} / 1,050</div>
-            <div className="font-mono text-[10px] text-purple-100/60">Holder Direct Whitelist</div>
+          <h1 className="font-pixel text-2xl sm:text-4xl text-white font-extrabold tracking-tight drop-shadow-[6px_6px_0px_rgba(0,0,0,1)]">
+            VERIFY FOR MINT
+          </h1>
+          <div className="bg-black/90 max-w-xl mx-auto p-3.5 border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-lg">
+            <p className="font-mono text-xs sm:text-sm text-gray-200 font-semibold leading-relaxed">
+              Connect your registered X handle & Web3 wallet to verify on-chain activity on Robinhood Chain and secure your official Mint Clearance Pass.
+            </p>
           </div>
         </div>
 
         {/* Step 1: Input & Lookup Card */}
-        <div className="max-w-xl mx-auto bg-[#0d121c] border-3 border-black rounded-2xl p-6 sm:p-7 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] space-y-5">
-          <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+        <div className="bg-black/95 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 sm:p-8 rounded-2xl text-left space-y-5">
+          <div className="flex items-center justify-between border-b-2 border-[#222] pb-3">
             <span className="font-pixel text-xs text-[#00FF66] flex items-center gap-2">
-              <span>STEP 1</span>
-              <span>• LINK X & WEB3 WALLET</span>
+              <span>●</span>
+              <span>VERIFY REGISTERED OPERATOR</span>
             </span>
             <span className="font-mono text-[10px] text-gray-400">Registered Applicants Only</span>
           </div>
 
           <form onSubmit={handleLookupApplication} className="space-y-4">
             {/* X Username */}
-            <div className="space-y-1 text-left">
-              <label className="font-pixel text-[9px] text-gray-300">X (TWITTER) USERNAME</label>
+            <div className="space-y-1.5">
+              <label className="font-pixel text-[9px] text-[#00FF66] tracking-wider block">
+                X (TWITTER) USERNAME
+              </label>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 font-mono text-xs">@</span>
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 font-mono text-xs font-bold">@</span>
                 <input
                   type="text"
                   placeholder="username"
                   value={xInput}
                   onChange={(e) => setXInput(e.target.value)}
-                  className="w-full h-11 pl-8 pr-3 bg-black border-2 border-gray-700 focus:border-[#00FF66] text-white font-mono text-xs rounded-lg outline-none"
+                  className="w-full h-12 pl-8 pr-3 bg-[#111] border-3 border-black focus:border-[#00FF66] text-white font-mono text-xs rounded-lg outline-none shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.5)]"
                 />
               </div>
             </div>
 
-            {/* Wallet Address & Connector (Readonly Web3 Only) */}
-            <div className="space-y-1 text-left">
+            {/* Wallet Address & Connector */}
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="font-pixel text-[9px] text-gray-300">
-                  EVM / ROBINHOOD WALLET (WEB3 REQUIRED)
+                <label className="font-pixel text-[9px] text-[#00FF66] tracking-wider">
+                  EVM / ROBINHOOD WALLET (WEB3)
                 </label>
                 <button
                   type="button"
                   onClick={handleConnectWallet}
                   disabled={isWalletConnecting}
-                  className="px-2.5 py-1 bg-[#00FF66]/20 border border-[#00FF66]/50 rounded text-[9px] font-pixel text-[#00FF66] hover:bg-[#00FF66] hover:text-black transition-all flex items-center gap-1"
+                  className="px-2.5 py-1 bg-[#00FF66] text-black border-2 border-black text-[9px] font-pixel font-bold hover:bg-[#00e65c] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded transition-all flex items-center gap-1"
                 >
                   <span>🦊</span>
                   <span>{isWalletConnecting ? 'CONNECTING...' : walletInput ? 'RE-CONNECT' : 'CONNECT WALLET'}</span>
@@ -303,20 +274,20 @@ export const VerifyPage = () => {
               <input
                 type="text"
                 readOnly
-                placeholder="Click [CONNECT WALLET] above (Manual entry disabled)"
+                placeholder="Click [CONNECT WALLET] above (Manual typing disabled)"
                 value={walletInput}
                 onClick={!walletInput ? handleConnectWallet : undefined}
-                className={`w-full h-11 px-3 bg-black/90 border-2 text-white font-mono text-xs rounded-lg outline-none cursor-pointer ${
-                  walletInput ? 'border-[#00FF66] text-[#00FF66]' : 'border-gray-700 text-gray-400'
+                className={`w-full h-12 px-3 bg-[#111] border-3 border-black text-white font-mono text-xs rounded-lg outline-none cursor-pointer shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.5)] ${
+                  walletInput ? 'text-[#00FF66]' : 'text-gray-400'
                 }`}
               />
-              <span className="text-[10px] font-mono text-gray-500 block">
-                * Manual address typing is disabled for anti-sybil security. Please connect via wallet.
+              <span className="text-[10px] font-mono text-gray-400 block">
+                * Manual address typing is disabled for security. Connect via Web3 wallet.
               </span>
             </div>
 
             {searchError && (
-              <div className="p-3 bg-red-950/60 border border-red-500/50 rounded-lg text-left text-xs font-mono text-red-300">
+              <div className="p-3.5 bg-red-950/80 border-2 border-red-500 rounded-lg text-left text-xs font-mono text-red-200">
                 ⚠️ {searchError}
               </div>
             )}
@@ -324,54 +295,54 @@ export const VerifyPage = () => {
             <button
               type="submit"
               disabled={isSearching}
-              className="w-full py-3.5 bg-[#00FF66] hover:bg-[#00e65c] text-black font-pixel text-xs font-extrabold border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl transition-all"
+              className="w-full py-4 bg-[#00FF66] hover:bg-[#00e65c] text-black font-pixel text-xs font-extrabold border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl transition-all"
             >
-              {isSearching ? 'SEARCHING APPLICATIONS...' : '[ 🔍 CHECK APPLICATION STATUS ]'}
+              {isSearching ? 'SEARCHING DATABASE...' : '[ 🔍 CHECK APPLICATION STATUS ]'}
             </button>
           </form>
         </div>
 
-        {/* Step 2: Application Found & On-Chain Scan */}
+        {/* Step 2: Application Found & On-Chain Scanner */}
         {matchedApp && (
-          <div className="max-w-xl mx-auto bg-[#0d121c] border-3 border-[#00FF66] rounded-2xl p-6 sm:p-7 shadow-[0_0_30px_rgba(0,255,102,0.15)] space-y-5 animate-fade-in">
-            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+          <div className="bg-black/95 border-4 border-[#00FF66] shadow-[8px_8px_0px_0px_rgba(0,255,102,0.3)] p-6 sm:p-8 rounded-2xl text-left space-y-5 animate-fade-in">
+            <div className="flex items-center justify-between border-b-2 border-[#222] pb-3">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 bg-[#00FF66] rounded-full animate-blink" />
                 <span className="font-pixel text-xs text-[#00FF66] font-extrabold">
-                  APPLICATION FOUND: {matchedApp.broker_id || `#${matchedApp.id}`}
+                  FOUND: {matchedApp.broker_id || `#${matchedApp.id}`}
                 </span>
               </div>
-              <span className="px-2.5 py-0.5 bg-gray-800 text-gray-300 font-pixel text-[8px] rounded">
+              <span className="px-2.5 py-1 bg-black text-[#FFD700] border border-[#FFD700]/50 font-pixel text-[8px] rounded">
                 {matchedApp.is_partner_claim
                   ? '🏛️ PARTNER HOLDER'
                   : matchedApp.is_code_claim
                   ? '🔑 SECRET CODE'
                   : matchedApp.is_gtd
                   ? '👑 GTD WINNER'
-                  : '📜 STANDARD FORM'}
+                  : '📜 STANDARD APPLICANT'}
               </span>
             </div>
 
-            {/* Application Overview Box */}
-            <div className="grid grid-cols-2 gap-3 p-4 bg-black/60 border border-gray-800 rounded-xl font-mono text-xs text-left">
+            {/* Application Overview Grid */}
+            <div className="grid grid-cols-2 gap-3 p-4 bg-[#111] border-2 border-black rounded-xl font-mono text-xs">
               <div>
-                <span className="text-gray-500 text-[10px] block">X USERNAME</span>
+                <span className="text-gray-400 text-[10px] block font-bold">X USERNAME</span>
                 <span className="text-white font-bold">{matchedApp.x_username}</span>
               </div>
               <div>
-                <span className="text-gray-500 text-[10px] block">REGISTERED WALLET</span>
-                <span className="text-gray-300 truncate block">
+                <span className="text-gray-400 text-[10px] block font-bold">WALLET</span>
+                <span className="text-[#00FF66] truncate block font-mono">
                   {matchedApp.wallet_address?.substring(0, 6)}...{matchedApp.wallet_address?.substring(matchedApp.wallet_address?.length - 4)}
                 </span>
               </div>
               <div>
-                <span className="text-gray-500 text-[10px] block">PREVIOUS STATUS</span>
+                <span className="text-gray-400 text-[10px] block font-bold">PREVIOUS STATUS</span>
                 <span className={matchedApp.is_gtd ? 'text-[#FFD700] font-bold' : 'text-[#00DDFF] font-bold'}>
-                  {matchedApp.is_gtd ? '👑 GOLDEN GTD' : 'STANDARD WHITELIST'}
+                  {matchedApp.is_gtd ? '👑 GOLDEN GTD' : 'STANDARD WL'}
                 </span>
               </div>
               <div>
-                <span className="text-gray-500 text-[10px] block">MINT CLEARANCE</span>
+                <span className="text-gray-400 text-[10px] block font-bold">CLEARANCE STATUS</span>
                 <span className={matchedApp.is_mint_verified ? 'text-[#00FF66] font-bold' : 'text-yellow-400 font-bold'}>
                   {matchedApp.is_mint_verified ? `[✓] CLEARED (${matchedApp.mint_tier})` : 'AWAITING ON-CHAIN SCAN'}
                 </span>
@@ -380,9 +351,9 @@ export const VerifyPage = () => {
 
             {/* Scanning Terminal Logs */}
             {isScanningChain && (
-              <div className="p-4 bg-black border-2 border-[#00FF66] rounded-xl font-mono text-xs text-left space-y-1.5 shadow-[inset_0_0_20px_rgba(0,255,102,0.2)]">
-                <div className="text-[10px] text-gray-500 pb-1 border-b border-gray-900 flex items-center justify-between">
-                  <span>TERMINAL: ON-CHAIN ACTIVITY SCANNER</span>
+              <div className="p-4 bg-[#0a0a0a] border-3 border-[#00FF66] rounded-xl font-mono text-xs space-y-1.5 shadow-[inset_0_0_20px_rgba(0,255,102,0.15)]">
+                <div className="text-[10px] text-gray-400 pb-1 border-b border-[#222] flex items-center justify-between">
+                  <span>ROBINHOOD ON-CHAIN SCANNER</span>
                   <span className="text-[#00FF66] animate-pulse">RUNNING...</span>
                 </div>
                 {scanLogs.map((log, idx) => (
@@ -407,23 +378,18 @@ export const VerifyPage = () => {
 
         {/* Step 3: Clearance Mint Pass Display */}
         {clearanceResult && (
-          <div className="max-w-xl mx-auto space-y-4 animate-scale-up">
+          <div className="space-y-4 animate-scale-up text-left">
             <div
-              className={`p-6 sm:p-7 rounded-2xl border-4 shadow-[0_0_50px_rgba(0,0,0,0.8)] text-left space-y-5 relative overflow-hidden ${
+              className={`p-6 sm:p-8 rounded-2xl border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-5 relative overflow-hidden ${
                 clearanceResult.isGtd
-                  ? 'bg-gradient-to-b from-[#241a02] via-[#140e02] to-black border-[#FFD700] shadow-[0_0_40px_rgba(255,215,0,0.3)]'
-                  : 'bg-gradient-to-b from-[#021f24] via-[#011114] to-black border-[#00DDFF] shadow-[0_0_40px_rgba(0,221,255,0.3)]'
+                  ? 'bg-gradient-to-b from-[#241a02] via-[#140e02] to-black'
+                  : 'bg-gradient-to-b from-[#021f24] via-[#011114] to-black'
               }`}
             >
-              {/* Corner Watermark */}
-              <div className="absolute right-4 top-4 font-pixel text-5xl opacity-10 select-none pointer-events-none">
-                {clearanceResult.isGtd ? '👑 GTD' : '⚡ FCFS'}
-              </div>
-
-              {/* Pass Header */}
-              <div className="flex items-center justify-between border-b border-gray-800 pb-4">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b-2 border-black/60 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="text-3xl">{clearanceResult.isGtd ? '👑' : '⚡'}</div>
+                  <div className="text-4xl">{clearanceResult.isGtd ? '👑' : '⚡'}</div>
                   <div>
                     <h3
                       className={`font-pixel text-sm sm:text-base font-extrabold tracking-wide ${
@@ -437,26 +403,26 @@ export const VerifyPage = () => {
                     </p>
                   </div>
                 </div>
-                <div className="px-3 py-1 bg-black/80 border border-gray-700 rounded-lg text-center">
+                <div className="px-3.5 py-1.5 bg-black border-2 border-black rounded-lg text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                   <span className="font-pixel text-[10px] text-[#00FF66] font-bold block">CLEARED</span>
                   <span className="font-mono text-[9px] text-gray-400">{clearanceResult.brokerId}</span>
                 </div>
               </div>
 
               {/* Pass Metadata Grid */}
-              <div className="grid grid-cols-2 gap-3.5 font-mono text-xs bg-black/50 p-4 rounded-xl border border-gray-800/80">
+              <div className="grid grid-cols-2 gap-3.5 font-mono text-xs bg-black/70 p-4 rounded-xl border-2 border-black">
                 <div>
-                  <span className="text-gray-500 text-[10px] block">OPERATOR X HANDLE</span>
+                  <span className="text-gray-400 text-[10px] block font-bold">OPERATOR X HANDLE</span>
                   <span className="text-white font-bold">{matchedApp?.x_username}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500 text-[10px] block">CLEARED WALLET</span>
-                  <span className="text-gray-300 truncate block">
+                  <span className="text-gray-400 text-[10px] block font-bold">CLEARED WALLET</span>
+                  <span className="text-[#00FF66] truncate block font-mono">
                     {matchedApp?.wallet_address}
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-500 text-[10px] block">ALLOCATION TIER</span>
+                  <span className="text-gray-400 text-[10px] block font-bold">ALLOCATION TIER</span>
                   <span
                     className={`font-pixel text-xs font-bold ${
                       clearanceResult.isGtd ? 'text-[#FFD700]' : 'text-[#00DDFF]'
@@ -466,7 +432,7 @@ export const VerifyPage = () => {
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-500 text-[10px] block">TIMESTAMP</span>
+                  <span className="text-gray-400 text-[10px] block font-bold">VERIFIED AT</span>
                   <span className="text-gray-300 text-[11px]">
                     {new Date(clearanceResult.verifiedAt).toLocaleDateString()}
                   </span>
@@ -474,7 +440,7 @@ export const VerifyPage = () => {
               </div>
 
               {/* On-Chain Activity Badge */}
-              <div className="p-3 bg-black/80 border border-[#00FF66]/40 rounded-xl flex items-center justify-between text-xs font-mono">
+              <div className="p-3 bg-black/80 border-2 border-black rounded-xl flex items-center justify-between text-xs font-mono">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-blink" />
                   <span className="text-[#00FF66] font-bold">ON-CHAIN FOOTPRINT:</span>
@@ -482,29 +448,31 @@ export const VerifyPage = () => {
                     {clearanceResult.chainActivity?.totalEvmTxns || 1}+ Multi-Chain Txns Verified
                   </span>
                 </div>
-                <span className="px-2 py-0.5 bg-[#00FF66]/20 text-[#00FF66] text-[10px] rounded font-bold">
+                <span className="px-2 py-0.5 bg-[#00FF66]/20 text-[#00FF66] text-[10px] rounded font-bold border border-[#00FF66]/40">
                   ✓ VERIFIED
                 </span>
               </div>
 
               {/* Share & Actions */}
               <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
-                <a
-                  href={getTwitterShareUrl()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full sm:flex-1 py-3.5 bg-black hover:bg-gray-900 text-[#00FF66] border-2 border-[#00FF66] font-pixel text-xs font-bold rounded-xl shadow-[3px_3px_0px_0px_rgba(0,255,102,0.4)] flex items-center justify-center gap-2 transition-all"
+                <button
+                  type="button"
+                  onClick={handleShareOnX}
+                  className="w-full py-4 bg-[#00FF66] hover:bg-[#00e65c] text-black font-pixel text-xs font-extrabold border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl flex items-center justify-center gap-2 transition-all"
                 >
                   <span>𝕏</span>
-                  <span>[ SHARE ON X / TWITTER ]</span>
-                </a>
+                  <span>[ SHARE CLEARANCE ON X ]</span>
+                </button>
               </div>
             </div>
           </div>
         )}
       </main>
 
-      <SiteFooter />
+      {/* Footer */}
+      <footer className="relative z-10 py-6 text-center text-[10px] font-pixel text-white/50 tracking-wider">
+        APESYNDICATE • ROBINHOOD CHAIN PRE-MINT VERIFICATION
+      </footer>
     </div>
   );
 };
