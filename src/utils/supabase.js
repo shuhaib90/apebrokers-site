@@ -610,6 +610,7 @@ export async function verifyAndClearForMint(applicationId, { xUsername, walletAd
       }
     }
 
+    const gtdArtId = app.gtd_art_id || Math.floor(Math.random() * 3) + 1;
     const verifiedAt = new Date().toISOString();
     const updatedProofLinks = {
       ...(app.proof_links || {}),
