@@ -418,19 +418,16 @@ export async function lookupApplicationForVerification(xUsername, walletAddress)
     const cleanUser = (xUsername || '').replace(/^@/, '').trim().toLowerCase();
     const cleanWallet = (walletAddress || '').trim().toLowerCase();
 
-    if (!cleanUser && !cleanWallet) {
-      return { found: false, error: 'Please enter your X username and wallet address.' };
+    if (!cleanUser || !cleanWallet) {
+      return { found: false, error: 'Please connect both your X account and Web3 wallet to verify.' };
     }
 
-    const filters = [];
-    if (cleanWallet) filters.push(`wallet_address.ilike.${cleanWallet}`);
-    if (cleanUser) filters.push(`x_username.ilike.%${cleanUser}%`);
-
+    // Query for application matching either or both
     const { data, error } = await supabase
       .from('apebrokers_applications')
       .select('*')
-      .or(filters.join(','))
-      .limit(5);
+      .or(`wallet_address.ilike.${cleanWallet},x_username.ilike.%${cleanUser}%`)
+      .limit(10);
 
     if (error) {
       console.warn('Error querying application for verification:', error);
@@ -440,22 +437,47 @@ export async function lookupApplicationForVerification(xUsername, walletAddress)
     if (!data || data.length === 0) {
       return {
         found: false,
-        error: 'No registered application found for this account. You must submit an application before verifying.',
+        error: `No registered application found for @${cleanUser} and ${cleanWallet.substring(0, 6)}...${cleanWallet.substring(cleanWallet.length - 4)}. Please submit an application on /apply first.`,
       };
     }
 
-    // Best match: both wallet and user match, or wallet match, or user match
+    // Strict Match: Both wallet and X username must match the exact same application
     const exactMatch = data.find((app) => {
       const appWallet = (app.wallet_address || '').toLowerCase().trim();
       const appUser = (app.x_username || '').replace(/^@/, '').toLowerCase().trim();
       return appWallet === cleanWallet && appUser === cleanUser;
     });
 
-    const match = exactMatch || data.find((app) => (app.wallet_address || '').toLowerCase().trim() === cleanWallet) || data[0];
+    if (exactMatch) {
+      return {
+        found: true,
+        application: exactMatch,
+      };
+    }
+
+    // Check specific mismatch reasons to give clear feedback
+    const walletMatch = data.find((app) => (app.wallet_address || '').toLowerCase().trim() === cleanWallet);
+    const userMatch = data.find((app) => (app.x_username || '').replace(/^@/, '').toLowerCase().trim() === cleanUser);
+
+    if (walletMatch && !userMatch) {
+      return {
+        found: false,
+        error: `Connected wallet is registered under a different X handle (@${walletMatch.x_username}). Both the X account and wallet must match the application you submitted.`,
+      };
+    }
+
+    if (userMatch && !walletMatch) {
+      const w = userMatch.wallet_address || '';
+      const maskedW = w.length > 10 ? `${w.substring(0, 6)}...${w.substring(w.length - 4)}` : w;
+      return {
+        found: false,
+        error: `X account @${cleanUser} is registered with a different wallet (${maskedW}). Please connect the wallet you used to apply.`,
+      };
+    }
 
     return {
-      found: true,
-      application: match,
+      found: false,
+      error: 'X account and wallet do not match any single registered application record.',
     };
   } catch (err) {
     console.error('Error looking up application:', err);
