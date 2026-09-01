@@ -42,15 +42,19 @@ export const VerifyPage = ({ onBackHome }) => {
 
   // Check for Twitter OAuth return callback
   useEffect(() => {
-    const authResult = checkTwitterOAuthCallback();
-    if (authResult) {
-      if (authResult.success) {
-        sound?.playSuccess?.();
-      } else if (authResult.error) {
-        setSearchError(authResult.error);
-        sound?.playError?.();
+    async function handleAuthCallback() {
+      const authResult = await checkTwitterOAuthCallback();
+      if (authResult) {
+        if (authResult.success && authResult.username) {
+          setXInput(authResult.username);
+          sound?.playSuccess?.();
+        } else if (authResult.error) {
+          setSearchError(authResult.error);
+          sound?.playError?.();
+        }
       }
     }
+    handleAuthCallback();
   }, []);
 
   const handleTwitterLogin = async () => {

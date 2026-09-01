@@ -1,6 +1,7 @@
 // Native X (Twitter) OAuth 2.0 PKCE & Profile Helper
 
-const X_CLIENT_ID = 'OHBSa2lOSVoxN0RuS1BpdUFDYW06MTpjaQ';
+export const X_CLIENT_ID = 'OHBSa2lOSVoxN0RuS1BpdUFDYW06MTpjaQ';
+export const X_CLIENT_SECRET = 'd4BUJHuHIsXe9BiWesdSKBxbTVOjAxW6HuU7Xd9Wsf0j-9i9Mg';
 
 // Generate a random string for state/code_verifier
 function generateRandomString(length = 64) {
@@ -52,16 +53,15 @@ export async function startTwitterOAuth() {
 }
 
 /**
- * Checks URL on page load for OAuth callback parameters
+ * Checks URL on page load for OAuth callback parameters and exchanges for user profile
  */
-export function checkTwitterOAuthCallback() {
+export async function checkTwitterOAuthCallback() {
   const urlParams = new URLSearchParams(window.location.search);
   const code = urlParams.get('code');
   const state = urlParams.get('state');
   const error = urlParams.get('error');
 
   if (error) {
-    // Clean URL
     window.history.replaceState({}, document.title, window.location.pathname);
     return { success: false, error: `Twitter Auth Error: ${error}` };
   }
@@ -69,6 +69,7 @@ export function checkTwitterOAuthCallback() {
   if (code && state) {
     const savedState = sessionStorage.getItem('x_oauth_state');
     const savedVerifier = sessionStorage.getItem('x_oauth_verifier');
+    const savedRedirectUri = sessionStorage.getItem('x_oauth_redirect_uri') || `${window.location.origin}${window.location.pathname}`;
 
     // Clean URL
     window.history.replaceState({}, document.title, window.location.pathname);
@@ -77,11 +78,37 @@ export function checkTwitterOAuthCallback() {
       return { success: false, error: 'State mismatch error. Please try again.' };
     }
 
-    return {
-      success: true,
-      code,
-      verifier: savedVerifier,
-    };
+    try {
+      // Exchange code via serverless API
+      const res = await fetch('/api/x-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          verifier: savedVerifier || 'challenge',
+          redirectUri: savedRedirectUri,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.user) {
+        return {
+          success: true,
+          user: data.user,
+          username: data.user.username,
+        };
+      } else {
+        return {
+          success: false,
+          error: data.error || 'Failed to verify Twitter account.',
+        };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: 'Network error communicating with Twitter auth server.',
+      };
+    }
   }
 
   return null;
