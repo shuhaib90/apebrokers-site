@@ -522,6 +522,14 @@ export async function verifyAndClearForMint(applicationId, { xUsername, walletAd
       };
     }
 
+    // 2.5 Ensure wallet has at least 1 on-chain transaction
+    const rhTx = Number(chainActivity?.robinhoodTxCount || 0);
+    const evmTx = Number(chainActivity?.totalEvmTxns || 0);
+    const totalTx = rhTx + evmTx;
+    if (totalTx < 1) {
+      throw new Error('Verification failed: Connected wallet must have at least 1 on-chain transaction (Robinhood Chain or EVM).');
+    }
+
     // 3. Fetch live verification counts to respect caps
     const { data: verifiedRows } = await supabase
       .from('apebrokers_applications')

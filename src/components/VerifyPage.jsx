@@ -14,7 +14,7 @@ export const VerifyPage = ({ onBackHome }) => {
   const { disconnect } = useDisconnect();
 
   // Authentication State
-  const [xUser, setXUser] = useState(null); // { username, name, profileImageUrl }
+  const [xUser, setXUser] = useState(null);
   const [xInput, setXInput] = useState('');
   const [walletInput, setWalletInput] = useState('');
   const [isXAuthenticating, setIsXAuthenticating] = useState(false);
@@ -24,8 +24,10 @@ export const VerifyPage = ({ onBackHome }) => {
   const [searchError, setSearchError] = useState(null);
   const [matchedApp, setMatchedApp] = useState(null);
 
-  // Scanning State
+  // Scanning & Progress State
   const [isScanningChain, setIsScanningChain] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [scanStatusText, setScanStatusText] = useState('');
   const [scanLogs, setScanLogs] = useState([]);
   const [chainActivity, setChainActivity] = useState(null);
 
@@ -43,7 +45,6 @@ export const VerifyPage = ({ onBackHome }) => {
 
   // Check for saved X session or OAuth return callback
   useEffect(() => {
-    // Check saved session
     const savedUser = sessionStorage.getItem('x_authenticated_user');
     if (savedUser) {
       try {
@@ -55,7 +56,6 @@ export const VerifyPage = ({ onBackHome }) => {
       }
     }
 
-    // Check OAuth return callback
     async function handleAuthCallback() {
       const authResult = await checkTwitterOAuthCallback();
       if (authResult) {
@@ -174,6 +174,8 @@ export const VerifyPage = ({ onBackHome }) => {
     sound?.playClick?.();
     setIsScanningChain(true);
     setScanLogs([]);
+    setScanProgress(5);
+    setScanStatusText('INITIALIZING SECURE SCANNER...');
 
     const addLog = (msg) => {
       setScanLogs((prev) => [...prev, msg]);
@@ -181,52 +183,76 @@ export const VerifyPage = ({ onBackHome }) => {
     };
 
     try {
-      addLog('CONNECTING TO ROBINHOOD CHAIN RPC...');
-      await new Promise((r) => setTimeout(r, 450));
+      // Step 1: Connect to RPC
+      setScanProgress(20);
+      setScanStatusText('QUERYING ROBINHOOD CHAIN RPC NODE...');
+      addLog('CONNECTING TO ROBINHOOD CHAIN RPC NODE...');
+      await new Promise((r) => setTimeout(r, 400));
 
-      addLog(`SCANNING ON-CHAIN BALANCE & TX NONCE FOR ${matchedApp.wallet_address.substring(0, 8)}...`);
+      // Step 2: Fetch Multi-Chain Activity
+      setScanProgress(45);
+      setScanStatusText('ANALYZING WALLET NONCE & TRANSACTION HISTORY...');
+      addLog(`SCANNING ON-CHAIN ACTIVITY FOR ${matchedApp.wallet_address.substring(0, 8)}...`);
       const scanRes = await scanMultiChainWalletActivity(matchedApp.wallet_address);
       const act = scanRes.activity || {};
       setChainActivity(act);
-      await new Promise((r) => setTimeout(r, 550));
+      await new Promise((r) => setTimeout(r, 500));
 
-      addLog(`[✓] ROBINHOOD CHAIN: ${act.robinhoodBalance.toFixed(4)} ETH | ${act.robinhoodTxCount} TXNS`);
-      await new Promise((r) => setTimeout(r, 450));
+      const totalTx = (act.robinhoodTxCount || 0) + (act.totalEvmTxns || 0);
 
-      if (matchedApp.is_gtd || matchedApp.is_code_claim || matchedApp.is_partner_claim || matchedApp.card_tier === 'GOLDEN_GTD') {
-        addLog('[👑 GTD WINNER DETECTED] DIRECT 100% GUARANTEED GTD MINT CLEARANCE APPLIED');
-        await new Promise((r) => setTimeout(r, 450));
-      } else if (act.robinhoodBalance >= 0.0035 || act.robinhoodTxCount >= 3) {
-        addLog(`[💎 HOLDINGS BONUS] HOLDING >= $10 ON ROBINHOOD CHAIN -> +90% GTD CHANCE BOOST!`);
-        await new Promise((r) => setTimeout(r, 450));
+      // Enforce at least 1 on-chain transaction
+      if (totalTx < 1) {
+        setScanProgress(0);
+        setIsScanningChain(false);
+        throw new Error('On-Chain Verification Failed: Wallet must have at least 1 on-chain transaction history (Robinhood Chain or EVM).');
       }
 
-      addLog('INSPECTING MULTI-CHAIN EVM FOOTPRINT (BASE, ARBITRUM, POLYGON)...');
-      await new Promise((r) => setTimeout(r, 450));
-      addLog(`[✓] MULTI-CHAIN ACTIVITY: ${act.totalEvmTxns} TOTAL TRANSACTIONS DETECTED`);
-      await new Promise((r) => setTimeout(r, 450));
-
-      addLog('[✓] ANTI-SYBIL VERIFICATION: PASSED (VERIFIED OPERATOR)');
+      addLog(`[✓] TRANSACTION HISTORY DETECTED: ${totalTx} TOTAL ON-CHAIN TXNS`);
+      addLog(`[✓] ROBINHOOD CHAIN BALANCE: ${act.robinhoodBalance.toFixed(4)} ETH | ${act.robinhoodTxCount} TXNS`);
       await new Promise((r) => setTimeout(r, 450));
 
-      addLog('ISSUING OFFICIAL MINT CLEARANCE PASS (2,000 GTD / 3,000 FCFS)...');
+      // Step 3: Check GTD Winners vs Standard
+      setScanProgress(70);
+      setScanStatusText('RESOLVING ALLOCATION CLEARANCE TIER...');
+      if (matchedApp.is_gtd || matchedApp.is_code_claim || matchedApp.is_partner_claim || matchedApp.card_tier === 'GOLDEN_GTD') {
+        addLog('[👑 GTD WINNER DETECTED] DIRECT 100% GUARANTEED GTD CLEARANCE GRANTED');
+      } else if (act.robinhoodBalance >= 0.0035 || act.robinhoodTxCount >= 3) {
+        addLog('[💎 ROBINHOOD HOLDER BONUS] >= $10 ETH BALANCE DETECTED (+90% GTD BOOST APPLIED)');
+      } else {
+        addLog('[📜 STANDARD APPLICANT] STANDARD ANTI-SYBIL CHECK PASSED');
+      }
+      await new Promise((r) => setTimeout(r, 500));
+
+      // Step 4: Database Save & Lock
+      setScanProgress(90);
+      setScanStatusText('LOCKING RECORD IN DATABASE (SINGLE-TIME VERIFIED)...');
+      addLog('WRITING PERMANENT CLEARANCE RECORD TO DATABASE...');
       const clearance = await verifyAndClearForMint(matchedApp.id, {
         xUsername: matchedApp.x_username,
         walletAddress: matchedApp.wallet_address,
         chainActivity: act,
       });
 
+      // Step 5: Completion
+      setScanProgress(100);
+      setScanStatusText('VERIFICATION COMPLETE! MINT PASS ISSUED!');
+      addLog('[✓] MINT CLEARANCE SECURED & LOCKED IN DATABASE');
+      await new Promise((r) => setTimeout(r, 400));
+
       setClearanceResult(clearance);
       sound?.playPowerUp?.();
+
+      // Glorious Confetti Explosion
       confetti({
-        particleCount: 160,
-        spread: 100,
-        origin: { y: 0.55 },
-        colors: clearance.isGtd ? ['#FFD700', '#00FF66', '#FFFFFF'] : ['#00DDFF', '#00FF66', '#FFFFFF'],
+        particleCount: 180,
+        spread: 120,
+        origin: { y: 0.5 },
+        colors: clearance.isGtd ? ['#FFD700', '#00FF66', '#FFFFFF', '#FFA500'] : ['#00DDFF', '#00FF66', '#FFFFFF'],
       });
     } catch (err) {
       console.error('Error during on-chain verification:', err);
-      addLog(`[X] VERIFICATION ERROR: ${err.message}`);
+      addLog(`[X] ERROR: ${err.message}`);
+      setSearchError(err.message);
       sound?.playError?.();
     } finally {
       setIsScanningChain(false);
@@ -237,7 +263,7 @@ export const VerifyPage = ({ onBackHome }) => {
     if (!clearanceResult) return;
     sound?.playClick?.();
     const tierName = clearanceResult.mintTier === 'GTD' ? '👑 GUARANTEED (GTD) MINT' : '⚡ FIRST-COME (FCFS) MINT';
-    const text = `I just verified my on-chain activity for @Apesyndicates mint on Robinhood Chain! 🪪\n\n🛡️ Clearance: ${tierName}\n🆔 Broker ID: ${clearanceResult.brokerId}\n\nVerify your pre-mint allocation: https://apesyndicates.xyz/verify\n\n#ApeSyndicate #RobinhoodChain #GTD`;
+    const text = `🎉 I just verified my on-chain activity for @Apesyndicates mint on Robinhood Chain!\n\n🛡️ Clearance: ${tierName}\n🆔 Broker ID: ${clearanceResult.brokerId}\n\nVerify your pre-mint allocation: https://apesyndicates.xyz/verify\n\n#ApeSyndicate #RobinhoodChain #GTD`;
     window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -281,14 +307,14 @@ export const VerifyPage = ({ onBackHome }) => {
         {/* Title Header */}
         <div className="space-y-2.5">
           <div className="inline-block bg-black text-[#00FF66] px-4 py-1.5 border-3 border-black font-pixel text-[9px] sm:text-[10px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg">
-            [ ROBINHOOD CHAIN • PRE-MINT VERIFICATION ]
+            [ ROBINHOOD CHAIN • ON-CHAIN ACTIVITY VERIFICATION ]
           </div>
           <h1 className="font-pixel text-2xl sm:text-4xl text-white font-extrabold tracking-tight drop-shadow-[6px_6px_0px_rgba(0,0,0,1)]">
             VERIFY FOR MINT
           </h1>
           <div className="bg-black/90 max-w-xl mx-auto p-3.5 border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-lg">
             <p className="font-mono text-xs sm:text-sm text-gray-200 font-semibold leading-relaxed">
-              Connect your registered X handle & Web3 wallet to verify on-chain activity on Robinhood Chain and secure your official Mint Clearance Pass.
+              Connect your registered X account & Web3 wallet to verify on-chain activity and secure your official Mint Clearance Pass. (Single-Time Verification Only).
             </p>
           </div>
         </div>
@@ -300,7 +326,7 @@ export const VerifyPage = ({ onBackHome }) => {
               <span>●</span>
               <span>VERIFY REGISTERED OPERATOR</span>
             </span>
-            <span className="font-mono text-[10px] text-gray-400">Registered Applicants Only</span>
+            <span className="font-mono text-[10px] text-gray-400">1x Anti-Sybil Lock</span>
           </div>
 
           <div className="space-y-4">
@@ -331,7 +357,7 @@ export const VerifyPage = ({ onBackHome }) => {
                         @{xUser?.username || xInput}
                       </span>
                       <span className="font-mono text-[9px] text-gray-400">
-                        {xUser?.name || 'Verified X Operator'}
+                        {xUser?.name || 'Authenticated X Handle'}
                       </span>
                     </div>
                   </div>
@@ -357,7 +383,7 @@ export const VerifyPage = ({ onBackHome }) => {
               <div className="flex items-center justify-between">
                 <span className="font-pixel text-[9px] text-[#00FF66] tracking-wider flex items-center gap-1.5">
                   <span>🦊</span>
-                  <span>EVM / ROBINHOOD WALLET</span>
+                  <span>EVM / ROBINHOOD WALLET (MIN 1 TX)</span>
                 </span>
                 {isConnected && address ? (
                   <button
@@ -379,7 +405,7 @@ export const VerifyPage = ({ onBackHome }) => {
                         {address}
                       </span>
                       <span className="font-mono text-[9px] text-gray-400">
-                        Robinhood Chain • EVM Connected
+                        Robinhood Chain • Web3 Connected
                       </span>
                     </div>
                   </div>
@@ -425,7 +451,7 @@ export const VerifyPage = ({ onBackHome }) => {
           </div>
         </div>
 
-        {/* Step 2: Application Found */}
+        {/* Step 2: Application Found & On-Chain Scanning */}
         {matchedApp && (matchedApp.is_partner_claim || matchedApp.is_community_claim || !!matchedApp.community_name) ? (
           <div className="bg-black/95 border-4 border-[#b388ff] shadow-[8px_8px_0px_0px_rgba(179,136,255,0.3)] p-6 sm:p-8 rounded-2xl text-left space-y-5 animate-fade-in">
             <div className="flex items-center justify-between border-b-2 border-[#222] pb-3">
@@ -494,25 +520,47 @@ export const VerifyPage = ({ onBackHome }) => {
                 </span>
               </div>
               <div>
-                <span className="text-gray-400 text-[10px] block font-bold">CLEARANCE STATUS</span>
+                <span className="text-gray-400 text-[10px] block font-bold">DATABASE STATUS</span>
                 <span className={matchedApp.is_mint_verified ? 'text-[#00FF66] font-bold' : 'text-yellow-400 font-bold'}>
-                  {matchedApp.is_mint_verified ? `[✓] CLEARED (${matchedApp.mint_tier})` : 'AWAITING ON-CHAIN SCAN'}
+                  {matchedApp.is_mint_verified ? `[✓] SAVED & LOCKED (${matchedApp.mint_tier})` : 'AWAITING SCAN'}
                 </span>
               </div>
             </div>
 
-            {/* Scanning Terminal Logs */}
+            {/* High-Tech Animated Radar Scanner */}
             {isScanningChain && (
-              <div className="p-4 bg-[#0a0a0a] border-3 border-[#00FF66] rounded-xl font-mono text-xs space-y-1.5 shadow-[inset_0_0_20px_rgba(0,255,102,0.15)]">
-                <div className="text-[10px] text-gray-400 pb-1 border-b border-[#222] flex items-center justify-between">
-                  <span>ROBINHOOD ON-CHAIN SCANNER</span>
-                  <span className="text-[#00FF66] animate-pulse">RUNNING...</span>
-                </div>
-                {scanLogs.map((log, idx) => (
-                  <div key={idx} className="text-[#00FF66] text-[11px] leading-relaxed">
-                    &gt; {log}
+              <div className="p-5 bg-[#0a0a0a] border-3 border-[#00FF66] rounded-xl font-mono text-xs space-y-4 shadow-[0_0_30px_rgba(0,255,102,0.2)]">
+                <div className="flex items-center justify-between pb-2 border-b border-[#222]">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00FF66] opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-[#00FF66]"></span>
+                    </span>
+                    <span className="font-pixel text-[10px] text-[#00FF66]">ON-CHAIN RADAR SCANNER</span>
                   </div>
-                ))}
+                  <span className="font-pixel text-[10px] text-[#FFD700]">{scanProgress}%</span>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="w-full bg-[#111] h-3 rounded-full overflow-hidden border border-black p-0.5">
+                  <div
+                    className="bg-gradient-to-r from-[#00DDFF] via-[#00FF66] to-[#FFD700] h-full rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${scanProgress}%` }}
+                  />
+                </div>
+
+                <div className="text-[10px] text-gray-300 font-bold text-center animate-pulse">
+                  {scanStatusText}
+                </div>
+
+                {/* Real-time Terminal Log Feed */}
+                <div className="space-y-1 pt-2 border-t border-[#1a1a1a]">
+                  {scanLogs.map((log, idx) => (
+                    <div key={idx} className="text-[#00FF66] text-[10px] leading-relaxed">
+                      &gt; {log}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -528,20 +576,36 @@ export const VerifyPage = ({ onBackHome }) => {
           </div>
         )}
 
-        {/* Step 3: Clearance Mint Pass Display */}
+        {/* Step 3: Glorious Congratulations Pass Display */}
         {clearanceResult && (
-          <div className="space-y-4 animate-scale-up text-left">
+          <div className="space-y-5 animate-scale-up text-left">
+            {/* Celebratory Congratulatory Header */}
+            <div className="p-4 bg-[#00FF66]/10 border-3 border-[#00FF66] rounded-2xl text-center space-y-1 shadow-[0_0_25px_rgba(0,255,102,0.25)]">
+              <span className="font-pixel text-xs text-[#00FF66] font-extrabold tracking-wider block">
+                🎉 CONGRATULATIONS OPERATOR!
+              </span>
+              <p className="font-mono text-xs text-gray-200">
+                {clearanceResult.isGtd
+                  ? 'You have been officially granted 👑 GUARANTEED (GTD) Mint Allocation on Robinhood Chain!'
+                  : 'You have been officially granted ⚡ FIRST-COME (FCFS) Mint Allocation on Robinhood Chain!'}
+              </p>
+              <span className="inline-block mt-1 px-2.5 py-0.5 bg-black text-[#00FF66] border border-[#00FF66]/50 rounded text-[9px] font-mono">
+                ✓ PERMANENTLY SAVED & LOCKED ON DATABASE
+              </span>
+            </div>
+
+            {/* 3D Gold Holographic Pass Card */}
             <div
-              className={`p-6 sm:p-8 rounded-2xl border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-5 relative overflow-hidden ${
+              className={`p-6 sm:p-8 rounded-2xl border-4 border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] space-y-5 relative overflow-hidden ${
                 clearanceResult.isGtd
-                  ? 'bg-gradient-to-b from-[#241a02] via-[#140e02] to-black'
-                  : 'bg-gradient-to-b from-[#021f24] via-[#011114] to-black'
+                  ? 'bg-gradient-to-b from-[#2a1e02] via-[#140e02] to-black border-[#FFD700]/60'
+                  : 'bg-gradient-to-b from-[#021f24] via-[#011114] to-black border-[#00DDFF]/60'
               }`}
             >
               {/* Header */}
-              <div className="flex items-center justify-between border-b-2 border-black/60 pb-4">
+              <div className="flex items-center justify-between border-b-2 border-black/80 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="text-4xl">{clearanceResult.isGtd ? '👑' : '⚡'}</div>
+                  <div className="text-4xl animate-bounce">{clearanceResult.isGtd ? '👑' : '⚡'}</div>
                   <div>
                     <h3
                       className={`font-pixel text-sm sm:text-base font-extrabold tracking-wide ${
@@ -562,7 +626,7 @@ export const VerifyPage = ({ onBackHome }) => {
               </div>
 
               {/* Pass Metadata Grid */}
-              <div className="grid grid-cols-2 gap-3.5 font-mono text-xs bg-black/70 p-4 rounded-xl border-2 border-black">
+              <div className="grid grid-cols-2 gap-3.5 font-mono text-xs bg-black/80 p-4 rounded-xl border-2 border-black">
                 <div>
                   <span className="text-gray-400 text-[10px] block font-bold">OPERATOR X HANDLE</span>
                   <span className="text-white font-bold">{matchedApp?.x_username}</span>
@@ -592,16 +656,16 @@ export const VerifyPage = ({ onBackHome }) => {
               </div>
 
               {/* On-Chain Activity Badge */}
-              <div className="p-3 bg-black/80 border-2 border-black rounded-xl flex items-center justify-between text-xs font-mono">
+              <div className="p-3 bg-black/90 border-2 border-black rounded-xl flex items-center justify-between text-xs font-mono">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-blink" />
                   <span className="text-[#00FF66] font-bold">ON-CHAIN FOOTPRINT:</span>
                   <span className="text-gray-300">
-                    {clearanceResult.chainActivity?.totalEvmTxns || 1}+ Multi-Chain Txns Verified
+                    {clearanceResult.chainActivity?.totalEvmTxns || 1}+ Transactions Verified
                   </span>
                 </div>
-                <span className="px-2 py-0.5 bg-[#00FF66]/20 text-[#00FF66] text-[10px] rounded font-bold border border-[#00FF66]/40">
-                  ✓ VERIFIED
+                <span className="px-2.5 py-0.5 bg-[#00FF66]/20 text-[#00FF66] text-[10px] rounded font-bold border border-[#00FF66]/40">
+                  ✓ VERIFIED & SAVED
                 </span>
               </div>
 
@@ -610,10 +674,10 @@ export const VerifyPage = ({ onBackHome }) => {
                 <button
                   type="button"
                   onClick={handleShareOnX}
-                  className="w-full py-4 bg-[#00FF66] hover:bg-[#00e65c] text-black font-pixel text-xs font-extrabold border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl flex items-center justify-center gap-2 transition-all"
+                  className="w-full py-4 bg-[#00FF66] hover:bg-[#00e65c] text-black font-pixel text-xs font-extrabold border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <span>𝕏</span>
-                  <span>[ SHARE CLEARANCE ON X ]</span>
+                  <span>[ SHARE YOUR GTD CLEARANCE ON X ]</span>
                 </button>
               </div>
             </div>
