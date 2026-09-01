@@ -14,7 +14,6 @@ export default defineConfig({
         claim: resolve(__dirname, 'claim.html'),
         holders: resolve(__dirname, 'holders.html'),
         code: resolve(__dirname, 'code.html'),
-        verify: resolve(__dirname, 'verify.html'),
       },
     },
   },

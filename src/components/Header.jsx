@@ -25,14 +25,6 @@ export const Header = () => {
         {/* Right: Clean Navigation Buttons with SVG Icons */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           <a
-            href="/verify"
-            className="pixel-btn pixel-btn-black px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[9px] sm:text-xs whitespace-nowrap font-extrabold text-[#00FF66] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] border-2 border-black flex items-center gap-1.5 rounded-lg"
-          >
-            <span>🛡️</span>
-            <span>[ VERIFY ]</span>
-          </a>
-
-          <a
             href="/code"
             className="pixel-btn pixel-btn-black px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[9px] sm:text-xs whitespace-nowrap font-extrabold text-[#FFD700] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] border-2 border-black flex items-center gap-1.5 rounded-lg"
           >
