@@ -227,20 +227,26 @@ export const VerifyPage = ({ onBackHome }) => {
 
       // Step 5: Completion
       setScanProgress(100);
-      setScanStatusText('VERIFICATION COMPLETE! MINT PASS ISSUED!');
-      addLog('[✓] MINT CLEARANCE SECURED & LOCKED IN DATABASE');
+      if (clearance.mintTier === 'INELIGIBLE') {
+        setScanStatusText('SCAN COMPLETE: MINIMUM REQUIREMENTS NOT MET');
+        addLog('[🚫 STATUS: INELIGIBLE] 0 ON-CHAIN TRANSACTIONS DETECTED');
+        addLog('[🔒 RECORD LOCKED] SAVED ON DATABASE AS INELIGIBLE');
+        sound?.playError?.();
+      } else {
+        setScanStatusText('VERIFICATION COMPLETE! MINT PASS ISSUED!');
+        addLog('[✓] MINT CLEARANCE SECURED & LOCKED IN DATABASE');
+        sound?.playPowerUp?.();
+        // Glorious Confetti Explosion
+        confetti({
+          particleCount: 180,
+          spread: 120,
+          origin: { y: 0.5 },
+          colors: clearance.isGtd ? ['#FFD700', '#00FF66', '#FFFFFF', '#FFA500'] : ['#00DDFF', '#00FF66', '#FFFFFF'],
+        });
+      }
       await new Promise((r) => setTimeout(r, 400));
 
       setClearanceResult(clearance);
-      sound?.playPowerUp?.();
-
-      // Glorious Confetti Explosion
-      confetti({
-        particleCount: 180,
-        spread: 120,
-        origin: { y: 0.5 },
-        colors: clearance.isGtd ? ['#FFD700', '#00FF66', '#FFFFFF', '#FFA500'] : ['#00DDFF', '#00FF66', '#FFFFFF'],
-      });
     } catch (err) {
       console.error('Error during on-chain verification:', err);
       addLog(`[X] ERROR: ${err.message}`);

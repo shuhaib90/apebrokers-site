@@ -554,39 +554,37 @@ export async function verifyAndClearForMint(applicationId, { xUsername, walletAd
     const verifiedFcfsCount = verifiedRows ? verifiedRows.filter((r) => r.mint_tier === 'FCFS').length : 0;
 
     // 4. Resolve allocation tier
+    const rhBal = Number(chainActivity?.robinhoodBalance || 0);
+    const rhTx = Number(chainActivity?.robinhoodTxCount || 0);
+    const evmTx = Number(chainActivity?.totalEvmTxns || 0);
+    const totalTx = rhTx + evmTx;
+
     let assignedTier = 'FCFS';
     let isGtdWinner = false;
 
-    // Existing GTD Winners (Promo Code claimers, Partner NFT claimers, or Approved GTD winners) are 100% DIRECTLY CLEARED FOR GTD
-    if (app.is_gtd || app.is_code_claim || app.is_partner_claim || app.card_tier === 'GOLDEN_GTD') {
+    // Rule: Wallets with 0 transactions anywhere are INELIGIBLE
+    if (totalTx === 0 && rhBal === 0) {
+      assignedTier = 'INELIGIBLE';
+      isGtdWinner = false;
+    } else if (app.is_gtd || app.is_code_claim || app.is_partner_claim || app.card_tier === 'GOLDEN_GTD') {
+      // Existing GTD Winners with at least 1 transaction are 100% DIRECTLY CLEARED FOR GTD
       assignedTier = 'GTD';
       isGtdWinner = true;
     } else {
       // Standard Form Applicants: Weightage applies based on holding min $10 (~0.0035 ETH) on Robinhood Chain
-      const rhBal = Number(chainActivity?.robinhoodBalance || 0);
-      const rhTx = Number(chainActivity?.robinhoodTxCount || 0);
-      const evmTx = Number(chainActivity?.totalEvmTxns || 0);
-
-      // $10 equivalent in ETH (~0.0035 ETH at ~$2800/ETH)
       const MIN_10_DOLLARS_ETH = 0.0035;
       const holdsMin10Dollars = rhBal >= MIN_10_DOLLARS_ETH || rhTx >= 3;
 
-      // Higher chance for holders with >= $10 on Robinhood Chain
-      let gtdProbability = 0.30; // Base 30% chance for empty/low balance wallets
-
+      let gtdProbability = 0.30;
       if (rhBal >= 0.02 || rhTx >= 8) {
-        gtdProbability = 0.95; // 95% chance for high Robinhood balance/activity
+        gtdProbability = 0.95;
       } else if (holdsMin10Dollars || evmTx >= 10) {
-        gtdProbability = 0.90; // 90% chance for users holding min $10 equivalent
+        gtdProbability = 0.90;
       } else if (rhBal > 0 || rhTx > 0 || evmTx >= 3) {
-        gtdProbability = 0.60; // 60% chance
+        gtdProbability = 0.60;
       }
 
-      if (rhBal === 0 && rhTx === 0 && evmTx === 0) {
-        // Did not meet minimum activity requirement -> INELIGIBLE
-        assignedTier = 'INELIGIBLE';
-        isGtdWinner = false;
-      } else if (verifiedGtdCount < GTD_CAP) {
+      if (verifiedGtdCount < GTD_CAP) {
         const wonGtd = Math.random() < gtdProbability;
         if (wonGtd) {
           assignedTier = 'GTD';
