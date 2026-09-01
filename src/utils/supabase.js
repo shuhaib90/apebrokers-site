@@ -531,29 +531,33 @@ export async function verifyAndClearForMint(applicationId, { xUsername, walletAd
     const verifiedGtdCount = verifiedRows ? verifiedRows.filter((r) => r.mint_tier === 'GTD' || r.is_gtd).length : 0;
     const verifiedFcfsCount = verifiedRows ? verifiedRows.filter((r) => r.mint_tier === 'FCFS').length : 0;
 
-    // 4. Resolve weighted allocation tier based on token/ETH balance and on-chain activity
+    // 4. Resolve allocation tier
     let assignedTier = 'FCFS';
     let isGtdWinner = false;
 
-    // Partner NFT holders / Secret Code claimers / Approved GTD winners directly get 100% GTD
+    // Existing GTD Winners (Promo Code claimers, Partner NFT claimers, or Approved GTD winners) are 100% DIRECTLY CLEARED FOR GTD
     if (app.is_gtd || app.is_code_claim || app.is_partner_claim || app.card_tier === 'GOLDEN_GTD') {
       assignedTier = 'GTD';
       isGtdWinner = true;
     } else {
-      // Standard form applicant: calculate weighted chance based on Robinhood Chain balance & txns
+      // Standard Form Applicants: Weightage applies based on holding min $10 (~0.0035 ETH) on Robinhood Chain
       const rhBal = Number(chainActivity?.robinhoodBalance || 0);
       const rhTx = Number(chainActivity?.robinhoodTxCount || 0);
       const evmTx = Number(chainActivity?.totalEvmTxns || 0);
 
-      let gtdProbability = 0.40; // Base 40% chance
+      // $10 equivalent in ETH (~0.0035 ETH at ~$2800/ETH)
+      const MIN_10_DOLLARS_ETH = 0.0035;
+      const holdsMin10Dollars = rhBal >= MIN_10_DOLLARS_ETH || rhTx >= 3;
 
-      // High token/ETH holdings or active Robinhood chain footprint increases GTD chance
-      if (rhBal >= 0.05 || rhTx >= 8) {
-        gtdProbability = 0.95; // 95% chance for high balance / active holders
-      } else if (rhBal >= 0.01 || rhTx >= 3 || evmTx >= 15) {
-        gtdProbability = 0.85; // 85% chance
-      } else if (rhBal > 0 || rhTx > 0 || evmTx >= 5) {
-        gtdProbability = 0.70; // 70% chance
+      // Higher chance for holders with >= $10 on Robinhood Chain
+      let gtdProbability = 0.30; // Base 30% chance for empty/low balance wallets
+
+      if (rhBal >= 0.02 || rhTx >= 8) {
+        gtdProbability = 0.95; // 95% chance for high Robinhood balance/activity
+      } else if (holdsMin10Dollars || evmTx >= 10) {
+        gtdProbability = 0.90; // 90% chance for users holding min $10 equivalent
+      } else if (rhBal > 0 || rhTx > 0 || evmTx >= 3) {
+        gtdProbability = 0.60; // 60% chance
       }
 
       if (verifiedGtdCount < GTD_CAP) {

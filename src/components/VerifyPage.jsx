@@ -134,8 +134,14 @@ export const VerifyPage = () => {
       addLog(`[✓] ROBINHOOD CHAIN BALANCE: ${act.robinhoodBalance.toFixed(4)} ETH | TXNS: ${act.robinhoodTxCount}`);
       await new Promise((r) => setTimeout(r, 500));
 
-      if (act.robinhoodBalance >= 0.01 || act.robinhoodTxCount >= 3) {
-        addLog(`[💎 HOLDINGS BONUS] HIGH ON-CHAIN ACTIVITY DETECTED (+95% GTD PROBABILITY BOOST APPLIED)`);
+      if (matchedApp.is_gtd || matchedApp.is_code_claim || matchedApp.is_partner_claim || matchedApp.card_tier === 'GOLDEN_GTD') {
+        addLog('[👑 GTD ALLOCATION VERIFIED] CONFIRMED GTD WINNER -> DIRECT 100% GUARANTEED GTD CLEARANCE');
+        await new Promise((r) => setTimeout(r, 500));
+      } else if (act.robinhoodBalance >= 0.0035 || act.robinhoodTxCount >= 3) {
+        addLog(`[💎 HOLDINGS BONUS] HOLDING >= $10 ON ROBINHOOD CHAIN (${act.robinhoodBalance.toFixed(4)} ETH) -> +90% GTD CHANCE BOOST APPLIED!`);
+        await new Promise((r) => setTimeout(r, 500));
+      } else {
+        addLog('[ℹ️ STANDARD RESOLUTION] EVALUATING ALLOCATION TIER (GTD CAP 3,000 / FCFS CAP 2,000)...');
         await new Promise((r) => setTimeout(r, 500));
       }
 
@@ -201,15 +207,26 @@ export const VerifyPage = () => {
             Connect your registered X handle & Web3 wallet to verify on-chain activity, clear anti-sybil checks, and receive your official <strong>GTD or FCFS Mint Clearance Pass</strong>.
           </p>
 
-          {/* Important Notice */}
-          <div className="max-w-2xl mx-auto p-3.5 bg-cyan-950/40 border border-cyan-500/40 rounded-xl text-left flex items-start gap-3 text-xs font-mono text-cyan-200">
-            <span className="text-lg shrink-0">🏛️</span>
-            <div>
-              <strong className="text-white">Partner NFT Holders:</strong> If you hold an approved Partner NFT collection, you are <strong>directly eligible for GTD Mint</strong> on{' '}
-              <a href="/holders" className="text-[#00FF66] underline hover:text-[#5effa1]">
-                /holders
-              </a>{' '}
-              without needing extra verification.
+          {/* Important Rules Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl mx-auto text-left font-mono text-xs">
+            <div className="p-3.5 bg-[#141208] border border-[#FFD700]/50 rounded-xl space-y-1 text-yellow-100/90 shadow-[0_0_15px_rgba(255,215,0,0.1)]">
+              <div className="font-pixel text-[9px] text-[#FFD700] flex items-center gap-1.5 font-bold">
+                <span>👑</span>
+                <span>EXISTING GTD & SECRET CODES</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-yellow-100/80">
+                Connect X & Web3 wallet to verify wallet transactions. You are <strong>directly cleared for 100% Guaranteed GTD Mint</strong>.
+              </p>
+            </div>
+
+            <div className="p-3.5 bg-[#0a1a0f] border border-[#00FF66]/50 rounded-xl space-y-1 text-emerald-100/90 shadow-[0_0_15px_rgba(0,255,102,0.1)]">
+              <div className="font-pixel text-[9px] text-[#00FF66] flex items-center gap-1.5 font-bold">
+                <span>💎</span>
+                <span>STANDARD APPLICANTS ($10+ BOOST)</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-emerald-100/80">
+                Holding <strong>≥ $10 equivalent</strong> (~0.0035 ETH) on Robinhood Chain significantly boosts your probability of winning a <strong>GTD Mint Spot</strong>!
+              </p>
             </div>
           </div>
         </div>
