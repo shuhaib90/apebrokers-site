@@ -199,19 +199,24 @@ export const VerifyPage = ({ onBackHome }) => {
       setChainActivity(act);
       await new Promise((r) => setTimeout(r, 500));
 
-      addLog(`[✓] TRANSACTION HISTORY: ${totalTx} TOTAL ON-CHAIN TXNS`);
-      addLog(`[✓] ROBINHOOD CHAIN BALANCE: ${act.robinhoodBalance.toFixed(4)} ETH | ${act.robinhoodTxCount} TXNS`);
+      const ethBal = act.totalEthBalance || act.robinhoodBalance || 0;
+      const usdBal = act.estimatedUsdBalance || (ethBal * 2800);
+
+      addLog(`[✓] TRANSACTION FOOTPRINT: ${totalTx} TOTAL ON-CHAIN TXNS`);
+      addLog(`[✓] MULTI-CHAIN ASSETS: ${ethBal.toFixed(4)} ETH (~$${usdBal.toFixed(2)})`);
       await new Promise((r) => setTimeout(r, 450));
 
       // Step 3: Check GTD Winners vs Standard
       setScanProgress(70);
       setScanStatusText('RESOLVING ALLOCATION CLEARANCE TIER...');
       if (matchedApp.is_gtd || matchedApp.is_code_claim || matchedApp.is_partner_claim || matchedApp.card_tier === 'GOLDEN_GTD') {
-        addLog('[👑 GTD WINNER DETECTED] DIRECT 100% GUARANTEED GTD CLEARANCE GRANTED');
-      } else if (act.robinhoodBalance >= 0.0035 || act.robinhoodTxCount >= 3) {
-        addLog('[💎 ROBINHOOD HOLDER BONUS] >= $10 ETH BALANCE DETECTED (+90% GTD BOOST APPLIED)');
+        addLog('[👑 GTD WINNER DETECTED] CHECKING >= $1-2 HOLDINGS OR >= 1 TXN HISTORY...');
+      } else if (usdBal >= 10 || ethBal >= 0.0035) {
+        addLog('[💎 HOLDINGS QUALIFIED] >= $10 HOLDINGS DETECTED -> GTD ALLOCATION QUALIFIED');
+      } else if (totalTx >= 1 || usdBal > 0) {
+        addLog('[⚡ FCFS QUALIFIED] ACTIVE ON-CHAIN WALLET DETECTED -> FCFS ALLOCATION QUALIFIED');
       } else {
-        addLog('[📜 STANDARD APPLICANT] STANDARD ANTI-SYBIL CHECK PASSED');
+        addLog('[⚠️ NO ON-CHAIN ACTIVITY] 0 TRANSACTIONS & $0 BALANCE DETECTED');
       }
       await new Promise((r) => setTimeout(r, 500));
 

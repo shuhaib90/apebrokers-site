@@ -553,40 +553,39 @@ export async function verifyAndClearForMint(applicationId, { xUsername, walletAd
     const verifiedGtdCount = verifiedRows ? verifiedRows.filter((r) => r.mint_tier === 'GTD' || r.is_gtd).length : 0;
     const verifiedFcfsCount = verifiedRows ? verifiedRows.filter((r) => r.mint_tier === 'FCFS').length : 0;
 
-    // 4. Resolve allocation tier
+    // 4. Resolve allocation tier based on multi-chain holding & transactions
     const rhBal = Number(chainActivity?.robinhoodBalance || 0);
+    const totalEthBal = Number(chainActivity?.totalEthBalance || rhBal);
+    const estimatedUsd = Number(chainActivity?.estimatedUsdBalance || totalEthBal * 2800);
     const rhTx = Number(chainActivity?.robinhoodTxCount || 0);
-    const evmTx = Number(chainActivity?.totalEvmTxns || 0);
-    const totalTx = rhTx + evmTx;
+    const totalTx = Number(chainActivity?.totalEvmTxns || rhTx);
 
-    let assignedTier = 'FCFS';
+    // Rule A: Minimum $10 equivalent (~0.0035 ETH) on Robinhood Chain or any EVM chain
+    const holdsMin10Dollars = estimatedUsd >= 10 || totalEthBal >= 0.0035 || rhBal >= 0.0035;
+
+    // Rule B: $1 to $2 equivalent (~0.00035 ETH) for existing GTD / Code winners
+    const holds1to2Dollars = estimatedUsd >= 1 || totalEthBal >= 0.00035 || rhBal >= 0.00035;
+
+    let assignedTier = 'INELIGIBLE';
     let isGtdWinner = false;
 
-    // Rule: Wallets with 0 transactions anywhere are INELIGIBLE
-    if (totalTx === 0 && rhBal === 0) {
-      assignedTier = 'INELIGIBLE';
-      isGtdWinner = false;
-    } else if (app.is_gtd || app.is_code_claim || app.is_partner_claim || app.card_tier === 'GOLDEN_GTD') {
-      // Existing GTD Winners with at least 1 transaction are 100% DIRECTLY CLEARED FOR GTD
-      assignedTier = 'GTD';
-      isGtdWinner = true;
-    } else {
-      // Standard Form Applicants: Weightage applies based on holding min $10 (~0.0035 ETH) on Robinhood Chain
-      const MIN_10_DOLLARS_ETH = 0.0035;
-      const holdsMin10Dollars = rhBal >= MIN_10_DOLLARS_ETH || rhTx >= 3;
+    const isExistingGtdClaimer = app.is_gtd || app.is_code_claim || app.is_partner_claim || app.card_tier === 'GOLDEN_GTD';
 
-      let gtdProbability = 0.30;
-      if (rhBal >= 0.02 || rhTx >= 8) {
-        gtdProbability = 0.95;
-      } else if (holdsMin10Dollars || evmTx >= 10) {
-        gtdProbability = 0.90;
-      } else if (rhBal > 0 || rhTx > 0 || evmTx >= 3) {
-        gtdProbability = 0.60;
+    if (isExistingGtdClaimer) {
+      // Existing GTD Winner (General WL GTD winner or Secret Code winner):
+      // Eligible for GTD if they hold $1 to $2 OR have at least 1 transaction
+      if (holds1to2Dollars || totalTx >= 1) {
+        assignedTier = 'GTD';
+        isGtdWinner = true;
+      } else {
+        assignedTier = 'INELIGIBLE';
+        isGtdWinner = false;
       }
-
-      if (verifiedGtdCount < GTD_CAP) {
-        const wonGtd = Math.random() < gtdProbability;
-        if (wonGtd) {
+    } else {
+      // Standard WL User:
+      // 1. If holding minimum $10 on Robinhood Chain or any other chain -> Eligible for GTD
+      if (holdsMin10Dollars) {
+        if (verifiedGtdCount < GTD_CAP) {
           assignedTier = 'GTD';
           isGtdWinner = true;
         } else if (verifiedFcfsCount < FCFS_CAP) {
@@ -594,10 +593,20 @@ export async function verifyAndClearForMint(applicationId, { xUsername, walletAd
         } else {
           assignedTier = 'INELIGIBLE';
         }
-      } else if (verifiedFcfsCount < FCFS_CAP) {
-        assignedTier = 'FCFS';
-      } else {
+      }
+      // 2. If holding under $10, eligible for FCFS if they have a good tx count (or small balance)
+      else if (totalTx >= 1 || holds1to2Dollars || estimatedUsd > 0) {
+        if (verifiedFcfsCount < FCFS_CAP) {
+          assignedTier = 'FCFS';
+          isGtdWinner = false;
+        } else {
+          assignedTier = 'INELIGIBLE';
+        }
+      }
+      // 3. Otherwise: $0 balance and 0 transactions -> INELIGIBLE
+      else {
         assignedTier = 'INELIGIBLE';
+        isGtdWinner = false;
       }
     }
 

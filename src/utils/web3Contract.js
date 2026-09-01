@@ -218,17 +218,27 @@ export async function scanMultiChainWalletActivity(walletAddress) {
     activity.isRobinhoodActive = activity.robinhoodBalance > 0 || activity.robinhoodTxCount > 0;
 
     // 2. Check Other EVM Chains concurrently (Base, Ethereum, Arbitrum, Polygon)
-    const [baseTxHex, ethTxHex, arbTxHex, polyTxHex] = await Promise.all([
+    const [baseTxHex, ethTxHex, arbTxHex, polyTxHex, baseBalHex, ethBalHex, arbBalHex] = await Promise.all([
       queryRpc(DEFAULT_NETWORK_RPCS['Base'], 'eth_getTransactionCount', [cleanWallet, 'latest']),
       queryRpc(DEFAULT_NETWORK_RPCS['Ethereum'], 'eth_getTransactionCount', [cleanWallet, 'latest']),
       queryRpc(DEFAULT_NETWORK_RPCS['Arbitrum'], 'eth_getTransactionCount', [cleanWallet, 'latest']),
       queryRpc(DEFAULT_NETWORK_RPCS['Polygon'], 'eth_getTransactionCount', [cleanWallet, 'latest']),
+      queryRpc(DEFAULT_NETWORK_RPCS['Base'], 'eth_getBalance', [cleanWallet, 'latest']),
+      queryRpc(DEFAULT_NETWORK_RPCS['Ethereum'], 'eth_getBalance', [cleanWallet, 'latest']),
+      queryRpc(DEFAULT_NETWORK_RPCS['Arbitrum'], 'eth_getBalance', [cleanWallet, 'latest']),
     ]);
 
     activity.baseTxCount = baseTxHex ? parseInt(baseTxHex, 16) || 0 : 0;
     activity.ethereumTxCount = ethTxHex ? parseInt(ethTxHex, 16) || 0 : 0;
     activity.arbitrumTxCount = arbTxHex ? parseInt(arbTxHex, 16) || 0 : 0;
     activity.polygonTxCount = polyTxHex ? parseInt(polyTxHex, 16) || 0 : 0;
+
+    const baseBal = baseBalHex ? Number(BigInt(baseBalHex)) / 1e18 : 0;
+    const ethBal = ethBalHex ? Number(BigInt(ethBalHex)) / 1e18 : 0;
+    const arbBal = arbBalHex ? Number(BigInt(arbBalHex)) / 1e18 : 0;
+
+    activity.totalEthBalance = activity.robinhoodBalance + baseBal + ethBal + arbBal;
+    activity.estimatedUsdBalance = activity.totalEthBalance * 2800;
 
     activity.totalEvmTxns =
       activity.robinhoodTxCount +
