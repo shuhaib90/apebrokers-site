@@ -155,18 +155,21 @@ export const VerifyPage = ({ onBackHome }) => {
         setSearchError(result.error || 'No registered application found for this account. Please submit an application on /apply first.');
         sound?.playError?.();
       } else {
-        setMatchedApp(result.application);
+        const app = result.application;
+        setMatchedApp(app);
         sound?.playSuccess?.();
 
-        // If user is already verified for mint, show existing clearance immediately after refresh!
-        if (result.application.is_mint_verified) {
+        // If user is already verified for mint, show existing clearance immediately after refresh or lookup!
+        const isVerified = app.is_mint_verified || app.proof_links?.is_mint_verified || (app.mint_tier && app.mint_tier !== 'PENDING');
+        if (isVerified) {
+          const tier = app.mint_tier || app.proof_links?.mint_tier || (app.is_gtd ? 'GTD' : 'FCFS');
           setClearanceResult({
-            brokerId: result.application.broker_id || `#${result.application.id}`,
-            mintTier: result.application.mint_tier || (result.application.is_gtd ? 'GTD' : 'FCFS'),
-            isGtd: result.application.mint_tier === 'GTD' || result.application.is_gtd,
-            gtdArtId: result.application.gtd_art_id || 1,
-            verifiedAt: result.application.mint_verified_at || result.application.created_at,
-            chainActivity: result.application.chain_activity || {},
+            brokerId: app.broker_id || `#${app.id}`,
+            mintTier: tier,
+            isGtd: tier === 'GTD' || app.is_gtd,
+            gtdArtId: app.gtd_art_id || 1,
+            verifiedAt: app.mint_verified_at || app.proof_links?.mint_verified_at || app.created_at,
+            chainActivity: app.chain_activity || app.proof_links?.chain_activity || {},
             alreadyVerified: true,
           });
         }

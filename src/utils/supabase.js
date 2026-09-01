@@ -610,8 +610,14 @@ export async function verifyAndClearForMint(applicationId, { xUsername, walletAd
       }
     }
 
-    const gtdArtId = app.gtd_art_id || Math.floor(Math.random() * 3) + 1;
     const verifiedAt = new Date().toISOString();
+    const updatedProofLinks = {
+      ...(app.proof_links || {}),
+      is_mint_verified: true,
+      mint_tier: assignedTier,
+      mint_verified_at: verifiedAt,
+      chain_activity: chainActivity || {},
+    };
 
     // 5. Update application with verified mint clearance (permanently locked)
     const { data: updatedApp, error: updateErr } = await supabase
@@ -620,10 +626,11 @@ export async function verifyAndClearForMint(applicationId, { xUsername, walletAd
         is_mint_verified: true,
         mint_tier: assignedTier,
         is_gtd: isGtdWinner || app.is_gtd,
-        card_tier: isGtdWinner ? 'GOLDEN_GTD' : (app.card_tier || 'CYBER_STANDARD'),
+        card_tier: isGtdWinner ? 'GOLDEN_GTD' : (assignedTier === 'INELIGIBLE' ? 'INELIGIBLE' : (app.card_tier || 'CYBER_STANDARD')),
         gtd_art_id: gtdArtId,
         mint_verified_at: verifiedAt,
         chain_activity: chainActivity || {},
+        proof_links: updatedProofLinks,
         status: assignedTier === 'INELIGIBLE' ? 'INELIGIBLE' : 'APPROVED',
       })
       .eq('id', applicationId)
