@@ -302,8 +302,39 @@ export const VerifyPage = ({ onBackHome }) => {
           </form>
         </div>
 
-        {/* Step 2: Application Found & On-Chain Scanner */}
-        {matchedApp && (
+        {/* Step 2: Application Found */}
+        {matchedApp && (matchedApp.is_partner_claim || matchedApp.is_community_claim || !!matchedApp.community_name) ? (
+          <div className="bg-black/95 border-4 border-[#b388ff] shadow-[8px_8px_0px_0px_rgba(179,136,255,0.3)] p-6 sm:p-8 rounded-2xl text-left space-y-5 animate-fade-in">
+            <div className="flex items-center justify-between border-b-2 border-[#222] pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🏛️</span>
+                <span className="font-pixel text-xs text-[#b388ff] font-extrabold">
+                  PARTNER NFT HOLDER: {matchedApp.community_name || 'PARTNER COLLECTION'}
+                </span>
+              </div>
+              <span className="px-2.5 py-1 bg-[#b388ff] text-black font-pixel text-[8px] font-bold rounded">
+                DIRECT GTD
+              </span>
+            </div>
+
+            <div className="p-4 bg-[#160d26] border-2 border-[#b388ff]/50 rounded-xl space-y-2 font-mono text-xs text-purple-100">
+              <div className="font-pixel text-xs text-white font-bold">
+                ✓ NO NEED TO VERIFY! YOU ARE ALREADY DIRECTLY ELIGIBLE FOR GTD MINT.
+              </div>
+              <p className="text-gray-300 leading-relaxed text-[11px]">
+                As an approved Partner NFT Holder, your connected wallet (<strong>{matchedApp.wallet_address}</strong>) is already whitelisted on-chain. You do not need any additional verification step for Mint Day!
+              </p>
+            </div>
+
+            <a
+              href="/holders"
+              className="w-full py-4 bg-[#b388ff] hover:bg-[#cbb0ff] text-black font-pixel text-xs font-extrabold border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl flex items-center justify-center gap-2 transition-all block text-center"
+            >
+              <span>🏛️</span>
+              <span>[ VIEW YOUR ALLOCATION ON /HOLDERS ]</span>
+            </a>
+          </div>
+        ) : matchedApp && (
           <div className="bg-black/95 border-4 border-[#00FF66] shadow-[8px_8px_0px_0px_rgba(0,255,102,0.3)] p-6 sm:p-8 rounded-2xl text-left space-y-5 animate-fade-in">
             <div className="flex items-center justify-between border-b-2 border-[#222] pb-3">
               <div className="flex items-center gap-2">
@@ -313,9 +344,7 @@ export const VerifyPage = ({ onBackHome }) => {
                 </span>
               </div>
               <span className="px-2.5 py-1 bg-black text-[#FFD700] border border-[#FFD700]/50 font-pixel text-[8px] rounded">
-                {matchedApp.is_partner_claim
-                  ? '🏛️ PARTNER HOLDER'
-                  : matchedApp.is_code_claim
+                {matchedApp.is_code_claim
                   ? '🔑 SECRET CODE'
                   : matchedApp.is_gtd
                   ? '👑 GTD WINNER'

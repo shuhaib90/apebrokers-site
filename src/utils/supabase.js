@@ -470,8 +470,8 @@ export async function lookupApplicationForVerification(xUsername, walletAddress)
  */
 export async function verifyAndClearForMint(applicationId, { xUsername, walletAddress, chainActivity }) {
   try {
-    const GTD_CAP = 3000;
-    const FCFS_CAP = 2000;
+    const GTD_CAP = 2000;
+    const FCFS_CAP = 3000;
 
     // 1. Fetch current application record
     const { data: app, error: appErr } = await supabase
