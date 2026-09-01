@@ -101,13 +101,10 @@ export const ApplicationPage = ({ onBackHome }) => {
 
               <div className="font-mono text-xs sm:text-sm text-gray-300 space-y-2.5 leading-relaxed pt-2">
                 <p>
-                  <span className="text-gray-500">[{new Date().toISOString().split('T')[0]}]</span> The whitelist application portal for <strong className="text-white">ApeSyndicate</strong> is now officially closed.
+                  The whitelist application portal for <strong className="text-white">ApeSyndicate</strong> is now officially closed.
                 </p>
                 <p>
-                  All submitted applications and on-chain records are currently undergoing automated clearance and manual verification.
-                </p>
-                <p className="text-[#FFD700] font-semibold">
-                  Guaranteed (GTD) & FCFS mint clearance tiers will be published on our official X (@Apesyndicates) and Discord.
+                  All submitted applications and on-chain records are currently undergoing verification.
                 </p>
               </div>
             </div>
@@ -122,10 +119,6 @@ export const ApplicationPage = ({ onBackHome }) => {
                 <span className="text-[#00FF66]">✓</span>
                 <span>Review Status: <strong className="text-[#FFD700]">IN PROGRESS</strong></span>
               </div>
-              <div className="flex items-center gap-2 text-gray-400">
-                <span className="text-[#00FF66]">✓</span>
-                <span>Next Phase: <strong className="text-[#00FF66]">MINT ALLOCATION ANNOUNCEMENT</strong></span>
-              </div>
             </div>
 
             {/* Action Buttons */}
@@ -138,7 +131,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                 </svg>
-                <span>[ FOLLOW ON X ]</span>
+                <span>[ OFFICIAL X ]</span>
               </button>
 
               <button
