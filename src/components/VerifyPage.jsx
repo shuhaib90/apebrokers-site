@@ -13,7 +13,8 @@ export const VerifyPage = ({ onBackHome }) => {
   const { openConnectModal } = useConnectModal();
   const { disconnect } = useDisconnect();
 
-  // Input State
+  // Authentication State
+  const [xUser, setXUser] = useState(null); // { username, name, profileImageUrl }
   const [xInput, setXInput] = useState('');
   const [walletInput, setWalletInput] = useState('');
   const [isXAuthenticating, setIsXAuthenticating] = useState(false);
@@ -40,13 +41,28 @@ export const VerifyPage = ({ onBackHome }) => {
     }
   }, [isConnected, address]);
 
-  // Check for Twitter OAuth return callback
+  // Check for saved X session or OAuth return callback
   useEffect(() => {
+    // Check saved session
+    const savedUser = sessionStorage.getItem('x_authenticated_user');
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        setXUser(parsed);
+        setXInput(parsed.username);
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // Check OAuth return callback
     async function handleAuthCallback() {
       const authResult = await checkTwitterOAuthCallback();
       if (authResult) {
-        if (authResult.success && authResult.username) {
-          setXInput(authResult.username);
+        if (authResult.success && authResult.user) {
+          setXUser(authResult.user);
+          setXInput(authResult.user.username);
+          sessionStorage.setItem('x_authenticated_user', JSON.stringify(authResult.user));
           sound?.playSuccess?.();
         } else if (authResult.error) {
           setSearchError(authResult.error);
@@ -60,12 +76,26 @@ export const VerifyPage = ({ onBackHome }) => {
   const handleTwitterLogin = async () => {
     sound?.playClick?.();
     setIsXAuthenticating(true);
+    setSearchError(null);
     try {
       await startTwitterOAuth();
     } catch (e) {
       console.error('Twitter OAuth start failed:', e);
+      setSearchError('Failed to initialize Twitter Login. Please try again.');
       setIsXAuthenticating(false);
     }
+  };
+
+  const handleTwitterLogout = () => {
+    sound?.playClick?.();
+    setXUser(null);
+    setXInput('');
+    sessionStorage.removeItem('x_authenticated_user');
+    sessionStorage.removeItem('x_oauth_state');
+    sessionStorage.removeItem('x_oauth_verifier');
+    sessionStorage.removeItem('x_oauth_redirect_uri');
+    setMatchedApp(null);
+    setClearanceResult(null);
   };
 
   const handleConnectWallet = () => {
@@ -74,6 +104,14 @@ export const VerifyPage = ({ onBackHome }) => {
     if (openConnectModal) {
       openConnectModal();
     }
+  };
+
+  const handleDisconnectWallet = () => {
+    sound?.playClick?.();
+    disconnect();
+    setWalletInput('');
+    setMatchedApp(null);
+    setClearanceResult(null);
   };
 
   const handleLookupApplication = async (e) => {
@@ -85,17 +123,17 @@ export const VerifyPage = ({ onBackHome }) => {
     setChainActivity(null);
     setScanLogs([]);
 
-    const cleanX = xInput.trim().replace(/^@/, '');
-    const cleanWallet = walletInput.trim().toLowerCase();
+    const cleanX = (xInput || xUser?.username || '').trim().replace(/^@/, '');
+    const cleanWallet = (walletInput || address || '').trim().toLowerCase();
 
-    if (!cleanWallet) {
-      setSearchError('Please connect your Web3 wallet via [ CONNECT WALLET ] (Manual typing is disabled for anti-sybil security).');
+    if (!cleanX) {
+      setSearchError('Please connect your X (Twitter) account first.');
       sound?.playError?.();
       return;
     }
 
-    if (!cleanX) {
-      setSearchError('Please enter your registered X (Twitter) handle.');
+    if (!cleanWallet) {
+      setSearchError('Please connect your Web3 wallet first.');
       sound?.playError?.();
       return;
     }
@@ -203,6 +241,8 @@ export const VerifyPage = ({ onBackHome }) => {
     window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
   };
 
+  const isBothConnected = !!(xInput || xUser?.username) && !!(walletInput || address);
+
   return (
     <div
       className="min-h-screen text-white flex flex-col items-center justify-between relative bg-cover bg-center bg-no-repeat bg-fixed select-none"
@@ -241,19 +281,19 @@ export const VerifyPage = ({ onBackHome }) => {
         {/* Title Header */}
         <div className="space-y-2.5">
           <div className="inline-block bg-black text-[#00FF66] px-4 py-1.5 border-3 border-black font-pixel text-[9px] sm:text-[10px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg">
-            [ RAINBOWKIT WEB3 • ROBINHOOD CHAIN PRE-MINT VERIFY ]
+            [ ROBINHOOD CHAIN • PRE-MINT VERIFICATION ]
           </div>
           <h1 className="font-pixel text-2xl sm:text-4xl text-white font-extrabold tracking-tight drop-shadow-[6px_6px_0px_rgba(0,0,0,1)]">
             VERIFY FOR MINT
           </h1>
           <div className="bg-black/90 max-w-xl mx-auto p-3.5 border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-lg">
             <p className="font-mono text-xs sm:text-sm text-gray-200 font-semibold leading-relaxed">
-              Connect your registered X handle & Web3 wallet via RainbowKit to verify on-chain activity on Robinhood Chain and secure your official Mint Clearance Pass.
+              Connect your registered X handle & Web3 wallet to verify on-chain activity on Robinhood Chain and secure your official Mint Clearance Pass.
             </p>
           </div>
         </div>
 
-        {/* Step 1: Input & Lookup Card */}
+        {/* Step 1: Connect Only Cards (NO manual typing) */}
         <div className="bg-black/95 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 sm:p-8 rounded-2xl text-left space-y-5">
           <div className="flex items-center justify-between border-b-2 border-[#222] pb-3">
             <span className="font-pixel text-xs text-[#00FF66] flex items-center gap-2">
@@ -263,73 +303,100 @@ export const VerifyPage = ({ onBackHome }) => {
             <span className="font-mono text-[10px] text-gray-400">Registered Applicants Only</span>
           </div>
 
-          <form onSubmit={handleLookupApplication} className="space-y-4">
-            {/* X Username */}
-            <div className="space-y-1.5">
+          <div className="space-y-4">
+            {/* 1. X (Twitter) Connection Card */}
+            <div className="p-4 bg-[#111] border-2 border-black rounded-xl space-y-2.5 shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.5)]">
               <div className="flex items-center justify-between">
-                <label className="font-pixel text-[9px] text-[#00FF66] tracking-wider block">
-                  X (TWITTER) USERNAME
-                </label>
+                <span className="font-pixel text-[9px] text-[#00FF66] tracking-wider flex items-center gap-1.5">
+                  <span>𝕏</span>
+                  <span>X (TWITTER) ACCOUNT</span>
+                </span>
+                {xUser || xInput ? (
+                  <button
+                    type="button"
+                    onClick={handleTwitterLogout}
+                    className="px-2.5 py-1 bg-red-950 text-red-400 border border-red-800 text-[9px] font-pixel hover:bg-red-900 rounded transition-all"
+                  >
+                    LOGOUT
+                  </button>
+                ) : null}
+              </div>
+
+              {xUser || xInput ? (
+                <div className="flex items-center justify-between p-3 bg-black/70 border-2 border-[#00FF66]/40 rounded-lg">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-lg">𝕏</span>
+                    <div>
+                      <span className="font-pixel text-xs text-[#00FF66] font-bold block">
+                        @{xUser?.username || xInput}
+                      </span>
+                      <span className="font-mono text-[9px] text-gray-400">
+                        {xUser?.name || 'Verified X Operator'}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 bg-[#00FF66]/20 text-[#00FF66] text-[9px] font-pixel font-bold rounded border border-[#00FF66]/30">
+                    ✓ AUTHENTICATED
+                  </span>
+                </div>
+              ) : (
                 <button
                   type="button"
                   onClick={handleTwitterLogin}
                   disabled={isXAuthenticating}
-                  className="px-2.5 py-1 bg-[#1da1f2]/20 border border-[#1da1f2]/50 rounded text-[9px] font-pixel text-[#1da1f2] hover:bg-[#1da1f2] hover:text-white transition-all flex items-center gap-1"
+                  className="w-full py-3.5 bg-[#1da1f2] hover:bg-[#1a91da] text-white font-pixel text-xs font-bold border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-lg flex items-center justify-center gap-2 transition-all"
                 >
-                  <span>𝕏</span>
-                  <span>{isXAuthenticating ? 'CONNECTING...' : 'LOGIN WITH X'}</span>
+                  <span className="text-base">𝕏</span>
+                  <span>{isXAuthenticating ? 'CONNECTING TO X...' : '[ CONNECT WITH X ]'}</span>
                 </button>
-              </div>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 font-mono text-xs font-bold">@</span>
-                <input
-                  type="text"
-                  placeholder="username"
-                  value={xInput}
-                  onChange={(e) => setXInput(e.target.value)}
-                  className="w-full h-12 pl-8 pr-3 bg-[#111] border-3 border-black focus:border-[#00FF66] text-white font-mono text-xs rounded-lg outline-none shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.5)]"
-                />
-              </div>
+              )}
             </div>
 
-            {/* Wallet Address & Connector */}
-            <div className="space-y-1.5">
+            {/* 2. Web3 Wallet Connection Card */}
+            <div className="p-4 bg-[#111] border-2 border-black rounded-xl space-y-2.5 shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.5)]">
               <div className="flex items-center justify-between">
-                <label className="font-pixel text-[9px] text-[#00FF66] tracking-wider">
-                  EVM / ROBINHOOD WALLET (WEB3)
-                </label>
-                {isConnected ? (
+                <span className="font-pixel text-[9px] text-[#00FF66] tracking-wider flex items-center gap-1.5">
+                  <span>🦊</span>
+                  <span>EVM / ROBINHOOD WALLET</span>
+                </span>
+                {isConnected && address ? (
                   <button
                     type="button"
-                    onClick={() => disconnect()}
+                    onClick={handleDisconnectWallet}
                     className="px-2.5 py-1 bg-red-950 text-red-400 border border-red-800 text-[9px] font-pixel hover:bg-red-900 rounded transition-all"
                   >
                     DISCONNECT
                   </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleConnectWallet}
-                    className="px-2.5 py-1 bg-[#00FF66] text-black border-2 border-black text-[9px] font-pixel font-bold hover:bg-[#00e65c] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded transition-all flex items-center gap-1"
-                  >
-                    <span>🌈</span>
-                    <span>CONNECT WALLET</span>
-                  </button>
-                )}
+                ) : null}
               </div>
-              <input
-                type="text"
-                readOnly
-                placeholder="Click [CONNECT WALLET] above"
-                value={walletInput}
-                onClick={!walletInput ? handleConnectWallet : undefined}
-                className={`w-full h-12 px-3 bg-[#111] border-3 border-black text-white font-mono text-xs rounded-lg outline-none cursor-pointer shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.5)] ${
-                  walletInput ? 'text-[#00FF66]' : 'text-gray-400'
-                }`}
-              />
-              <span className="text-[10px] font-mono text-gray-400 block">
-                * Powered by RainbowKit. Supports MetaMask, Robinhood, Coinbase, Rabby & WalletConnect.
-              </span>
+
+              {isConnected && address ? (
+                <div className="flex items-center justify-between p-3 bg-black/70 border-2 border-[#00FF66]/40 rounded-lg">
+                  <div className="flex items-center gap-2.5 overflow-hidden">
+                    <span className="text-lg">🦊</span>
+                    <div className="overflow-hidden">
+                      <span className="font-mono text-xs text-[#00FF66] font-bold block truncate">
+                        {address}
+                      </span>
+                      <span className="font-mono text-[9px] text-gray-400">
+                        Robinhood Chain • EVM Connected
+                      </span>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 bg-[#00FF66]/20 text-[#00FF66] text-[9px] font-pixel font-bold rounded border border-[#00FF66]/30 shrink-0 ml-2">
+                    ✓ CONNECTED
+                  </span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleConnectWallet}
+                  className="w-full py-3.5 bg-[#00FF66] hover:bg-[#00e65c] text-black font-pixel text-xs font-bold border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-lg flex items-center justify-center gap-2 transition-all"
+                >
+                  <span className="text-base">🌈</span>
+                  <span>[ CONNECT WEB3 WALLET ]</span>
+                </button>
+              )}
             </div>
 
             {searchError && (
@@ -338,14 +405,24 @@ export const VerifyPage = ({ onBackHome }) => {
               </div>
             )}
 
+            {/* Check Status Button */}
             <button
-              type="submit"
-              disabled={isSearching}
-              className="w-full py-4 bg-[#00FF66] hover:bg-[#00e65c] text-black font-pixel text-xs font-extrabold border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl transition-all"
+              type="button"
+              onClick={handleLookupApplication}
+              disabled={!isBothConnected || isSearching}
+              className={`w-full py-4 font-pixel text-xs font-extrabold border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl transition-all ${
+                isBothConnected && !isSearching
+                  ? 'bg-[#00FF66] hover:bg-[#00e65c] text-black cursor-pointer animate-pulse'
+                  : 'bg-gray-800 text-gray-400 cursor-not-allowed opacity-60'
+              }`}
             >
-              {isSearching ? 'SEARCHING DATABASE...' : '[ 🔍 CHECK APPLICATION STATUS ]'}
+              {isSearching
+                ? 'SEARCHING DATABASE...'
+                : !isBothConnected
+                ? '[ CONNECT X & WALLET TO CHECK STATUS ]'
+                : '[ 🔍 CHECK APPLICATION STATUS ]'}
             </button>
-          </form>
+          </div>
         </div>
 
         {/* Step 2: Application Found */}
