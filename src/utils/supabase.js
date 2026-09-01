@@ -582,25 +582,31 @@ export async function verifyAndClearForMint(applicationId, { xUsername, walletAd
         gtdProbability = 0.60; // 60% chance
       }
 
-      if (verifiedGtdCount < GTD_CAP) {
+      if (rhBal === 0 && rhTx === 0 && evmTx === 0) {
+        // Did not meet minimum activity requirement -> INELIGIBLE
+        assignedTier = 'INELIGIBLE';
+        isGtdWinner = false;
+      } else if (verifiedGtdCount < GTD_CAP) {
         const wonGtd = Math.random() < gtdProbability;
         if (wonGtd) {
           assignedTier = 'GTD';
           isGtdWinner = true;
-        } else {
+        } else if (verifiedFcfsCount < FCFS_CAP) {
           assignedTier = 'FCFS';
+        } else {
+          assignedTier = 'INELIGIBLE';
         }
       } else if (verifiedFcfsCount < FCFS_CAP) {
         assignedTier = 'FCFS';
       } else {
-        assignedTier = 'STANDBY';
+        assignedTier = 'INELIGIBLE';
       }
     }
 
     const gtdArtId = app.gtd_art_id || Math.floor(Math.random() * 3) + 1;
     const verifiedAt = new Date().toISOString();
 
-    // 5. Update application with verified mint clearance
+    // 5. Update application with verified mint clearance (permanently locked)
     const { data: updatedApp, error: updateErr } = await supabase
       .from('apebrokers_applications')
       .update({
@@ -611,7 +617,7 @@ export async function verifyAndClearForMint(applicationId, { xUsername, walletAd
         gtd_art_id: gtdArtId,
         mint_verified_at: verifiedAt,
         chain_activity: chainActivity || {},
-        status: 'APPROVED',
+        status: assignedTier === 'INELIGIBLE' ? 'INELIGIBLE' : 'APPROVED',
       })
       .eq('id', applicationId)
       .select()

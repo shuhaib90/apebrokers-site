@@ -568,8 +568,33 @@ export const VerifyPage = ({ onBackHome }) => {
           </div>
         )}
 
-        {/* Step 3: Glorious Congratulations Pass Display */}
-        {clearanceResult && (
+        {/* Step 3: Clearance Mint Pass Display or Ineligible Notice */}
+        {clearanceResult && clearanceResult.mintTier === 'INELIGIBLE' ? (
+          <div className="space-y-5 animate-scale-up text-left">
+            <div className="p-6 sm:p-8 rounded-2xl border-4 border-red-600 bg-gradient-to-b from-[#2a0404] via-[#140202] to-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] space-y-4">
+              <div className="flex items-center gap-3 border-b-2 border-red-900/60 pb-3">
+                <div className="text-4xl">🚫</div>
+                <div>
+                  <h3 className="font-pixel text-sm sm:text-base font-extrabold tracking-wide text-red-400">
+                    INELIGIBLE FOR MINT
+                  </h3>
+                  <p className="font-mono text-[10px] text-gray-400">
+                    MINIMUM REQUIREMENTS NOT MET • SINGLE-TIME LOCKED
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 bg-black/80 border-2 border-red-900 rounded-xl space-y-2 font-mono text-xs text-red-200">
+                <p className="leading-relaxed">
+                  Your connected wallet and X account did not meet the required holding or on-chain activity criteria for an allocation spot on Robinhood Chain.
+                </p>
+                <div className="text-[11px] text-gray-400 pt-1 border-t border-red-950">
+                  🔒 <strong>Record Permanently Saved & Locked:</strong> You cannot verify again. Only an administrator can review or re-evaluate your eligibility in the Admin Dashboard.
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : clearanceResult && (
           <div className="space-y-5 animate-scale-up text-left">
             {/* Celebratory Congratulatory Header */}
             <div className="p-4 bg-[#00FF66]/10 border-3 border-[#00FF66] rounded-2xl text-center space-y-1 shadow-[0_0_25px_rgba(0,255,102,0.25)]">
