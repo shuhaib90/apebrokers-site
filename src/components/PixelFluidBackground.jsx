@@ -382,29 +382,31 @@ export const PixelFluidBackground = () => {
       // Step physics
       fluidStep(0.12);
 
-      // Render to Pixel Buffer
-      // Base background: Deep cosmic midnight void (#060411)
-      const baseR = 6;
-      const baseG = 4;
-      const baseB = 17;
-
+      // Render to Pixel Buffer with Synthwave Twilight Sky Gradient
       let pixelIdx = 0;
       for (let j = 1; j <= NY; j++) {
         const row = j * (NX + 2);
+        // Vertical gradient: deep purple at top, vibrant sunset glow near bottom-middle
+        const vGrad = j / NY;
+        const horizon = Math.exp(-Math.pow((vGrad - 0.65) * 4.0, 2.0));
+        const baseR = Math.floor(14 + horizon * 32);
+        const baseG = Math.floor(8 + horizon * 8);
+        const baseB = Math.floor(28 + horizon * 22);
+
         for (let i = 1; i <= NX; i++) {
           const idx = row + i;
           const rDye = densR[idx];
           const gDye = densG[idx];
           const bDye = densB[idx];
 
-          // Blend fluid over deep dark background
+          // Blend fluid over synthwave sunset sky
           const r = Math.min(255, baseR + rDye);
           const g = Math.min(255, baseG + gDye);
           const b = Math.min(255, baseB + bDye);
 
           // Little bit of luminance boost for neon vibrancy
           const lum = (rDye * 0.299 + gDye * 0.587 + bDye * 0.114);
-          const bloom = lum > 140 ? (lum - 140) * 0.4 : 0;
+          const bloom = lum > 130 ? (lum - 130) * 0.45 : 0;
 
           const finalR = Math.min(255, r + bloom);
           const finalG = Math.min(255, g + bloom);

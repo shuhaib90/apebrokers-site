@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { sound } from '../utils/audio';
 import { verifyHolderStatus, fetchLiveTokenPrice, TOKEN_CONTRACT, NFT_CONTRACT, DEFAULT_TOKEN_PRICE, TOTAL_SPOTS } from '../utils/holderVerification';
 import { supabase, saveApplicationToSupabase, checkExistingApplication } from '../utils/supabase';
+import { PixelFluidBackground } from './PixelFluidBackground';
 
 // Burn / Dummy addresses to block from spamming
 const BLOCKED_ADDRESSES = [
@@ -296,21 +297,29 @@ export const ApplicationPage = ({ onBackHome }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex flex-col justify-between font-pixel selection:bg-[#00FF66] selection:text-black relative overflow-x-hidden">
-      {/* Background Animated Pixel Scanline Overlay */}
-      <div className="fixed inset-0 bg-[radial-gradient(#112211_1px,transparent_1px)] [background-size:16px_16px] opacity-40 pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-to-b from-transparent via-black/40 to-black pointer-events-none" />
+    <div className="min-h-screen bg-[#070314] text-white flex flex-col justify-between font-pixel selection:bg-[#00FF66] selection:text-black relative overflow-x-hidden">
+      {/* Interactive Pixel Fluid Background */}
+      <PixelFluidBackground />
+      
+      {/* Background Dimmer & Scanline Overlay */}
+      <div className="fixed inset-0 bg-black/40 pointer-events-none -z-0" />
+      <div className="fixed inset-0 bg-[linear-gradient(rgba(18,16,38,0)_50%,rgba(0,0,0,0.35)_50%)] bg-[length:100%_4px] pointer-events-none opacity-35 -z-0" />
 
       {/* Top Header */}
-      <header className="sticky top-0 z-50 w-full bg-black/95 backdrop-blur-md border-b-4 border-black px-4 sm:px-8 py-3 select-none">
+      <header className="sticky top-0 z-50 w-full bg-[#0c061e]/95 backdrop-blur-md border-b-4 border-black px-4 sm:px-8 py-3 select-none relative shadow-[0_4px_20px_rgba(0,0,0,0.8)]">
+        {/* Neon Ceiling Light Accent Line */}
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#FF007F] via-[#00F0FF] to-[#00FF66] opacity-90" />
+
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
-          <a href="/" onClick={(e) => { e.preventDefault(); handleHome(); }} className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <img
-              src="/logo.png"
-              alt="ApeSyndicate Logo"
-              className="w-8 h-8 sm:w-10 sm:h-10 object-contain pixelated shrink-0"
-            />
-            <span className="font-pixel text-xs sm:text-base text-[#00FF66] tracking-wider font-extrabold whitespace-nowrap">
+          <a href="/" onClick={(e) => { e.preventDefault(); handleHome(); }} className="flex items-center gap-2 sm:gap-3 shrink-0 group">
+            <div className="p-0.5 bg-[#00FF66]/20 border border-[#00FF66] rounded-md shadow-[0_0_10px_rgba(0,255,102,0.4)]">
+              <img
+                src="/logo.png"
+                alt="ApeSyndicate Logo"
+                className="w-8 h-8 sm:w-10 sm:h-10 object-contain pixelated shrink-0"
+              />
+            </div>
+            <span className="font-pixel text-xs sm:text-base pixel-text-3d-lime tracking-wider font-extrabold whitespace-nowrap">
               APESYNDICATE
             </span>
           </a>
@@ -319,7 +328,7 @@ export const ApplicationPage = ({ onBackHome }) => {
             <button
               type="button"
               onClick={handleOpenSea}
-              className="pixel-btn pixel-btn-black px-2 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold text-white hover:text-[#00FF66] border-2 border-[#333] hover:border-[#00FF66] flex items-center gap-1 rounded-lg"
+              className="pixel-btn pixel-btn-vibrant-cyan px-2 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold rounded-lg"
             >
               <span>[ OPENSEA ]</span>
             </button>
@@ -327,7 +336,7 @@ export const ApplicationPage = ({ onBackHome }) => {
             <button
               type="button"
               onClick={handleApebroke}
-              className="pixel-btn pixel-btn-black px-2 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold text-[#FFD700] border-2 border-[#FFD700] hover:bg-[#FFD700] hover:text-black flex items-center gap-1 rounded-lg"
+              className="pixel-btn pixel-btn-vibrant-gold px-2 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold rounded-lg"
             >
               <span>[ $APEBROKE ]</span>
             </button>
@@ -335,7 +344,7 @@ export const ApplicationPage = ({ onBackHome }) => {
             <button
               type="button"
               onClick={handleFollowX}
-              className="pixel-btn pixel-btn-black px-2 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold text-white border-2 border-[#333] hover:border-[#00FF66] flex items-center gap-1 rounded-lg"
+              className="pixel-btn pixel-btn-vibrant-magenta px-2 sm:px-3 py-1.5 text-[9px] sm:text-xs font-extrabold rounded-lg flex items-center gap-1"
             >
               <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -347,28 +356,31 @@ export const ApplicationPage = ({ onBackHome }) => {
             <button
               type="button"
               onClick={handleHome}
-              className="pixel-btn pixel-btn-lime px-2.5 sm:px-3.5 py-1.5 text-[9px] sm:text-xs font-extrabold text-black flex items-center justify-center rounded-lg"
+              className="pixel-btn pixel-btn-vibrant-lime px-2.5 sm:px-3.5 py-1.5 text-[9px] sm:text-xs font-extrabold rounded-lg"
             >
               <span>[ HOME ]</span>
             </button>
           </div>
         </div>
+
+        {/* Bottom Neon Accent Bar */}
+        <div className="absolute bottom-[-4px] left-0 right-0 h-[2px] bg-gradient-to-r from-[#00FF66] via-[#FF007F] to-[#00F0FF] opacity-80" />
       </header>
 
       {/* Main Container */}
       <main className="flex-grow flex items-center justify-center p-4 sm:p-6 relative z-10 my-6">
-        <div className="w-full max-w-2xl bg-[#0d0d0d] border-4 border-black p-5 sm:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative">
+        <div className="w-full max-w-2xl bg-[#0e0722]/95 backdrop-blur-md border-4 border-black ring-2 ring-[#FF007F]/40 p-5 sm:p-8 shadow-[8px_8px_0px_0px_#000] relative rounded-lg">
           
           {/* Header Status Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-[#222] pb-4 mb-6 gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-[#36195e] pb-4 mb-6 gap-3">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 bg-[#00FF66] rounded-full animate-blink" />
+              <span className="w-2.5 h-2.5 bg-[#00FF66] rounded-full animate-blink shadow-[0_0_8px_#00FF66]" />
               <span className="font-pixel text-[10px] sm:text-xs text-[#00FF66] font-extrabold tracking-wider">
                 ● 9,000 SPOTS ALLOCATION
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] sm:text-xs text-black bg-[#00FF66] px-2.5 py-0.5 font-extrabold rounded">
+              <span className="font-mono text-[10px] sm:text-xs text-black bg-[#00FF66] px-2.5 py-0.5 font-extrabold rounded shadow-[2px_2px_0px_#000]">
                 SPOTS: {claimedCount} / {totalSpots.toLocaleString()} CLAIMED
               </span>
               <a
@@ -376,7 +388,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                 target="_blank"
                 rel="noopener noreferrer"
                 title="View $APEBROKE on Let's Cash"
-                className="font-mono text-[10px] sm:text-xs text-[#FFD700] bg-[#1a1500] px-2 py-0.5 border border-[#443800] rounded hover:border-[#FFD700] hover:text-white transition-colors"
+                className="font-mono text-[10px] sm:text-xs text-[#FFB800] bg-[#241705] px-2 py-0.5 border border-[#FFB800] rounded hover:text-white transition-colors shadow-[2px_2px_0px_#000]"
               >
                 ~$${Number(tokenPrice).toFixed(8)} ↗
               </a>
@@ -423,43 +435,43 @@ export const ApplicationPage = ({ onBackHome }) => {
             <div>
               {/* Headline & Allocation Rules */}
               <div className="space-y-4 mb-6">
-                <h1 className="font-pixel text-lg sm:text-2xl text-white font-extrabold tracking-tight">
+                <h1 className="font-pixel text-xl sm:text-3xl pixel-text-3d-lime font-extrabold tracking-tight">
                   WHITELIST APPLICATION
                 </h1>
 
                 {/* Open to Everyone & GTD vs Standard WL explanation */}
-                <div className="bg-[#121a14] border-2 border-[#00FF66]/50 p-4 rounded-lg space-y-2.5">
+                <div className="bg-[#140a2c]/95 border-2 border-[#A855F7] p-4 rounded-lg space-y-2.5 shadow-[5px_5px_0px_0px_#000]">
                   <div className="flex items-center gap-2 text-[#00FF66] text-xs font-extrabold">
-                    <span className="w-2 h-2 bg-[#00FF66] rounded-full inline-block" />
+                    <span className="w-2.5 h-2.5 bg-[#00FF66] rounded-full inline-block shadow-[0_0_8px_#00FF66]" />
                     <span>APPLICATIONS OPEN FOR EVERYONE</span>
                   </div>
-                  <p className="font-mono text-xs text-gray-300 leading-relaxed">
+                  <p className="font-mono text-xs text-gray-200 leading-relaxed">
                     Anyone can apply for the 9,000 whitelist spots. Wallets holding both $1.00+ in tokens and 1 ApeSyndicate NFT unlock Guaranteed (GTD) mint allocation based on holdings:
                   </p>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
-                    <div className="bg-black/70 border border-[#00FF66]/50 p-2.5 rounded">
-                      <div className="text-[#FFD700] font-bold flex items-center gap-1.5">
-                        <span className="text-[#FFD700]">[GTD]</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 font-mono text-[11px]">
+                    <div className="bg-[#051c12]/90 border border-[#00FF66] p-3 rounded-lg shadow-[3px_3px_0px_0px_#000]">
+                      <div className="text-[#00FF66] font-bold flex items-center gap-1.5">
+                        <span className="text-[#FFD700] font-extrabold">[GTD]</span>
                         <span>GUARANTEED (GTD) MINT</span>
                       </div>
-                      <div className="text-gray-300 mt-1">
+                      <div className="text-gray-200 mt-1">
                         Hold <strong>≥ $1.00 USD of $APEBROKERS + ≥ 1 ApeSyndicate NFT</strong>.
                       </div>
-                      <div className="text-[#00FF66] text-[10px] mt-1 font-semibold">
+                      <div className="text-[#00FF66] text-[10px] mt-1.5 font-bold">
                         [✓] Higher token & NFT holdings increase GTD allocation chance!
                       </div>
                     </div>
 
-                    <div className="bg-black/70 border border-[#444] p-2.5 rounded">
-                      <div className="text-gray-300 font-bold flex items-center gap-1.5">
-                        <span className="text-gray-400">[WL]</span>
+                    <div className="bg-[#051a26]/90 border border-[#00F0FF] p-3 rounded-lg shadow-[3px_3px_0px_0px_#000]">
+                      <div className="text-[#00F0FF] font-bold flex items-center gap-1.5">
+                        <span className="text-gray-300 font-extrabold">[WL]</span>
                         <span>STANDARD WHITELIST (WL)</span>
                       </div>
-                      <div className="text-gray-400 mt-1">
+                      <div className="text-gray-300 mt-1">
                         For non-holders or entries without both $1 tokens and 1 NFT.
                       </div>
-                      <div className="text-gray-400 text-[10px] mt-1">
+                      <div className="text-[#80f5ff] text-[10px] mt-1.5 font-bold">
                         [•] Entered into Whitelist Review
                       </div>
                     </div>
@@ -482,8 +494,8 @@ export const ApplicationPage = ({ onBackHome }) => {
 
                 {/* Field 1: X (Twitter) Handle */}
                 <div className="space-y-1.5">
-                  <label className="block font-pixel text-[10px] sm:text-xs text-gray-300">
-                    1. X (TWITTER) USERNAME <span className="text-[#00FF66]">*</span>
+                  <label className="block font-pixel text-[10px] sm:text-xs text-[#00F0FF] font-bold">
+                    1. X (TWITTER) USERNAME <span className="text-[#FF007F]">*</span>
                   </label>
                   <input
                     type="text"
@@ -495,14 +507,14 @@ export const ApplicationPage = ({ onBackHome }) => {
                       sound?.playTyping?.();
                       setFormData({ ...formData, xUsername: e.target.value });
                     }}
-                    className="w-full bg-black border-2 border-[#333] focus:border-[#00FF66] text-[#00FF66] font-mono text-sm px-3.5 py-2.5 rounded outline-none transition-colors"
+                    className="w-full bg-[#060312] border-2 border-[#4c1d95] focus:border-[#00F0FF] focus:shadow-[4px_4px_0px_0px_#FF007F] text-[#00FF66] font-mono text-sm px-3.5 py-2.5 rounded-lg outline-none transition-all"
                   />
                 </div>
 
                 {/* Field 2: Wallet Address + Live GTD Check */}
                 <div className="space-y-2">
-                  <label className="block font-pixel text-[10px] sm:text-xs text-gray-300">
-                    2. ROBINHOOD CHAIN WALLET ADDRESS <span className="text-[#00FF66]">*</span>
+                  <label className="block font-pixel text-[10px] sm:text-xs text-[#00F0FF] font-bold">
+                    2. ROBINHOOD CHAIN WALLET ADDRESS <span className="text-[#FF007F]">*</span>
                   </label>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <input
@@ -519,13 +531,13 @@ export const ApplicationPage = ({ onBackHome }) => {
                           setVerificationResult(null);
                         }
                       }}
-                      className="flex-grow bg-black border-2 border-[#333] focus:border-[#00FF66] text-[#00FF66] font-mono text-xs sm:text-sm px-3.5 py-2.5 rounded outline-none transition-colors"
+                      className="flex-grow bg-[#060312] border-2 border-[#4c1d95] focus:border-[#00F0FF] focus:shadow-[4px_4px_0px_0px_#FF007F] text-[#00FF66] font-mono text-xs sm:text-sm px-3.5 py-2.5 rounded-lg outline-none transition-all"
                     />
                     <button
                       type="button"
                       disabled={verificationStatus === 'VERIFYING'}
                       onClick={handleCheckHoldings}
-                      className="pixel-btn pixel-btn-black border-2 border-[#00FF66] text-[#00FF66] px-4 py-2.5 text-[10px] sm:text-xs font-extrabold shrink-0 hover:bg-[#00FF66] hover:text-black transition-all disabled:opacity-50"
+                      className="pixel-btn pixel-btn-vibrant-gold px-4 py-2.5 text-[10px] sm:text-xs font-extrabold shrink-0 rounded-lg disabled:opacity-50"
                     >
                       {verificationStatus === 'VERIFYING' ? '[ CHECKING... ]' : '[ CHECK GTD STATUS ]'}
                     </button>
@@ -628,21 +640,21 @@ export const ApplicationPage = ({ onBackHome }) => {
 
                 {/* Step 3: Community Verification Checklist */}
                 <div className="space-y-2 pt-2">
-                  <label className="block font-pixel text-[10px] sm:text-xs text-gray-300">
-                    3. COMMUNITY CHECKLIST <span className="text-[#00FF66]">*</span>
+                  <label className="block font-pixel text-[10px] sm:text-xs text-[#00F0FF] font-bold">
+                    3. COMMUNITY CHECKLIST <span className="text-[#FF007F]">*</span>
                   </label>
                   
                   {/* Task 1 */}
-                  <div className="bg-black/80 border-2 border-[#222] p-3 rounded flex items-center justify-between gap-3">
+                  <div className="bg-[#051a26]/90 border-2 border-[#00F0FF]/50 p-3 rounded-lg flex items-center justify-between gap-3 shadow-[3px_3px_0px_0px_#000]">
                     <div className="flex items-center gap-2 font-mono text-xs">
-                      <span className="text-[#00FF66] font-pixel text-[10px]">01</span>
-                      <span>Follow @Apesyndicates on X</span>
+                      <span className="text-[#00F0FF] font-pixel text-[10px]">01</span>
+                      <span className="text-gray-200">Follow @Apesyndicates on X</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
                         onClick={() => handleOpenTask('https://x.com/Apesyndicates', 'followX')}
-                        className="pixel-btn pixel-btn-black px-2.5 py-1 text-[9px] font-bold text-gray-300 border border-[#444]"
+                        className="pixel-btn pixel-btn-vibrant-cyan px-2.5 py-1 text-[9px] font-bold rounded"
                       >
                         [ OPEN ]
                       </button>
@@ -650,10 +662,10 @@ export const ApplicationPage = ({ onBackHome }) => {
                         type="button"
                         onClick={() => handleVerifyTask('followX')}
                         disabled={tasks.followX === 'VERIFIED'}
-                        className={`pixel-btn px-2.5 py-1 text-[9px] font-extrabold ${
+                        className={`pixel-btn px-2.5 py-1 text-[9px] font-extrabold rounded ${
                           tasks.followX === 'VERIFIED'
-                            ? 'pixel-btn-lime text-black'
-                            : 'pixel-btn-black text-[#00FF66] border border-[#00FF66]'
+                            ? 'pixel-btn-vibrant-lime'
+                            : 'pixel-btn-vibrant-cyan'
                         }`}
                       >
                         {tasks.followX === 'VERIFIED' ? '✓ DONE' : tasks.followX === 'VERIFYING' ? '...' : '[ VERIFY ]'}
@@ -662,16 +674,16 @@ export const ApplicationPage = ({ onBackHome }) => {
                   </div>
 
                   {/* Task 2 */}
-                  <div className="bg-black/80 border-2 border-[#222] p-3 rounded flex items-center justify-between gap-3">
+                  <div className="bg-[#260517]/90 border-2 border-[#FF007F]/50 p-3 rounded-lg flex items-center justify-between gap-3 shadow-[3px_3px_0px_0px_#000]">
                     <div className="flex items-center gap-2 font-mono text-xs">
-                      <span className="text-[#00FF66] font-pixel text-[10px]">02</span>
-                      <span>Repost Whitelist Post on X</span>
+                      <span className="text-[#FF007F] font-pixel text-[10px]">02</span>
+                      <span className="text-gray-200">Repost Whitelist Post on X</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
                         onClick={() => handleOpenTask('https://x.com/Apesyndicates', 'repostWL')}
-                        className="pixel-btn pixel-btn-black px-2.5 py-1 text-[9px] font-bold text-gray-300 border border-[#444]"
+                        className="pixel-btn pixel-btn-vibrant-magenta px-2.5 py-1 text-[9px] font-bold rounded"
                       >
                         [ OPEN ]
                       </button>
@@ -679,10 +691,10 @@ export const ApplicationPage = ({ onBackHome }) => {
                         type="button"
                         onClick={() => handleVerifyTask('repostWL')}
                         disabled={tasks.repostWL === 'VERIFIED'}
-                        className={`pixel-btn px-2.5 py-1 text-[9px] font-extrabold ${
+                        className={`pixel-btn px-2.5 py-1 text-[9px] font-extrabold rounded ${
                           tasks.repostWL === 'VERIFIED'
-                            ? 'pixel-btn-lime text-black'
-                            : 'pixel-btn-black text-[#00FF66] border border-[#00FF66]'
+                            ? 'pixel-btn-vibrant-lime'
+                            : 'pixel-btn-vibrant-magenta'
                         }`}
                       >
                         {tasks.repostWL === 'VERIFIED' ? '✓ DONE' : tasks.repostWL === 'VERIFYING' ? '...' : '[ VERIFY ]'}
@@ -693,7 +705,7 @@ export const ApplicationPage = ({ onBackHome }) => {
 
                 {/* Error Banner if any */}
                 {submitError && (
-                  <div className="bg-[#24060b] border-2 border-[#FF2247] p-3 rounded font-mono text-xs text-[#FF2247]">
+                  <div className="bg-[#260517] border-2 border-[#FF007F] p-3 rounded font-mono text-xs text-[#FF007F]">
                     {submitError}
                   </div>
                 )}
@@ -703,7 +715,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full pixel-btn pixel-btn-lime py-3.5 text-xs sm:text-sm font-extrabold text-black disabled:opacity-40 disabled:cursor-not-allowed shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:opacity-95"
+                    className="w-full pixel-btn pixel-btn-vibrant-lime py-3.5 sm:py-4 text-xs sm:text-sm font-extrabold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed shadow-[5px_5px_0px_0px_#000]"
                   >
                     {isSubmitting ? '[ CHECKING & SUBMITTING... ]' : '[ SUBMIT WHITELIST APPLICATION ]'}
                   </button>

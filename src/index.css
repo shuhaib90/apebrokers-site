@@ -165,3 +165,86 @@
 .animate-stamp-pop {
   animation: stampPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
+
+/* 10000 BROKER DESK 3D Typography */
+.pixel-text-3d-lime {
+  color: #00FF66;
+  text-shadow:
+    2px 0 0 #000,
+    -2px 0 0 #000,
+    0 2px 0 #000,
+    0 -2px 0 #000,
+    1px 1px 0 #000,
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    3px 3px 0 #FF007F,
+    4px 4px 0 #FF007F,
+    5px 5px 0 #FF007F,
+    6px 6px 0 #000,
+    7px 7px 0 #000;
+}
+
+.pixel-text-3d-white {
+  color: #FFFFFF;
+  text-shadow:
+    2px 0 0 #000,
+    -2px 0 0 #000,
+    0 2px 0 #000,
+    0 -2px 0 #000,
+    1px 1px 0 #000,
+    -1px -1px 0 #000,
+    3px 3px 0 #FF007F,
+    4px 4px 0 #FF007F,
+    6px 6px 0 #000;
+}
+
+/* Vibrant Synthwave Neon Button Effects */
+.pixel-btn-vibrant-lime {
+  background-color: #00FF66;
+  color: #000000;
+  border: 3px solid #000000;
+  box-shadow: 4px 4px 0px 0px #FF007F, 6px 6px 0px 0px #000000;
+}
+.pixel-btn-vibrant-lime:hover {
+  background-color: #39FF14;
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0px 0px #00F0FF, 8px 8px 0px 0px #000000;
+}
+
+.pixel-btn-vibrant-cyan {
+  background-color: #081B26;
+  color: #00F0FF;
+  border: 2px solid #00F0FF;
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+.pixel-btn-vibrant-cyan:hover {
+  background-color: #00F0FF;
+  color: #000000;
+  box-shadow: 4px 4px 0px 0px #FF007F;
+}
+
+.pixel-btn-vibrant-magenta {
+  background-color: #260515;
+  color: #FF007F;
+  border: 2px solid #FF007F;
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+.pixel-btn-vibrant-magenta:hover {
+  background-color: #FF007F;
+  color: #FFFFFF;
+  box-shadow: 4px 4px 0px 0px #00F0FF;
+}
+
+.pixel-btn-vibrant-gold {
+  background-color: #261805;
+  color: #FFB800;
+  border: 2px solid #FFB800;
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+.pixel-btn-vibrant-gold:hover {
+  background-color: #FFB800;
+  color: #000000;
+  box-shadow: 4px 4px 0px 0px #FF007F;
+}
+
