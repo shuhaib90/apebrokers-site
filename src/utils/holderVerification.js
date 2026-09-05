@@ -1,5 +1,7 @@
-// Utility to verify $APEBROKERS token and ApeSyndicate NFT holdings on Robinhood Chain
-// Rule: At least hold tokens or NFT. GTD spots allocated based on holding amount ($ USD & NFT count).
+// Utility to check $APEBROKERS token and ApeSyndicate NFT holdings on Robinhood Chain
+// Rule: Everyone can apply!
+// GTD Spot (Directly Eligible for Mint): Holders with >= $1.00 USD in $APEBROKERS OR >= 1 ApeSyndicate NFT.
+// Standard WL: Non-holders or holding < $1.00 USD and 0 NFTs.
 
 export const TOKEN_CONTRACT = '0xe0F384ebCede975342c5431aCad515b4A1B862cc';
 export const NFT_CONTRACT = '0x5b9ca37d499eace8f526320d6edea10fb73d4ec6';
@@ -63,17 +65,17 @@ function padAddress(addr) {
 /**
  * Verify wallet holdings on Robinhood Chain
  * Returns: {
- *   isEligible: boolean, // true if holding ANY tokens or NFT
+ *   isEligible: boolean, // true for everyone with a valid address
  *   tokenBalance: number,
  *   tokenUsd: number,
  *   nftBalance: number,
  *   hasNft: boolean,
  *   hasToken: boolean,
+ *   hasMinToken: boolean, // >= $1.00 USD
+ *   isGtd: boolean, // true if holding >= $1 USD tokens OR >= 1 NFT
+ *   tier: 'GOLDEN_GTD' | 'STANDARD_WL',
+ *   tierLabel: string,
  *   tokenPrice: number,
- *   isGtd: boolean, // Guaranteed GTD spot based on holding tier
- *   tier: string, // 'GOLDEN_GTD' | 'HIGH_PRIORITY' | 'STANDARD_HOLDER'
- *   chanceLabel: string,
- *   score: number,
  *   error?: string
  * }
  */
@@ -116,50 +118,43 @@ export async function verifyHolderStatus(walletAddress) {
     const tokenUsd = tokenBalance * tokenPrice;
     const hasToken = tokenBalance > 0;
     const hasNft = nftBalance > 0;
+    const hasMinToken = tokenUsd >= 1.0; // Min $1.00 USD for GTD
 
-    // Must at least hold some tokens or NFT to be eligible to apply
-    const isEligible = hasToken || hasNft;
+    // Qualified for GTD if holding >= $1.00 in tokens OR >= 1 NFT
+    const isGtd = hasMinToken || hasNft;
 
-    // GTD Allocation Weight based on amount ($ holding & NFTs)
-    // More held = higher tier and guaranteed allocation
-    let isGtd = false;
-    let tier = 'STANDARD_HOLDER';
-    let chanceLabel = 'ENTRY CHANCE (HOLD MORE FOR GTD)';
-
-    if (nftBalance >= 1 || tokenUsd >= 5.0) {
-      isGtd = true;
-      tier = 'GOLDEN_GTD';
-      chanceLabel = '100% GUARANTEED (GTD SPOT)';
-    } else if (tokenUsd >= 1.0) {
-      isGtd = false;
-      tier = 'HIGH_PRIORITY';
-      chanceLabel = 'HIGH CHANCE (PRIORITY TIER)';
-    } else if (isEligible) {
-      isGtd = false;
-      tier = 'STANDARD_HOLDER';
-      chanceLabel = 'QUALIFIED (INCREASE HOLDINGS FOR GTD)';
-    }
-
-    const score = (nftBalance * 50) + (tokenUsd * 10);
+    const tier = isGtd ? 'GOLDEN_GTD' : 'STANDARD_WL';
+    const tierLabel = isGtd ? 'GUARANTEED (GTD) - DIRECTLY ELIGIBLE FOR MINT' : 'STANDARD WHITELIST (WL)';
 
     return {
-      isEligible,
+      isEligible: true, // Everyone can apply
       tokenBalance,
       tokenUsd,
       nftBalance,
       hasNft,
       hasToken,
-      tokenPrice,
+      hasMinToken,
       isGtd,
       tier,
-      chanceLabel,
-      score,
+      tierLabel,
+      tokenPrice,
     };
   } catch (err) {
     console.error('Error verifying holder status:', err);
+    // If RPC fails, allow standard application submission anyway!
     return {
-      isEligible: false,
-      error: 'Failed to communicate with Robinhood Chain RPC. Please try again.',
+      isEligible: true,
+      tokenBalance: 0,
+      tokenUsd: 0,
+      nftBalance: 0,
+      hasNft: false,
+      hasToken: false,
+      hasMinToken: false,
+      isGtd: false,
+      tier: 'STANDARD_WL',
+      tierLabel: 'STANDARD WHITELIST (WL)',
+      tokenPrice: DEFAULT_TOKEN_PRICE,
+      warning: 'Could not fetch on-chain balances. Application will be submitted as Standard WL.',
     };
   }
 }

@@ -31,7 +31,7 @@ export const Hero = ({ onApplyClick }) => {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 bg-black text-[#00FF66] px-4 py-2 border-3 border-black font-pixel text-[10px] sm:text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
           <span className="w-2.5 h-2.5 bg-[#00FF66] inline-block animate-blink" />
-          <span>9,000 SPOTS: HOLDER GTD ALLOCATION</span>
+          <span>WL OPEN: EVERYONE CAN APPLY</span>
         </div>
 
         {/* Headline */}
@@ -42,9 +42,9 @@ export const Hero = ({ onApplyClick }) => {
           <h2 className="font-pixel text-xl sm:text-3xl md:text-4xl text-[#00FF66] tracking-tight font-extrabold drop-shadow-[4px_4px_0px_rgba(0,0,0,1)] min-h-[38px] sm:min-h-[50px] flex items-center justify-center">
             <TypewriterText
               text={[
-                '9,000 TOTAL SPOTS.',
-                'MORE YOU HOLD, MORE GTD CHANCE.',
-                '$APEBROKERS & NFT HOLDERS.',
+                'OPEN FOR EVERYONE.',
+                'HOLD $1+ OR NFT FOR GTD.',
+                'DIRECTLY ELIGIBLE FOR MINT.',
                 'ROBINHOOD CHAIN.',
               ]}
               speed={60}
@@ -61,7 +61,7 @@ export const Hero = ({ onApplyClick }) => {
         <div className="bg-black/90 backdrop-blur-md p-4 sm:p-5 border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] max-w-xl mx-auto min-h-[75px] sm:min-h-[85px] flex items-center justify-center">
           <p className="font-mono text-sm sm:text-base text-gray-100 font-semibold leading-relaxed">
             <TypewriterText
-              text="9,000 whitelist spots available. Guaranteed (GTD) spots are allocated based on token dollars and ApeSyndicate NFTs held. The more you hold, the higher your GTD chance."
+              text="Everyone can apply for the 9,000 whitelist spots. Wallets holding min. $1.00 in $APEBROKERS tokens or 1 ApeSyndicate NFT get Guaranteed (GTD) mint eligibility directly. All other entries receive Standard WL."
               speed={20}
               delay={800}
               playSound={false}
@@ -77,7 +77,7 @@ export const Hero = ({ onApplyClick }) => {
             onClick={handleApply}
             className="w-full sm:w-auto min-h-[52px] pixel-btn pixel-btn-lime px-8 py-3.5 font-pixel text-xs sm:text-sm font-extrabold text-black hover:opacity-95 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
           >
-            [ APPLY FOR WL (9,000 SPOTS) ]
+            [ APPLY FOR WHITELIST ]
           </button>
 
           <button

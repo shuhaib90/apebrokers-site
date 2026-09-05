@@ -15,7 +15,7 @@ export const ApplicationPage = ({ onBackHome }) => {
     walletAddress: '',
   });
 
-  const [verificationStatus, setVerificationStatus] = useState('IDLE'); // 'IDLE' | 'VERIFYING' | 'QUALIFIED' | 'INELIGIBLE' | 'ERROR'
+  const [verificationStatus, setVerificationStatus] = useState('IDLE'); // 'IDLE' | 'VERIFYING' | 'CHECKED' | 'ERROR'
   const [verificationResult, setVerificationResult] = useState(null);
 
   const [tasks, setTasks] = useState({
@@ -29,13 +29,12 @@ export const ApplicationPage = ({ onBackHome }) => {
   const [submittedData, setSubmittedData] = useState(null);
   const [cardDataUrl, setCardDataUrl] = useState(null);
 
-  // Fetch token price and claimed count on mount
+  // Fetch token price and active count on mount
   useEffect(() => {
     fetchLiveTokenPrice().then((p) => {
       if (p > 0) setTokenPrice(p);
     });
 
-    // Fetch active applications count from Supabase
     supabase
       .from('apebrokers_applications')
       .select('*', { count: 'exact', head: true })
@@ -57,20 +56,20 @@ export const ApplicationPage = ({ onBackHome }) => {
     else window.location.href = '/';
   };
 
-  // Run On-Chain Verification
-  const handleVerifyWallet = async () => {
+  // Run On-Chain Verification (Check holdings)
+  const handleCheckHoldings = async () => {
     const rawWallet = formData.walletAddress.trim();
     if (!rawWallet) {
       sound?.playBlip?.();
       setVerificationStatus('ERROR');
-      setVerificationResult({ error: 'Please enter your Robinhood Chain wallet address.' });
+      setVerificationResult({ error: 'Please enter a valid wallet address first.' });
       return;
     }
 
     if (!/^0x[a-fA-F0-9]{40}$/.test(rawWallet)) {
       sound?.playBlip?.();
       setVerificationStatus('ERROR');
-      setVerificationResult({ error: 'Invalid wallet address. Must be a 42-character 0x EVM address.' });
+      setVerificationResult({ error: 'Invalid address format (must be 42-character 0x EVM address).' });
       return;
     }
 
@@ -80,26 +79,18 @@ export const ApplicationPage = ({ onBackHome }) => {
 
     try {
       const result = await verifyHolderStatus(rawWallet);
-
-      if (result.error) {
-        setVerificationStatus('ERROR');
-        setVerificationResult(result);
-        return;
-      }
-
       setVerificationResult(result);
+      setVerificationStatus('CHECKED');
 
-      if (result.isEligible) {
+      if (result.isGtd) {
         sound?.playVerifyChime?.();
-        setVerificationStatus('QUALIFIED');
       } else {
-        sound?.playStamp?.();
-        setVerificationStatus('INELIGIBLE');
+        sound?.playBlip?.();
       }
     } catch (err) {
       console.error('Verification error:', err);
       setVerificationStatus('ERROR');
-      setVerificationResult({ error: 'Communication error with Robinhood Chain RPC. Please retry.' });
+      setVerificationResult({ error: 'Could not connect to Robinhood Chain RPC. You can still submit for Standard WL.' });
     }
   };
 
@@ -115,7 +106,7 @@ export const ApplicationPage = ({ onBackHome }) => {
     setTimeout(() => {
       sound?.playVerifyChime?.();
       setTasks((prev) => ({ ...prev, [taskKey]: 'VERIFIED' }));
-    }, 700);
+    }, 600);
   };
 
   // Submit Application
@@ -129,8 +120,9 @@ export const ApplicationPage = ({ onBackHome }) => {
       return;
     }
 
-    if (verificationStatus !== 'QUALIFIED' || !verificationResult?.isEligible) {
-      setSubmitError('You must hold at least some $APEBROKERS tokens or 1 ApeSyndicate NFT to apply.');
+    const cleanWallet = formData.walletAddress.trim();
+    if (!cleanWallet || !/^0x[a-fA-F0-9]{40}$/.test(cleanWallet)) {
+      setSubmitError('Please enter a valid 42-character 0x wallet address.');
       return;
     }
 
@@ -142,27 +134,36 @@ export const ApplicationPage = ({ onBackHome }) => {
     setIsSubmitting(true);
     sound?.playClick?.();
 
+    // Check holdings if not already checked
+    let currentCheck = verificationResult;
+    if (!currentCheck) {
+      try {
+        currentCheck = await verifyHolderStatus(cleanWallet);
+        setVerificationResult(currentCheck);
+      } catch {
+        currentCheck = { isGtd: false, tier: 'STANDARD_WL' };
+      }
+    }
+
+    const isGtd = !!currentCheck?.isGtd;
+    const cardTier = isGtd ? 'GOLDEN_GTD' : 'STANDARD';
     const brokerId = `#APE-${Math.floor(1000 + Math.random() * 9000)}`;
 
     try {
-      const isGtd = !!verificationResult.isGtd;
-      const cardTier = isGtd ? 'GOLDEN_GTD' : (verificationResult.tier || 'STANDARD');
-
       const saveRes = await saveApplicationToSupabase({
         brokerId,
         xUsername: cleanX.startsWith('@') ? cleanX : `@${cleanX}`,
-        walletAddress: formData.walletAddress.trim(),
+        walletAddress: cleanWallet,
         proofLinks: {
           holder_verification: {
             tokenContract: TOKEN_CONTRACT,
-            tokenBalance: verificationResult.tokenBalance,
-            tokenUsd: verificationResult.tokenUsd,
+            tokenBalance: currentCheck?.tokenBalance || 0,
+            tokenUsd: currentCheck?.tokenUsd || 0,
             nftContract: NFT_CONTRACT,
-            nftBalance: verificationResult.nftBalance,
-            tokenPrice: verificationResult.tokenPrice,
+            nftBalance: currentCheck?.nftBalance || 0,
+            tokenPrice: currentCheck?.tokenPrice || tokenPrice,
             isGtd,
             tier: cardTier,
-            score: verificationResult.score,
             verifiedAt: new Date().toISOString(),
           },
         },
@@ -171,41 +172,49 @@ export const ApplicationPage = ({ onBackHome }) => {
       const submissionPayload = {
         brokerId,
         xUsername: cleanX.startsWith('@') ? cleanX : `@${cleanX}`,
-        walletAddress: formData.walletAddress.trim(),
+        walletAddress: cleanWallet,
         timestamp: new Date().toLocaleTimeString(),
         isGtd,
         cardTier,
-        verificationResult,
+        verificationResult: currentCheck,
       };
 
       setSubmittedData(submissionPayload);
       setClaimedCount((prev) => prev + 1);
 
-      // Generate card image
-      try {
-        const cardUrl = await generateBrokerCardDataUrl({
-          brokerId,
-          xUsername: submissionPayload.xUsername,
-          walletAddress: submissionPayload.walletAddress,
-          isGtd,
-        });
-        setCardDataUrl(cardUrl);
-      } catch (cardErr) {
-        console.warn('Card render note:', cardErr);
+      // ONLY generate downloadable card if user is GTD!
+      // (For non-holders / low holders: no card to download, only application received message)
+      if (isGtd) {
+        try {
+          const cardUrl = await generateBrokerCardDataUrl({
+            brokerId,
+            xUsername: submissionPayload.xUsername,
+            walletAddress: submissionPayload.walletAddress,
+            isGtd: true,
+          });
+          setCardDataUrl(cardUrl);
+        } catch (cardErr) {
+          console.warn('Card render note:', cardErr);
+        }
+      } else {
+        setCardDataUrl(null);
       }
 
       setSubmissionSuccess(true);
-      sound?.playFanfare?.();
-
-      confetti({
-        particleCount: 150,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#00FF66', '#FFD700', '#ffffff', '#111111'],
-      });
+      if (isGtd) {
+        sound?.playFanfare?.();
+        confetti({
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ['#00FF66', '#FFD700', '#ffffff'],
+        });
+      } else {
+        sound?.playVerifyChime?.();
+      }
     } catch (err) {
       console.error('Submission failed:', err);
-      setSubmitError('Failed to save application. Please check your connection and retry.');
+      setSubmitError('Failed to register application. Please check connection and try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -213,7 +222,7 @@ export const ApplicationPage = ({ onBackHome }) => {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col justify-between font-pixel selection:bg-[#00FF66] selection:text-black relative overflow-x-hidden">
-      {/* Scanline background */}
+      {/* Background Animated Pixel Scanline Overlay */}
       <div className="fixed inset-0 bg-[radial-gradient(#112211_1px,transparent_1px)] [background-size:16px_16px] opacity-40 pointer-events-none" />
       <div className="fixed inset-0 bg-gradient-to-b from-transparent via-black/40 to-black pointer-events-none" />
 
@@ -259,7 +268,7 @@ export const ApplicationPage = ({ onBackHome }) => {
       <main className="flex-grow flex items-center justify-center p-4 sm:p-6 relative z-10 my-6">
         <div className="w-full max-w-2xl bg-[#0d0d0d] border-4 border-black p-5 sm:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative">
           
-          {/* Header Status Bar with 9,000 SPOTS COUNTER */}
+          {/* Header Status Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-[#222] pb-4 mb-6 gap-3">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 bg-[#00FF66] rounded-full animate-blink" />
@@ -279,28 +288,47 @@ export const ApplicationPage = ({ onBackHome }) => {
 
           {!submissionSuccess ? (
             <div>
-              {/* Headline & Dynamic GTD Allocation System */}
+              {/* Headline & Allocation Rules */}
               <div className="space-y-4 mb-6">
                 <h1 className="font-pixel text-lg sm:text-2xl text-white font-extrabold tracking-tight">
-                  APPLY FOR WHITELIST
+                  WHITELIST APPLICATION
                 </h1>
 
-                {/* 9,000 Spots & GTD Explanation Card */}
+                {/* Open to Everyone & GTD vs Standard WL explanation */}
                 <div className="bg-[#121a14] border-2 border-[#00FF66]/50 p-4 rounded-lg space-y-2.5">
-                  <div className="flex items-center gap-2 text-[#FFD700] text-xs font-extrabold">
+                  <div className="flex items-center gap-2 text-[#00FF66] text-xs font-extrabold">
                     <span>⚡</span>
-                    <span>9,000 SPOTS: WEIGHTED GTD ALLOCATION</span>
+                    <span>APPLICATIONS OPEN FOR EVERYONE</span>
                   </div>
                   <p className="font-mono text-xs text-gray-300 leading-relaxed">
-                    Open to all wallets holding <strong>$APEBROKERS tokens</strong> or <strong>ApeSyndicate NFTs</strong> on Robinhood Chain (no minimum token amount required to apply, just at least hold).
+                    Anyone can apply for the 9,000 whitelist spots. Guaranteed (GTD) mint spots are awarded based on holding volume:
                   </p>
-                  <div className="bg-black/80 border border-[#00FF66]/30 p-3 rounded space-y-1.5 font-mono text-[11px]">
-                    <div className="text-[#00FF66] font-bold">🔥 HOW GTD SPOTS ARE AWARDED:</div>
-                    <div className="text-gray-300">
-                      Guaranteed (GTD) spots are allocated based on <strong>how much dollar value ($) in tokens</strong> and <strong>how many NFTs</strong> you hold.
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
+                    <div className="bg-black/70 border border-[#00FF66]/50 p-2.5 rounded">
+                      <div className="text-[#FFD700] font-bold flex items-center gap-1.5">
+                        <span>🌟</span>
+                        <span>GUARANTEED (GTD) MINT</span>
+                      </div>
+                      <div className="text-gray-300 mt-1">
+                        Hold <strong>≥ $1.00 USD of $APEBROKERS</strong> OR <strong>≥ 1 ApeSyndicate NFT</strong>.
+                      </div>
+                      <div className="text-[#00FF66] text-[10px] mt-1 font-semibold">
+                        ✓ Directly Eligible For Mint!
+                      </div>
                     </div>
-                    <div className="text-[#FFD700] font-semibold pt-1">
-                      👉 <em>The more tokens ($) and NFTs you hold, the higher your GTD priority and allocation tier!</em>
+
+                    <div className="bg-black/70 border border-[#444] p-2.5 rounded">
+                      <div className="text-gray-300 font-bold flex items-center gap-1.5">
+                        <span>📋</span>
+                        <span>STANDARD WHITELIST (WL)</span>
+                      </div>
+                      <div className="text-gray-400 mt-1">
+                        For non-holders or wallets holding under $1.00 in tokens.
+                      </div>
+                      <div className="text-gray-400 text-[10px] mt-1">
+                        ✓ Entered into Whitelist Review
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -326,7 +354,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                   />
                 </div>
 
-                {/* Field 2: Wallet Address + Live GTD On-Chain Verification */}
+                {/* Field 2: Wallet Address + Live GTD Check */}
                 <div className="space-y-2">
                   <label className="block font-pixel text-[10px] sm:text-xs text-gray-300">
                     2. ROBINHOOD CHAIN WALLET ADDRESS <span className="text-[#00FF66]">*</span>
@@ -350,10 +378,10 @@ export const ApplicationPage = ({ onBackHome }) => {
                     <button
                       type="button"
                       disabled={verificationStatus === 'VERIFYING'}
-                      onClick={handleVerifyWallet}
-                      className="pixel-btn pixel-btn-lime px-4 py-2.5 text-[10px] sm:text-xs font-extrabold text-black shrink-0 disabled:opacity-50"
+                      onClick={handleCheckHoldings}
+                      className="pixel-btn pixel-btn-black border-2 border-[#00FF66] text-[#00FF66] px-4 py-2.5 text-[10px] sm:text-xs font-extrabold shrink-0 hover:bg-[#00FF66] hover:text-black transition-all disabled:opacity-50"
                     >
-                      {verificationStatus === 'VERIFYING' ? '[ SCANNING... ]' : '[ VERIFY HOLDINGS ]'}
+                      {verificationStatus === 'VERIFYING' ? '[ CHECKING... ]' : '[ CHECK GTD STATUS ]'}
                     </button>
                   </div>
 
@@ -361,95 +389,73 @@ export const ApplicationPage = ({ onBackHome }) => {
                   {verificationStatus === 'VERIFYING' && (
                     <div className="bg-[#111] border border-[#333] p-3 rounded text-left font-mono text-xs text-[#00FF66] flex items-center gap-2">
                       <span className="w-2 h-2 bg-[#00FF66] rounded-full animate-ping" />
-                      <span>Scanning Robinhood Chain RPC & calculating GTD weight...</span>
+                      <span>Checking holdings on Robinhood Chain RPC...</span>
                     </div>
                   )}
 
-                  {/* QUALIFIED / HOLDER DISPLAY */}
-                  {verificationStatus === 'QUALIFIED' && verificationResult && (
-                    <div className="bg-[#051c0d] border-2 border-[#00FF66] p-4 rounded text-left font-mono text-xs space-y-3">
-                      {/* GTD Tier Badge */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#143b20] pb-2.5 gap-2">
+                  {/* Live Status Feedback */}
+                  {verificationStatus === 'CHECKED' && verificationResult && (
+                    <div className={`p-4 rounded text-left font-mono text-xs space-y-2.5 border-2 ${
+                      verificationResult.isGtd
+                        ? 'bg-[#051c0d] border-[#00FF66]'
+                        : 'bg-[#141414] border-[#444]'
+                    }`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#222] pb-2 gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-base">{verificationResult.isGtd ? '🌟' : '⚡'}</span>
-                          <span className="font-pixel text-[11px] font-extrabold text-[#00FF66]">
-                            {verificationResult.isGtd ? 'GTD ALLOCATION: GUARANTEED SPOT' : 'HOLDER ENTRY: QUALIFIED'}
+                          <span className="text-base">{verificationResult.isGtd ? '🌟' : '📋'}</span>
+                          <span className={`font-pixel text-[11px] font-extrabold ${
+                            verificationResult.isGtd ? 'text-[#00FF66]' : 'text-gray-200'
+                          }`}>
+                            {verificationResult.isGtd
+                              ? 'GUARANTEED (GTD) - DIRECTLY ELIGIBLE FOR MINT!'
+                              : 'STANDARD WHITELIST (WL) APPLICATION'}
                           </span>
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded font-pixel ${
                           verificationResult.isGtd
                             ? 'bg-[#FFD700] text-black'
-                            : 'bg-[#113318] text-[#00FF66] border border-[#00FF66]/40'
+                            : 'bg-[#222] text-gray-400 border border-[#444]'
                         }`}>
-                          {verificationResult.chanceLabel}
+                          {verificationResult.isGtd ? 'GTD ALLOCATION' : 'STANDARD WL'}
                         </span>
                       </div>
 
                       {/* Holdings Breakdown */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-300 text-[11px]">
-                        <div className="bg-black/60 p-2.5 rounded border border-[#143b20]">
-                          <div className="text-gray-400 font-semibold">$APEBROKERS Token:</div>
-                          <div className="text-white font-bold text-xs mt-0.5">
+                        <div className="bg-black/60 p-2 rounded border border-[#222]">
+                          <div className="text-gray-400">$APEBROKERS Balance:</div>
+                          <div className="text-white font-bold">
                             {Number(verificationResult.tokenBalance).toLocaleString(undefined, { maximumFractionDigits: 2 })} tokens
                           </div>
-                          <div className="text-[#00FF66] font-mono text-[11px] mt-0.5">
-                            ≈ ${Number(verificationResult.tokenUsd).toFixed(2)} USD
+                          <div className={verificationResult.hasMinToken ? 'text-[#00FF66] font-bold' : 'text-gray-400'}>
+                            ≈ ${Number(verificationResult.tokenUsd).toFixed(2)} USD {verificationResult.hasMinToken ? '(≥ $1.00 GTD Qualified!)' : ''}
                           </div>
                         </div>
 
-                        <div className="bg-black/60 p-2.5 rounded border border-[#143b20]">
-                          <div className="text-gray-400 font-semibold">ApeSyndicate NFTs:</div>
-                          <div className="text-white font-bold text-xs mt-0.5">
+                        <div className="bg-black/60 p-2 rounded border border-[#222]">
+                          <div className="text-gray-400">ApeSyndicate NFTs:</div>
+                          <div className="text-white font-bold">
                             {verificationResult.nftBalance} NFT{verificationResult.nftBalance !== 1 ? 's' : ''} owned
                           </div>
-                          <div className={verificationResult.nftBalance > 0 ? 'text-[#FFD700] text-[11px] mt-0.5' : 'text-gray-500 text-[11px] mt-0.5'}>
-                            {verificationResult.nftBalance > 0 ? '✓ NFT Holder Priority' : '0 NFTs'}
+                          <div className={verificationResult.hasNft ? 'text-[#FFD700] font-bold' : 'text-gray-500'}>
+                            {verificationResult.hasNft ? '(≥ 1 NFT GTD Qualified!)' : '0 NFTs'}
                           </div>
                         </div>
                       </div>
 
-                      {/* Advice for upgrading tier */}
                       {!verificationResult.isGtd && (
-                        <div className="bg-black/70 border border-[#234d28] p-2 rounded text-[11px] text-gray-300 flex items-center justify-between">
-                          <span>💡 <em>Want 100% Guaranteed GTD? Hold more tokens ($) or an ApeSyndicate NFT!</em></span>
+                        <div className="bg-black/70 border border-[#333] p-2 rounded text-[11px] text-gray-300 flex items-center justify-between">
+                          <span>💡 <em>Tip: Hold ≥ $1.00 in tokens or 1 NFT to get Guaranteed (GTD) mint!</em></span>
                           <a
                             href="https://dexscreener.com/robinhood/0x67c0c7602a27ad284792d19d159750f260c78c776ce0e5666856533e493c55ae"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-[#FFD700] hover:underline shrink-0 ml-2 font-bold"
                           >
-                            [ BUY MORE ]
+                            [ BUY $APEBROKERS ]
                           </a>
                         </div>
                       )}
-                    </div>
-                  )}
-
-                  {/* INELIGIBLE DISPLAY (Holds 0 tokens AND 0 NFTs) */}
-                  {verificationStatus === 'INELIGIBLE' && verificationResult && (
-                    <div className="bg-[#24060b] border-2 border-[#FF2247] p-4 rounded text-left font-mono text-xs space-y-2.5">
-                      <div className="flex items-center gap-2 text-[#FF2247] font-pixel text-[11px] font-extrabold">
-                        <span>✕</span>
-                        <span>WALLET NOT DETECTED AS HOLDER</span>
-                      </div>
-                      <p className="text-gray-300 text-[11px] leading-relaxed">
-                        To qualify for the 9,000 spots, this wallet must hold at least some <strong>$APEBROKERS tokens</strong> or an <strong>ApeSyndicate NFT</strong> on Robinhood Chain.
-                      </p>
-                      <div className="bg-black/60 p-2 rounded border border-[#52131d] text-[11px] text-gray-300 space-y-1">
-                        <div>Detected $APEBROKERS: <span className="text-[#FF2247] font-bold">0 tokens ($0.00)</span></div>
-                        <div>Detected NFTs: <span className="text-[#FF2247] font-bold">0 NFTs</span></div>
-                      </div>
-                      <div className="pt-1">
-                        <a
-                          href="https://dexscreener.com/robinhood/0x67c0c7602a27ad284792d19d159750f260c78c776ce0e5666856533e493c55ae"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-[10px] font-pixel text-[#FFD700] hover:underline"
-                        >
-                          <span>🛒 [ BUY $APEBROKERS ON DEXSCREENER & RETRY ]</span>
-                          <span>→</span>
-                        </a>
-                      </div>
                     </div>
                   )}
 
@@ -536,49 +542,58 @@ export const ApplicationPage = ({ onBackHome }) => {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={isSubmitting || verificationStatus !== 'QUALIFIED'}
-                    className="w-full pixel-btn pixel-btn-lime py-3.5 text-xs sm:text-sm font-extrabold text-black disabled:opacity-40 disabled:cursor-not-allowed shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                    disabled={isSubmitting}
+                    className="w-full pixel-btn pixel-btn-lime py-3.5 text-xs sm:text-sm font-extrabold text-black disabled:opacity-40 disabled:cursor-not-allowed shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:opacity-95"
                   >
-                    {isSubmitting ? '[ REGISTERING APPLICATION... ]' : '[ SUBMIT WHITELIST APPLICATION ]'}
+                    {isSubmitting ? '[ SUBMITTING APPLICATION... ]' : '[ SUBMIT WHITELIST APPLICATION ]'}
                   </button>
-                  {verificationStatus !== 'QUALIFIED' && (
-                    <p className="font-mono text-[10px] text-gray-500 text-center mt-2">
-                      * Verify holdings on-chain to unlock application submission.
-                    </p>
-                  )}
                 </div>
               </form>
             </div>
           ) : (
             /* SUCCESS CONFIRMATION SCREEN */
             <div className="text-center space-y-6">
-              <div className="inline-block bg-[#06240d] border-2 border-[#00FF66] px-4 py-2 rounded-lg">
-                <h2 className="font-pixel text-lg sm:text-xl text-[#00FF66] font-extrabold">
-                  APPLICATION REGISTERED!
+              {/* Header Badge */}
+              <div className={`inline-block border-2 px-4 py-2 rounded-lg ${
+                submittedData?.isGtd
+                  ? 'bg-[#06240d] border-[#00FF66]'
+                  : 'bg-[#141414] border-[#444]'
+              }`}>
+                <h2 className={`font-pixel text-lg sm:text-xl font-extrabold ${
+                  submittedData?.isGtd ? 'text-[#00FF66]' : 'text-white'
+                }`}>
+                  {submittedData?.isGtd ? 'GUARANTEED (GTD) ALLOCATION CONFIRMED!' : 'APPLICATION RECEIVED'}
                 </h2>
               </div>
 
+              {/* Status Details Card */}
               <div className="bg-black/90 border-2 border-[#222] p-5 rounded-lg space-y-3.5 text-left font-mono text-xs">
                 <div className="flex items-center justify-between border-b border-[#222] pb-2.5">
-                  <span className="text-gray-400">BROKER ID:</span>
+                  <span className="text-gray-400">APPLICATION ID:</span>
                   <span className="font-pixel text-[#FFD700] text-sm">{submittedData?.brokerId}</span>
                 </div>
+                
                 <div className="flex items-center justify-between border-b border-[#222] pb-2.5">
-                  <span className="text-gray-400">ALLOCATION STATUS:</span>
-                  <span className={submittedData?.isGtd ? 'text-[#FFD700] font-bold' : 'text-[#00FF66] font-bold'}>
-                    {submittedData?.isGtd ? '🌟 GUARANTEED (GTD) ALLOCATION' : '✓ VERIFIED HOLDER ALLOCATION'}
+                  <span className="text-gray-400">STATUS:</span>
+                  <span className={submittedData?.isGtd ? 'text-[#00FF66] font-bold' : 'text-gray-200 font-bold'}>
+                    {submittedData?.isGtd
+                      ? '🌟 GUARANTEED (GTD) - DIRECTLY ELIGIBLE FOR MINT'
+                      : '📋 STANDARD WHITELIST (WL) - UNDER REVIEW'}
                   </span>
                 </div>
+
                 <div className="flex items-center justify-between border-b border-[#222] pb-2.5">
-                  <span className="text-gray-400">HOLDINGS VERIFIED:</span>
-                  <span className="text-gray-200">
+                  <span className="text-gray-400">HOLDINGS DETECTED:</span>
+                  <span className="text-gray-300">
                     ~$${Number(submittedData?.verificationResult?.tokenUsd || 0).toFixed(2)} USD • {submittedData?.verificationResult?.nftBalance || 0} NFTs
                   </span>
                 </div>
+
                 <div className="flex items-center justify-between border-b border-[#222] pb-2.5">
                   <span className="text-gray-400">X HANDLE:</span>
                   <span className="text-white font-bold">{submittedData?.xUsername}</span>
                 </div>
+
                 <div className="flex items-center justify-between">
                   <span className="text-gray-400">REGISTERED WALLET:</span>
                   <span className="text-white font-mono text-[11px] truncate max-w-[220px]">
@@ -587,7 +602,8 @@ export const ApplicationPage = ({ onBackHome }) => {
                 </div>
               </div>
 
-              {cardDataUrl && (
+              {/* GTD HOLDERS ONLY: Show Official Broker Card + Download */}
+              {submittedData?.isGtd && cardDataUrl && (
                 <div className="space-y-2">
                   <img
                     src={cardDataUrl}
@@ -606,6 +622,30 @@ export const ApplicationPage = ({ onBackHome }) => {
                 </div>
               )}
 
+              {/* NON-HOLDERS / LOW HOLDERS: Clean message only, NO card */}
+              {!submittedData?.isGtd && (
+                <div className="bg-[#111] border border-[#333] p-4 rounded-lg text-left font-mono text-xs space-y-2 text-gray-300">
+                  <div className="text-white font-bold flex items-center gap-1.5">
+                    <span>✓</span>
+                    <span>Your application is in the review queue.</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-gray-400">
+                    Wallets holding at least <strong>$1.00 USD in $APEBROKERS tokens</strong> or <strong>1 ApeSyndicate NFT</strong> on Robinhood Chain receive <strong>Guaranteed (GTD) mint eligibility</strong>.
+                  </p>
+                  <div className="pt-1">
+                    <a
+                      href="https://dexscreener.com/robinhood/0x67c0c7602a27ad284792d19d159750f260c78c776ce0e5666856533e493c55ae"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#FFD700] hover:underline font-bold text-[11px]"
+                    >
+                      🛒 [ BUY $APEBROKERS TO QUALIFY FOR GTD ] →
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 <button
                   type="button"
