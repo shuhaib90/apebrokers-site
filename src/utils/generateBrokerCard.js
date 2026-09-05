@@ -170,7 +170,7 @@ export async function generateBrokerCardDataUrl({ brokerId, xUsername, walletAdd
           ctx.fillRect(160, 78, 380, 24);
           ctx.font = "900 11px 'Press Start 2P', monospace, sans-serif";
           ctx.fillStyle = '#000000';
-          ctx.fillText('👑 GUARANTEED (GTD) SYNDICATE PASS', 170, 84);
+          ctx.fillText('GUARANTEED (GTD) SYNDICATE PASS', 170, 84);
 
           ctx.font = "bold 12px 'Courier New', monospace";
           ctx.fillStyle = '#f5d77f';
@@ -202,7 +202,7 @@ export async function generateBrokerCardDataUrl({ brokerId, xUsername, walletAdd
           ctx.font = "bold 11px 'Press Start 2P', monospace, sans-serif";
           ctx.fillStyle = '#FFD700';
           ctx.textAlign = 'center';
-          ctx.fillText('CLASS: 👑 GTD TIER 1', W - 145, 114);
+          ctx.fillText('CLASS: GTD TIER 1', W - 145, 114);
         } else {
           ctx.font = "bold 13px 'Courier New', monospace";
           ctx.fillStyle = '#FFD700';
@@ -245,7 +245,7 @@ export async function generateBrokerCardDataUrl({ brokerId, xUsername, walletAdd
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(
-          isGtd ? `👑 GOLD APE #${gtdArtId || 1}` : `APE #${gifId}`,
+          isGtd ? `GOLD APE #${gtdArtId || 1}` : `APE #${gifId}`,
           photoX + 14 + badgeW / 2,
           photoY + 27
         );
@@ -266,7 +266,7 @@ export async function generateBrokerCardDataUrl({ brokerId, xUsername, walletAdd
         ctx.fillStyle = isGtd ? '#FFD700' : '#c7b299';
         ctx.fillText(
           isGtd
-            ? '👑 GUARANTEED VIP FLOOR  //  ROBINHOOD NETWORK'
+            ? 'GUARANTEED VIP FLOOR  //  ROBINHOOD NETWORK'
             : 'APESYNDICATE FLOOR, ROBINHOOD NETWORK',
           infoX,
           infoY + 36
@@ -302,14 +302,14 @@ export async function generateBrokerCardDataUrl({ brokerId, xUsername, walletAdd
         // Row 1: CHAIN | SUPPLY | STATUS
         renderCell('CHAIN:', 'ROBINHOOD', col1X, row1Y, '#00F0FF');
         renderCell('SUPPLY:', '5,555', col2X, row1Y, '#00FF66');
-        renderCell('STATUS:', isGtd ? '👑 GTD APPROVED' : 'UNDER REVIEW', col3X, row1Y, '#FFD700');
+        renderCell('STATUS:', isGtd ? 'GTD APPROVED' : 'UNDER REVIEW', col3X, row1Y, '#FFD700');
 
         // Row 2: WALLET (spanning col 1 & 2) | ALLOCATION
         renderCell('WALLET:', shortWallet, col1X, row2Y, '#FFFFFF');
-        renderCell('ALLOCATION:', isGtd ? '👑 GUARANTEED (GTD)' : 'APPLIED', col3X, row2Y, isGtd ? '#FFD700' : '#00DDFF');
+        renderCell('ALLOCATION:', isGtd ? 'GUARANTEED (GTD)' : 'APPLIED', col3X, row2Y, isGtd ? '#FFD700' : '#00DDFF');
 
         // Row 3: ROLE | ACCESS | DOB
-        renderCell('ROLE:', isGtd ? '👑 VIP SYNDICATE' : 'APPLICANT', col1X, row3Y, isGtd ? '#FFE8A3' : '#f0e6d2');
+        renderCell('ROLE:', isGtd ? 'VIP SYNDICATE' : 'APPLICANT', col1X, row3Y, isGtd ? '#FFE8A3' : '#f0e6d2');
         renderCell('ACCESS:', isGtd ? 'UNRESTRICTED' : 'PENDING', col2X, row3Y, isGtd ? '#00FFAA' : '#FFD700');
         renderCell('DOB:', '2026 • RH', col3X, row3Y, '#FF3366');
 

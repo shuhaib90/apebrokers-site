@@ -347,10 +347,9 @@ export const ApplicationPage = ({ onBackHome }) => {
             <button
               type="button"
               onClick={handleHome}
-              className="pixel-btn pixel-btn-lime px-2 sm:px-3 py-1.5 text-[9px] sm:text-xs font-extrabold text-black flex items-center gap-1 rounded-lg"
+              className="pixel-btn pixel-btn-lime px-2.5 sm:px-3.5 py-1.5 text-[9px] sm:text-xs font-extrabold text-black flex items-center justify-center rounded-lg"
             >
-              <span>🏠</span>
-              <span className="hidden sm:inline">[ HOME ]</span>
+              <span>[ HOME ]</span>
             </button>
           </div>
         </div>
@@ -388,7 +387,7 @@ export const ApplicationPage = ({ onBackHome }) => {
           {duplicateData && (
             <div className="bg-[#241306] border-2 border-[#FFD700] p-5 rounded-lg text-left font-mono text-xs space-y-3 mb-6">
               <div className="flex items-center gap-2 text-[#FFD700] font-pixel text-xs font-extrabold">
-                <span>⚠️</span>
+                <span className="text-[#FFD700]">[!]</span>
                 <span>DUPLICATE APPLICATION DETECTED</span>
               </div>
               <p className="text-gray-300 text-[11px] leading-relaxed">
@@ -431,7 +430,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                 {/* Open to Everyone & GTD vs Standard WL explanation */}
                 <div className="bg-[#121a14] border-2 border-[#00FF66]/50 p-4 rounded-lg space-y-2.5">
                   <div className="flex items-center gap-2 text-[#00FF66] text-xs font-extrabold">
-                    <span>⚡</span>
+                    <span className="w-2 h-2 bg-[#00FF66] rounded-full inline-block" />
                     <span>APPLICATIONS OPEN FOR EVERYONE</span>
                   </div>
                   <p className="font-mono text-xs text-gray-300 leading-relaxed">
@@ -441,27 +440,27 @@ export const ApplicationPage = ({ onBackHome }) => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
                     <div className="bg-black/70 border border-[#00FF66]/50 p-2.5 rounded">
                       <div className="text-[#FFD700] font-bold flex items-center gap-1.5">
-                        <span>🌟</span>
+                        <span className="text-[#FFD700]">[GTD]</span>
                         <span>GUARANTEED (GTD) MINT</span>
                       </div>
                       <div className="text-gray-300 mt-1">
                         Hold <strong>≥ $1.00 USD of $APEBROKERS</strong> OR <strong>≥ 1 ApeSyndicate NFT</strong>.
                       </div>
                       <div className="text-[#00FF66] text-[10px] mt-1 font-semibold">
-                        ✓ Directly Eligible For Mint!
+                        [✓] Directly Eligible For Mint!
                       </div>
                     </div>
 
                     <div className="bg-black/70 border border-[#444] p-2.5 rounded">
                       <div className="text-gray-300 font-bold flex items-center gap-1.5">
-                        <span>📋</span>
+                        <span className="text-gray-400">[WL]</span>
                         <span>STANDARD WHITELIST (WL)</span>
                       </div>
                       <div className="text-gray-400 mt-1">
                         For non-holders or wallets holding under $1.00 in tokens.
                       </div>
                       <div className="text-gray-400 text-[10px] mt-1">
-                        ✓ Entered into Whitelist Review
+                        [•] Entered into Whitelist Review
                       </div>
                     </div>
                   </div>
@@ -549,13 +548,12 @@ export const ApplicationPage = ({ onBackHome }) => {
                     }`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#222] pb-2 gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-base">{verificationResult.isGtd ? '🌟' : '📋'}</span>
                           <span className={`font-pixel text-[11px] font-extrabold ${
                             verificationResult.isGtd ? 'text-[#00FF66]' : 'text-gray-200'
                           }`}>
                             {verificationResult.isGtd
-                              ? 'GUARANTEED (GTD) - DIRECTLY ELIGIBLE FOR MINT!'
-                              : 'STANDARD WHITELIST (WL) APPLICATION'}
+                              ? '[GTD] GUARANTEED - DIRECTLY ELIGIBLE FOR MINT!'
+                              : '[WL] STANDARD WHITELIST APPLICATION'}
                           </span>
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded font-pixel ${
@@ -592,7 +590,7 @@ export const ApplicationPage = ({ onBackHome }) => {
 
                       {!verificationResult.isGtd && (
                         <div className="bg-black/70 border border-[#333] p-2 rounded text-[11px] text-gray-300 flex items-center justify-between">
-                          <span>💡 <em>Tip: Hold ≥ $1.00 in tokens or 1 NFT to get Guaranteed (GTD) mint!</em></span>
+                          <span><em>TIP: Hold ≥ $1.00 in tokens or 1 NFT to get Guaranteed (GTD) mint!</em></span>
                           <a
                             href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
                             target="_blank"
@@ -726,8 +724,8 @@ export const ApplicationPage = ({ onBackHome }) => {
                   <span className="text-gray-400">STATUS:</span>
                   <span className={submittedData?.isGtd ? 'text-[#00FF66] font-bold' : 'text-gray-200 font-bold'}>
                     {submittedData?.isGtd
-                      ? '🌟 GUARANTEED (GTD) - DIRECTLY ELIGIBLE FOR MINT'
-                      : '📋 STANDARD WHITELIST (WL) - UNDER REVIEW'}
+                      ? 'GUARANTEED (GTD) - DIRECTLY ELIGIBLE FOR MINT'
+                      : 'STANDARD WHITELIST (WL) - UNDER REVIEW'}
                   </span>
                 </div>
 
@@ -755,7 +753,7 @@ export const ApplicationPage = ({ onBackHome }) => {
               {submittedData?.isGtd ? (
                 <div className="bg-[#051c0d] border-2 border-[#00FF66] p-4 rounded-lg text-left font-mono text-xs space-y-2 text-[#00FF66]">
                   <div className="font-pixel text-xs text-[#00FF66] font-extrabold flex items-center gap-1.5">
-                    <span>🌟</span>
+                    <span className="w-2 h-2 bg-[#00FF66] rounded-full inline-block" />
                     <span>GUARANTEED (GTD) SPOT SECURED</span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-gray-300">
@@ -766,7 +764,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                 /* NON-HOLDERS / LOW HOLDERS: Standard WL notice (No card to download) */
                 <div className="bg-[#111] border border-[#333] p-4 rounded-lg text-left font-mono text-xs space-y-2 text-gray-300">
                   <div className="text-white font-bold flex items-center gap-1.5 font-pixel text-[11px]">
-                    <span>📋</span>
+                    <span className="w-2 h-2 bg-gray-400 rounded-full inline-block" />
                     <span>APPLICATION IN REVIEW QUEUE</span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-gray-400">
@@ -779,7 +777,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                       rel="noopener noreferrer"
                       className="text-[#FFD700] hover:underline font-bold text-[11px]"
                     >
-                      🛒 [ BUY $APEBROKE ON LET'S CASH TO QUALIFY FOR GTD ] →
+                      [ BUY $APEBROKE ON LET'S CASH TO QUALIFY FOR GTD ] →
                     </a>
                   </div>
                 </div>
@@ -803,7 +801,6 @@ export const ApplicationPage = ({ onBackHome }) => {
                   onClick={handleHome}
                   className="w-full pixel-btn pixel-btn-lime py-3 px-4 text-xs font-extrabold text-black flex items-center justify-center gap-2"
                 >
-                  <span>🏠</span>
                   <span>[ RETURN TO HOME ]</span>
                 </button>
               </div>

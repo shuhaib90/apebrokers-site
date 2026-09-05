@@ -30,8 +30,10 @@ export const VaultLockedModal = ({ isOpen, onClose, onApplyClick }) => {
 
         {/* Center Graphic & Title */}
         <div className="text-center space-y-3">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-black border-3 border-[#FFD700] rounded-xl flex items-center justify-center text-3xl sm:text-4xl shadow-pixel-sm">
-            🔒
+          <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-black border-3 border-[#FFD700] rounded-xl flex items-center justify-center text-[#FFD700] shadow-pixel-sm">
+            <svg className="w-8 h-8 sm:w-10 sm:h-10 fill-current" viewBox="0 0 24 24">
+              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+            </svg>
           </div>
 
           <div className="inline-block bg-[#FFD700]/15 text-[#FFD700] border border-[#FFD700]/40 font-pixel text-[9px] px-3 py-1">
@@ -67,7 +69,6 @@ export const VaultLockedModal = ({ isOpen, onClose, onApplyClick }) => {
             }}
             className="w-full min-h-[48px] pixel-btn pixel-btn-lime px-4 py-3 text-[10px] sm:text-xs font-pixel font-extrabold flex items-center justify-center gap-2"
           >
-            <span>🦍</span>
             <span>[ APPLY FOR WHITELIST ]</span>
           </button>
 
