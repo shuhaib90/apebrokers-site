@@ -212,8 +212,8 @@ export function DeskAdminModal({
                 </div>
                 <div className="flex justify-between text-gray-400">
                   <span>Treasury Destination:</span>
-                  <span className="text-gray-300 text-[10px] break-all">
-                    {globalStats.contractOwner || 'Treasury'}
+                  <span className="text-[#00FF66] text-[10px] break-all font-bold">
+                    {globalStats.treasuryAddress || '0xb8E3DfDd19b6Bf35b9Fd87F8373F7f82C53bc93C'}
                   </span>
                 </div>
               </div>
@@ -291,9 +291,15 @@ export function DeskAdminModal({
                   <span className="text-white font-bold">5 Hours (18,000s)</span>
                 </div>
                 <div className="flex justify-between text-gray-400">
-                  <span>Contract Owner:</span>
-                  <span className="text-gray-300 text-[10px] break-all">
-                    {globalStats.contractOwner}
+                  <span>Admin Address:</span>
+                  <span className="text-[#00FF66] text-[10px] break-all font-bold">
+                    {globalStats.contractOwner || '0xb8E3DfDd19b6Bf35b9Fd87F8373F7f82C53bc93C'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-gray-400">
+                  <span>Treasury Address:</span>
+                  <span className="text-[#FFD700] text-[10px] break-all font-bold">
+                    {globalStats.treasuryAddress || '0xb8E3DfDd19b6Bf35b9Fd87F8373F7f82C53bc93C'}
                   </span>
                 </div>
               </div>

@@ -25,6 +25,16 @@ export const APE_BROKER_NFT_ADDRESS =
   deskDeployConfig.apeBrokerNftAddress ||
   '0x5b9ca37d499eace8f526320d6edea10fb73d4ec6';
 
+export const ADMIN_ADDRESS =
+  import.meta.env.VITE_ADMIN_ADDRESS ||
+  deskDeployConfig.adminAddress ||
+  '0xb8E3DfDd19b6Bf35b9Fd87F8373F7f82C53bc93C';
+
+export const TREASURY_ADDRESS =
+  import.meta.env.VITE_TREASURY_ADDRESS ||
+  deskDeployConfig.treasuryAddress ||
+  '0xb8E3DfDd19b6Bf35b9Fd87F8373F7f82C53bc93C';
+
 export const ALCHEMY_API_KEY = 'alch_008u8jC_qTSIJvqgLbdGY';
 
 export const ACTIVATION_FEE_RAW = 349693n * 10n ** 18n;
@@ -185,7 +195,8 @@ export function useApeBrokerDesk() {
     totalBoostFeesCollected: 0n,
     baseDeskWeight: 100n,
     baseBoostCost: 349693n * 10n ** 18n,
-    contractOwner: null,
+    contractOwner: ADMIN_ADDRESS,
+    treasuryAddress: TREASURY_ADDRESS,
     isAdmin: false,
   });
 
@@ -286,6 +297,7 @@ export function useApeBrokerDesk() {
         baseDeskWeight,
         baseBoostCost,
         contractOwner,
+        treasuryAddressOnChain,
       ] = await Promise.all([
         publicClient
           .readContract({
@@ -321,7 +333,7 @@ export function useApeBrokerDesk() {
             abi: deskDeployConfig.abi,
             functionName: 'timeUntilNextEpoch',
           })
-          .catch(() => 0n),
+          .catch(() => 18000n),
         publicClient
           .readContract({
             address: DESK_CONTRACT_ADDRESS,
@@ -364,11 +376,20 @@ export function useApeBrokerDesk() {
             functionName: 'owner',
           })
           .catch(() => null),
+        publicClient
+          .readContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
+            functionName: 'treasury',
+          })
+          .catch(() => TREASURY_ADDRESS),
       ]);
 
       const isAdmin =
-        Boolean(address && contractOwner) &&
-        address.toLowerCase() === contractOwner.toLowerCase();
+        Boolean(address) &&
+        (address.toLowerCase() === ADMIN_ADDRESS.toLowerCase() ||
+         address.toLowerCase() === '0xb8e3dfdd19b6bf35b9fd87f8373f7f82c53bc93c' ||
+         (contractOwner && address.toLowerCase() === contractOwner.toLowerCase()));
 
       setGlobalStats({
         totalEligibleWeight,
@@ -381,7 +402,8 @@ export function useApeBrokerDesk() {
         totalBoostFeesCollected,
         baseDeskWeight,
         baseBoostCost,
-        contractOwner,
+        contractOwner: contractOwner || ADMIN_ADDRESS,
+        treasuryAddress: treasuryAddressOnChain || TREASURY_ADDRESS,
         isAdmin,
       });
     } catch (err) {

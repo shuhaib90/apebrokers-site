@@ -17,8 +17,14 @@ async function main() {
     process.env.APEBROKE_TOKEN_ADDRESS || "0xe0F384ebCede975342c5431aCad515b4A1B862cc";
   const APE_BROKER_NFT_ADDRESS =
     process.env.APE_BROKER_NFT_ADDRESS || "0x5b9ca37d499eace8f526320d6edea10fb73d4ec6";
-  const ADMIN_ADDRESS = process.env.ADMIN_ADDRESS || deployer.address;
-  const TREASURY_ADDRESS = process.env.TREASURY_ADDRESS || deployer.address;
+  const ADMIN_ADDRESS =
+    process.env.ADMIN_ADDRESS ||
+    process.env.VITE_ADMIN_ADDRESS ||
+    "0xb8E3DfDd19b6Bf35b9Fd87F8373F7f82C53bc93C";
+  const TREASURY_ADDRESS =
+    process.env.TREASURY_ADDRESS ||
+    process.env.VITE_TREASURY_ADDRESS ||
+    "0xb8E3DfDd19b6Bf35b9Fd87F8373F7f82C53bc93C";
   const BASE_BOOST_COST = process.env.BASE_BOOST_COST
     ? BigInt(process.env.BASE_BOOST_COST)
     : 349_693n * 10n ** 18n;
