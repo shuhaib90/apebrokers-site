@@ -105,7 +105,7 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
         }
 
         activationFee = 349_693 * (10 ** decimals);
-        baseBoostCost = _baseBoostCost > 0 ? _baseBoostCost : 10_000 * (10 ** decimals);
+        baseBoostCost = _baseBoostCost > 0 ? _baseBoostCost : 699_386 * (10 ** decimals);
         baseDeskWeight = _baseDeskWeight > 0 ? _baseDeskWeight : 100;
         startTimestamp = block.timestamp;
     }

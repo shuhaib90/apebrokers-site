@@ -11,6 +11,7 @@ Production-grade, deterministic, gas-efficient Web3 smart contract suite for the
 | **Identity Relationship** | `1 NFT = 1 Desk` (Ape Broker NFT `tokenId == deskId`) |
 | **Activation Fee** | Exactly **`349,693 $APEBROKE`** (ERC-20) |
 | **Max Desks Per Wallet** | **5 Desks** hard cap per wallet address |
+| **Base Boost Cost (Boost 1)** | Exactly **`699,386 $APEBROKE`** |
 | **Base Desk Weight** | `100` (Configurable) |
 | **Maximum Boosts** | **5 boosts** hard cap per Desk |
 | **Boost Cost Progression** | Exponential doubling: `1× → 2× → 4× → 8× → 16×` |
@@ -88,12 +89,13 @@ Production-grade, deterministic, gas-efficient Web3 smart contract suite for the
 ### 3.3 Boost System
 * Each active Desk can be boosted up to 5 times.
 * A 6th boost attempt reverts with `MaxBoostsReached()`.
-* Boost pricing:
-  * **Boost 1**: `baseBoostCost × 1` (e.g. `10,000 $APEBROKE`)
-  * **Boost 2**: `baseBoostCost × 2` (e.g. `20,000 $APEBROKE`)
-  * **Boost 3**: `baseBoostCost × 4` (e.g. `40,000 $APEBROKE`)
-  * **Boost 4**: `baseBoostCost × 8` (e.g. `80,000 $APEBROKE`)
-  * **Boost 5**: `baseBoostCost × 16` (e.g. `160,000 $APEBROKE`)
+* Boost pricing (Base Boost Cost = `699,386 $APEBROKE`):
+  * **Boost 1**: `699,386 $APEBROKE` ($1\times$)
+  * **Boost 2**: `1,398,772 $APEBROKE` ($2\times$)
+  * **Boost 3**: `2,797,544 $APEBROKE` ($4\times$)
+  * **Boost 4**: `5,595,088 $APEBROKE` ($8\times$)
+  * **Boost 5**: `11,190,176 $APEBROKE` ($16\times$)
+  * Total for 5 Boosts: **`21,680,966 $APEBROKE`**
   * Formula: $\text{cost}(n) = \text{baseBoostCost} \times 2^{n-1}$ (calculated via integer bitshift `1 << (n - 1)`).
 * Weight scaling:
   * 0 boosts: `100` ($1\times$)

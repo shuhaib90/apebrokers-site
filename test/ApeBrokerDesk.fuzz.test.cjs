@@ -8,7 +8,7 @@ describe("ApeBrokerDesk - Invariant & Property-Based Fuzz Tests", function () {
   const DECIMALS = 18n;
   const ONE_TOKEN = 10n ** DECIMALS;
   const ACTIVATION_FEE = 349_693n * ONE_TOKEN;
-  const BASE_BOOST_COST = 10_000n * ONE_TOKEN;
+  const BASE_BOOST_COST = 699_386n * ONE_TOKEN;
   const BASE_DESK_WEIGHT = 100n;
 
   beforeEach(async function () {
@@ -43,7 +43,7 @@ describe("ApeBrokerDesk - Invariant & Property-Based Fuzz Tests", function () {
     for (let i = 0; i < 10; i++) {
       const user = users[i];
       await nft.mint(user.address, i + 1);
-      await token.mint(user.address, 10_000_000n * ONE_TOKEN);
+      await token.mint(user.address, 30_000_000n * ONE_TOKEN);
       await token.connect(user).approve(deskAddress, ethers.MaxUint256);
     }
   });

@@ -10,7 +10,7 @@ describe("ApeBrokerDesk - Full Production Test Suite", function () {
   const DECIMALS = 18n;
   const ONE_TOKEN = 10n ** DECIMALS;
   const ACTIVATION_FEE = 349_693n * ONE_TOKEN;
-  const BASE_BOOST_COST = 10_000n * ONE_TOKEN;
+  const BASE_BOOST_COST = 699_386n * ONE_TOKEN;
   const BASE_DESK_WEIGHT = 100n;
 
   beforeEach(async function () {
@@ -44,10 +44,10 @@ describe("ApeBrokerDesk - Full Production Test Suite", function () {
     await nft.mint(bob.address, 3);
     await nft.mint(charlie.address, 4);
 
-    // Mint $APEBROKE tokens
-    await token.mint(alice.address, 5_000_000n * ONE_TOKEN);
-    await token.mint(bob.address, 5_000_000n * ONE_TOKEN);
-    await token.mint(charlie.address, 5_000_000n * ONE_TOKEN);
+    // Mint $APEBROKE tokens (30M to cover max 5 boosts + activations)
+    await token.mint(alice.address, 30_000_000n * ONE_TOKEN);
+    await token.mint(bob.address, 30_000_000n * ONE_TOKEN);
+    await token.mint(charlie.address, 30_000_000n * ONE_TOKEN);
   });
 
   describe("1. Deployment & Configuration", function () {
@@ -213,8 +213,8 @@ describe("ApeBrokerDesk - Full Production Test Suite", function () {
       expect(await desk.getDeskWeight(1)).to.equal(600n);
       expect(await desk.totalEligibleWeight()).to.equal(600n);
 
-      // Verify total boost fees collected = 10k + 20k + 40k + 80k + 160k = 310k
-      const expectedTotalBoost = 310_000n * ONE_TOKEN;
+      // Verify total boost fees collected = 699,386 * (1 + 2 + 4 + 8 + 16) = 21,680,966 tokens
+      const expectedTotalBoost = 21_680_966n * ONE_TOKEN;
       expect(await desk.totalBoostFeesCollected()).to.equal(expectedTotalBoost);
     });
 
@@ -418,11 +418,11 @@ describe("ApeBrokerDesk - Full Production Test Suite", function () {
       await token.connect(alice).approve(deskAddress, ethers.MaxUint256);
       await desk.connect(alice).activateDesk(1);
       await desk.connect(alice).boostDesk(1);
-      // Activation fee: 349,693; Boost fee: 10,000 -> Total: 359,693 APEBROKE
+      // Activation fee: 349,693; Boost fee: 699,386 -> Total: 1,049,079 APEBROKE
     });
 
     it("Should allow admin to claim protocol fees to treasury in $APEBROKE only", async function () {
-      const totalFees = 359_693n * ONE_TOKEN;
+      const totalFees = 1_049_079n * ONE_TOKEN;
       expect(await desk.getProtocolFeeBalance()).to.equal(totalFees);
 
       await expect(desk.connect(admin).claimProtocolFees(totalFees))
@@ -439,7 +439,7 @@ describe("ApeBrokerDesk - Full Production Test Suite", function () {
     });
 
     it("Should revert if admin attempts to claim more fees than available", async function () {
-      const excessive = 500_000n * ONE_TOKEN;
+      const excessive = 2_000_000n * ONE_TOKEN;
       await expect(desk.connect(admin).claimProtocolFees(excessive))
         .to.be.revertedWithCustomError(desk, "ExceedsCollectedFees");
     });
