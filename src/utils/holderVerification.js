@@ -114,19 +114,31 @@ export async function verifyHolderStatus(walletAddress) {
     const hasMinNft = nftBalance >= 1;   // Min 1 ApeSyndicate NFT
     const qualifiesForGtdDraw = hasMinToken && hasMinNft; // Must hold BOTH $1+ token + 1 NFT
 
+    // Dynamic Scaling Win Chance:
+    // $1.00 = 5% chance
+    // $10.00 = 50% chance
+    // $20.00+ = 100% Guaranteed GTD
+    // Formula: min(100, max(5, floor(tokenUsd * 5) + extraNftBonus))
+    let winChancePercent = 0;
+    if (qualifiesForGtdDraw) {
+      const tokenChance = Math.floor(tokenUsd * 5);
+      const extraNftBonus = Math.max(0, (nftBalance - 1) * 10);
+      winChancePercent = Math.min(100, Math.max(5, tokenChance + extraNftBonus));
+    }
+
     // Deterministic 0-99 roll based on wallet address hash
     let roll = 0;
     for (let i = 0; i < clean.length; i++) {
       roll = (roll * 31 + clean.charCodeAt(i)) % 100;
     }
     const winRoll = roll;
-    const isGtd = qualifiesForGtdDraw && winRoll < GTD_WIN_RATE_PERCENT; // 5% chance
+    const isGtd = qualifiesForGtdDraw && (winChancePercent >= 100 || winRoll < winChancePercent);
 
     const tier = isGtd ? 'GOLDEN_GTD' : 'STANDARD_WL';
     const tierLabel = isGtd
-      ? 'GUARANTEED (GTD) - 5% LUCKY WINNER!'
+      ? `GUARANTEED (GTD) - ${winChancePercent}% CHANCE WINNER!`
       : qualifiesForGtdDraw
-        ? 'STANDARD WHITELIST (WL) - 5% DRAW ENTERED'
+        ? `STANDARD WHITELIST (WL) - ${winChancePercent}% GTD DRAW ENTERED`
         : 'STANDARD WHITELIST (WL)';
 
     return {
@@ -139,6 +151,7 @@ export async function verifyHolderStatus(walletAddress) {
       hasMinToken,
       hasMinNft,
       qualifiesForGtdDraw,
+      winChancePercent,
       winRoll,
       isGtd,
       tier,

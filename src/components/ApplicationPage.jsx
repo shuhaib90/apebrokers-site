@@ -434,20 +434,20 @@ export const ApplicationPage = ({ onBackHome }) => {
                     <span>APPLICATIONS OPEN FOR EVERYONE</span>
                   </div>
                   <p className="font-mono text-xs text-gray-300 leading-relaxed">
-                    Anyone can apply for the 9,000 whitelist spots. Wallets holding both $1.00+ in tokens and 1 ApeSyndicate NFT unlock a 5% chance to win Guaranteed (GTD) mint:
+                    Anyone can apply for the 9,000 whitelist spots. Wallets holding both $1.00+ in tokens and 1 ApeSyndicate NFT unlock a dynamic chance to win Guaranteed (GTD) mint:
                   </p>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
                     <div className="bg-black/70 border border-[#00FF66]/50 p-2.5 rounded">
                       <div className="text-[#FFD700] font-bold flex items-center gap-1.5">
                         <span className="text-[#FFD700]">[GTD]</span>
-                        <span>GUARANTEED (GTD) - 5% WIN CHANCE</span>
+                        <span>DYNAMIC GTD WIN CHANCE</span>
                       </div>
                       <div className="text-gray-300 mt-1">
                         Hold <strong>≥ $1.00 USD of $APEBROKERS + ≥ 1 ApeSyndicate NFT</strong>.
                       </div>
                       <div className="text-[#00FF66] text-[10px] mt-1 font-semibold">
-                        [✓] Unlocks 5% chance from 9,000 spots for GTD mint!
+                        [✓] $1 = 5% • $10 = 50% • $20+ = 100% GTD!
                       </div>
                     </div>
 
@@ -552,9 +552,9 @@ export const ApplicationPage = ({ onBackHome }) => {
                             verificationResult.isGtd ? 'text-[#00FF66]' : 'text-gray-200'
                           }`}>
                             {verificationResult.isGtd
-                              ? '[GTD] 5% LUCKY WINNER - GUARANTEED GTD ALLOCATION!'
+                              ? `[GTD] WON GTD ALLOCATION! (${verificationResult.winChancePercent}% WINNER)`
                               : verificationResult.qualifiesForGtdDraw
-                                ? '[WL] 5% DRAW ENTERED - STANDARD WL SECURED'
+                                ? `[WL] ${verificationResult.winChancePercent}% DRAW ENTERED - STANDARD WL SECURED`
                                 : '[WL] STANDARD WHITELIST APPLICATION'}
                           </span>
                         </div>
@@ -590,24 +590,31 @@ export const ApplicationPage = ({ onBackHome }) => {
                         </div>
                       </div>
 
-                      <div className="bg-black/70 border border-[#333] p-2 rounded text-[11px] text-gray-300 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                        <span>
-                          {verificationResult.qualifiesForGtdDraw
-                            ? (verificationResult.isGtd
-                                ? 'CONGRATULATIONS! Your wallet won the 5% GTD allocation draw!'
-                                : 'Wallet holds $1+ tokens & 1 NFT (5% draw entered). Assigned Standard WL.')
-                            : 'TIP: Hold ≥ $1.00 in $APEBROKER + 1 NFT to enter 5% GTD win chance!'}
-                        </span>
-                        {!verificationResult.hasMinToken && (
-                          <a
-                            href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[#FFD700] hover:underline shrink-0 font-bold"
-                          >
-                            [ BUY $APEBROKE ]
-                          </a>
-                        )}
+                      <div className="bg-black/70 border border-[#333] p-2.5 rounded text-[11px] text-gray-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="space-y-0.5">
+                          {verificationResult.qualifiesForGtdDraw ? (
+                            <div>
+                              <span className="font-pixel text-[#FFD700] text-[10px]">
+                                GTD WIN CHANCE: {verificationResult.winChancePercent}%
+                              </span>
+                              <span className="text-gray-400 text-[10px] ml-2">
+                                (Scales with tokens: $1 = 5%, $10 = 50%, $20+ = 100%)
+                              </span>
+                            </div>
+                          ) : (
+                            <div>
+                              <span className="text-[#FFD700] font-bold">TIP:</span> Hold ≥ $1.00 in $APEBROKER + 1 NFT to enter dynamic GTD win chance!
+                            </div>
+                          )}
+                        </div>
+                        <a
+                          href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="pixel-btn pixel-btn-black px-2.5 py-1 text-[10px] font-bold text-[#FFD700] border border-[#FFD700] hover:bg-[#FFD700] hover:text-black shrink-0 text-center"
+                        >
+                          [ BUY $APEBROKE TO INCREASE CHANCE ]
+                        </a>
                       </div>
                     </div>
                   )}
@@ -717,7 +724,9 @@ export const ApplicationPage = ({ onBackHome }) => {
                 <h2 className={`font-pixel text-lg sm:text-xl font-extrabold ${
                   submittedData?.isGtd ? 'text-[#00FF66]' : 'text-white'
                 }`}>
-                  {submittedData?.isGtd ? 'GUARANTEED (GTD) ALLOCATION CONFIRMED! (5% WINNER)' : 'APPLICATION RECEIVED'}
+                  {submittedData?.isGtd
+                    ? `GUARANTEED (GTD) ALLOCATION CONFIRMED! (${submittedData?.verificationResult?.winChancePercent || 5}% WINNER)`
+                    : 'APPLICATION RECEIVED'}
                 </h2>
               </div>
 
@@ -732,9 +741,9 @@ export const ApplicationPage = ({ onBackHome }) => {
                   <span className="text-gray-400">STATUS:</span>
                   <span className={submittedData?.isGtd ? 'text-[#00FF66] font-bold' : 'text-gray-200 font-bold'}>
                     {submittedData?.isGtd
-                      ? 'GUARANTEED (GTD) - 5% DRAW WINNER!'
+                      ? `GUARANTEED (GTD) - ${submittedData?.verificationResult?.winChancePercent || 5}% CHANCE WINNER!`
                       : submittedData?.verificationResult?.qualifiesForGtdDraw
-                        ? 'STANDARD WHITELIST (WL) - 5% DRAW ENTERED'
+                        ? `STANDARD WHITELIST (WL) - ${submittedData?.verificationResult?.winChancePercent || 5}% DRAW ENTERED`
                         : 'STANDARD WHITELIST (WL) - UNDER REVIEW'}
                   </span>
                 </div>
@@ -742,7 +751,10 @@ export const ApplicationPage = ({ onBackHome }) => {
                 <div className="flex items-center justify-between border-b border-[#222] pb-2.5">
                   <span className="text-gray-400">HOLDINGS DETECTED:</span>
                   <span className="text-gray-300">
-                    ~$${Number(submittedData?.verificationResult?.tokenUsd || 0).toFixed(2)} USD • {submittedData?.verificationResult?.nftBalance || 0} NFTs
+                    ~${Number(submittedData?.verificationResult?.tokenUsd || 0).toFixed(2)} USD • {submittedData?.verificationResult?.nftBalance || 0} NFTs
+                    {submittedData?.verificationResult?.qualifiesForGtdDraw && (
+                      <span className="text-[#FFD700] ml-1 font-bold">({submittedData?.verificationResult?.winChancePercent}% Win Chance)</span>
+                    )}
                   </span>
                 </div>
 
@@ -764,10 +776,10 @@ export const ApplicationPage = ({ onBackHome }) => {
                 <div className="bg-[#051c0d] border-2 border-[#00FF66] p-4 rounded-lg text-left font-mono text-xs space-y-2 text-[#00FF66]">
                   <div className="font-pixel text-xs text-[#00FF66] font-extrabold flex items-center gap-1.5">
                     <span className="w-2 h-2 bg-[#00FF66] rounded-full inline-block" />
-                    <span>GUARANTEED (GTD) SPOT SECURED (5% WINNER)</span>
+                    <span>GUARANTEED (GTD) SPOT SECURED ({submittedData?.verificationResult?.winChancePercent || 5}% WINNER)</span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-gray-300">
-                    Your holdings of ≥ $1.00 in $APEBROKERS + 1 ApeSyndicate NFT entered the 5% allocation draw and <strong className="text-white">successfully won a Guaranteed (GTD) mint spot</strong>!
+                    Your holdings of ~${Number(submittedData?.verificationResult?.tokenUsd || 0).toFixed(2)} in $APEBROKERS + {submittedData?.verificationResult?.nftBalance || 0} ApeSyndicate NFT gave you a <strong className="text-[#FFD700]">{submittedData?.verificationResult?.winChancePercent || 5}% win chance</strong>, and your wallet <strong className="text-white">successfully won a Guaranteed (GTD) mint spot</strong>!
                   </p>
                 </div>
               ) : (
@@ -778,7 +790,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                     <span>APPLICATION IN REVIEW QUEUE</span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-gray-400">
-                    Your application has been received for the Standard Whitelist. Wallets holding at least <strong>$1.00 USD in $APEBROKERS tokens + 1 ApeSyndicate NFT</strong> on Robinhood Chain receive a <strong>5% chance from 9,000 spots to win Guaranteed (GTD) mint</strong>.
+                    Your application has been received for the Standard Whitelist. Wallets holding at least <strong>$1.00 USD in $APEBROKERS tokens + 1 ApeSyndicate NFT</strong> receive a dynamic chance to win Guaranteed (GTD) mint spots (<strong>$1 = 5% • $10 = 50% • $20+ = 100% GTD</strong>).
                   </p>
                   <div className="pt-1">
                     <a
@@ -787,7 +799,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                       rel="noopener noreferrer"
                       className="text-[#FFD700] hover:underline font-bold text-[11px]"
                     >
-                      [ BUY $APEBROKE ON LET'S CASH TO QUALIFY FOR GTD ] →
+                      [ BUY MORE $APEBROKE TO INCREASE YOUR GTD WIN CHANCE ] →
                     </a>
                   </div>
                 </div>
