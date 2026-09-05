@@ -36,12 +36,12 @@ export const Hero = ({ onApplyClick }) => {
         </div>
 
         {/* Headline */}
-        <div className="space-y-3">
-          <h1 className="font-pixel text-4xl sm:text-6xl md:text-7xl pixel-text-3d-lime tracking-tight font-extrabold leading-tight">
+        <div className="space-y-3 w-full px-2">
+          <h1 className="font-pixel text-2xl min-[380px]:text-3xl min-[480px]:text-4xl sm:text-6xl md:text-7xl pixel-text-3d-lime tracking-tight font-extrabold leading-tight break-words">
             APESYNDICATE
           </h1>
-          <div className="inline-block bg-[#120729]/95 border-2 border-[#00F0FF] px-4 py-2 sm:py-2.5 shadow-[5px_5px_0px_0px_#FF007F] rounded-lg">
-            <h2 className="font-pixel text-xs sm:text-xl md:text-2xl text-[#00F0FF] tracking-tight font-extrabold min-h-[30px] sm:min-h-[36px] flex items-center justify-center">
+          <div className="inline-block max-w-full bg-[#120729]/95 border-2 border-[#00F0FF] px-3 sm:px-4 py-2 sm:py-2.5 shadow-[4px_4px_0px_0px_#FF007F] rounded-lg">
+            <h2 className="font-pixel text-[10px] min-[360px]:text-xs sm:text-lg md:text-xl text-[#00F0FF] tracking-tight font-extrabold min-h-[26px] sm:min-h-[32px] flex items-center justify-center">
               <TypewriterText
                 text={[
                   'OPEN FOR EVERYONE.',
@@ -49,24 +49,24 @@ export const Hero = ({ onApplyClick }) => {
                   '9,000 WHITELIST SPOTS.',
                   'ROBINHOOD CHAIN.',
                 ]}
-                speed={60}
-                delay={350}
-                pauseBetween={3000}
+                speed={50}
+                delay={300}
+                pauseBetween={2500}
                 loop={true}
                 playSound={true}
-                cursorChar="█"
+                cursorChar="▌"
               />
             </h2>
           </div>
         </div>
 
         {/* Description Box with Typewriter Animation */}
-        <div className="bg-[#12082b]/95 backdrop-blur-md p-4 sm:p-5 border-3 border-[#A855F7] shadow-[6px_6px_0px_0px_#000] max-w-xl mx-auto min-h-[75px] sm:min-h-[85px] flex items-center justify-center rounded-lg">
-          <p className="font-mono text-sm sm:text-base text-gray-100 font-semibold leading-relaxed">
+        <div className="bg-[#12082b]/95 backdrop-blur-md p-3.5 sm:p-5 border-3 border-[#A855F7] shadow-[5px_5px_0px_0px_#000] max-w-xl mx-auto min-h-[85px] sm:min-h-[80px] flex items-center justify-center rounded-lg">
+          <p className="font-mono text-xs sm:text-sm md:text-base text-gray-100 font-semibold leading-relaxed">
             <TypewriterText
               text="Everyone can apply for the 9,000 whitelist spots. Wallets holding $APEBROKERS tokens + ApeSyndicate NFTs receive Guaranteed (GTD) mint allocation based on holdings. All other entries receive Standard WL."
-              speed={20}
-              delay={800}
+              speed={12}
+              delay={500}
               playSound={false}
               cursor={false}
             />
@@ -74,30 +74,32 @@ export const Hero = ({ onApplyClick }) => {
         </div>
 
         {/* Action / Navigation Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto pt-2">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-4 w-full sm:w-auto pt-2">
           <button
             type="button"
             onClick={handleApply}
-            className="w-full sm:w-auto min-h-[52px] pixel-btn pixel-btn-vibrant-lime px-8 py-3.5 font-pixel text-xs sm:text-sm font-extrabold rounded-lg"
+            className="w-full sm:w-auto min-h-[48px] sm:min-h-[52px] pixel-btn pixel-btn-vibrant-lime px-6 sm:px-8 py-3 sm:py-3.5 font-pixel text-xs sm:text-sm font-extrabold rounded-lg shadow-[4px_4px_0px_0px_#000]"
           >
             [ APPLY FOR WHITELIST ]
           </button>
 
-          <button
-            type="button"
-            onClick={handleOpenSea}
-            className="w-full sm:w-auto min-h-[52px] pixel-btn pixel-btn-vibrant-cyan px-6 py-3.5 font-pixel text-xs sm:text-sm font-bold rounded-lg"
-          >
-            [ OPENSEA ]
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={handleOpenSea}
+              className="flex-1 sm:flex-none min-h-[44px] sm:min-h-[52px] pixel-btn pixel-btn-vibrant-cyan px-4 sm:px-6 py-2.5 sm:py-3.5 font-pixel text-[11px] sm:text-sm font-bold rounded-lg shadow-[3px_3px_0px_0px_#000]"
+            >
+              [ OPENSEA ]
+            </button>
 
-          <button
-            type="button"
-            onClick={handleApebroke}
-            className="w-full sm:w-auto min-h-[52px] pixel-btn pixel-btn-vibrant-gold px-6 py-3.5 font-pixel text-xs sm:text-sm font-bold rounded-lg"
-          >
-            [ $APEBROKE ]
-          </button>
+            <button
+              type="button"
+              onClick={handleApebroke}
+              className="flex-1 sm:flex-none min-h-[44px] sm:min-h-[52px] pixel-btn pixel-btn-vibrant-gold px-4 sm:px-6 py-2.5 sm:py-3.5 font-pixel text-[11px] sm:text-sm font-bold rounded-lg shadow-[3px_3px_0px_0px_#000]"
+            >
+              [ $APEBROKE ]
+            </button>
+          </div>
         </div>
       </div>
 

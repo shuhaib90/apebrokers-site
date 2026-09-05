@@ -3,33 +3,61 @@ import { Analytics } from '@vercel/analytics/react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ApplicationPage } from './components/ApplicationPage';
+import { AdminDashboard } from './components/AdminDashboard';
 import { PixelFluidBackground } from './components/PixelFluidBackground';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'apply'
+  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'apply' | 'admin'
 
   useEffect(() => {
-    const path = window.location.pathname;
-    const hash = window.location.hash;
-    if (path === '/apply' || hash === '#apply') {
-      setCurrentPage('apply');
-    }
+    const handleRoute = () => {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+      if (path === '/admin' || hash === '#admin') {
+        setCurrentPage('admin');
+      } else if (path === '/apply' || hash === '#apply') {
+        setCurrentPage('apply');
+      } else {
+        setCurrentPage('home');
+      }
+    };
+
+    handleRoute();
+    window.addEventListener('hashchange', handleRoute);
+    return () => window.removeEventListener('hashchange', handleRoute);
   }, []);
 
   const handleApply = () => {
+    window.location.hash = 'apply';
     setCurrentPage('apply');
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
+  const handleAdmin = () => {
+    window.location.hash = 'admin';
+    setCurrentPage('admin');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
   const handleBackHome = () => {
+    window.location.hash = '';
     setCurrentPage('home');
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
+  if (currentPage === 'admin') {
+    return (
+      <>
+        <AdminDashboard onBackHome={handleBackHome} />
+        <Analytics />
+      </>
+    );
+  }
+
   if (currentPage === 'apply') {
     return (
       <>
-        <ApplicationPage onBackHome={handleBackHome} />
+        <ApplicationPage onBackHome={handleBackHome} onAdminClick={handleAdmin} />
         <Analytics />
       </>
     );
@@ -42,7 +70,7 @@ function App() {
 
       {/* Top Header */}
       <div className="relative z-50">
-        <Header onApplyClick={handleApply} />
+        <Header onApplyClick={handleApply} onAdminClick={handleAdmin} />
       </div>
 
       {/* Hero Content with Stats */}
