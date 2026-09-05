@@ -61,6 +61,16 @@ export const ApplicationPage = ({ onBackHome }) => {
     window.open('https://x.com/Apesyndicates', '_blank', 'noopener,noreferrer');
   };
 
+  const handleOpenSea = () => {
+    sound?.playClick?.();
+    window.open('https://opensea.io/collection/apesyndicate-212388086', '_blank', 'noopener,noreferrer');
+  };
+
+  const handleApebroke = () => {
+    sound?.playClick?.();
+    window.open('https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc', '_blank', 'noopener,noreferrer');
+  };
+
   const handleHome = () => {
     sound?.playClick?.();
     if (onBackHome) onBackHome();
@@ -300,25 +310,42 @@ export const ApplicationPage = ({ onBackHome }) => {
             </span>
           </a>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={handleOpenSea}
+              className="pixel-btn pixel-btn-black px-2 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold text-white hover:text-[#00FF66] border-2 border-[#333] hover:border-[#00FF66] flex items-center gap-1 rounded-lg"
+            >
+              <span>[ OPENSEA ]</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleApebroke}
+              className="pixel-btn pixel-btn-black px-2 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold text-[#FFD700] border-2 border-[#FFD700] hover:bg-[#FFD700] hover:text-black flex items-center gap-1 rounded-lg"
+            >
+              <span>[ $APEBROKE ]</span>
+            </button>
+
             <button
               type="button"
               onClick={handleFollowX}
-              className="pixel-btn pixel-btn-black px-3 py-1.5 text-[9px] sm:text-xs font-bold text-white border-2 border-[#333] hover:border-[#00FF66] flex items-center gap-1.5 rounded-lg"
+              className="pixel-btn pixel-btn-black px-2 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold text-white border-2 border-[#333] hover:border-[#00FF66] flex items-center gap-1 rounded-lg"
             >
               <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
               </svg>
-              <span>[ OFFICIAL X ]</span>
+              <span className="hidden sm:inline">[ OFFICIAL X ]</span>
+              <span className="sm:hidden">[ X ]</span>
             </button>
 
             <button
               type="button"
               onClick={handleHome}
-              className="pixel-btn pixel-btn-lime px-3 py-1.5 text-[9px] sm:text-xs font-extrabold text-black flex items-center gap-1.5 rounded-lg"
+              className="pixel-btn pixel-btn-lime px-2 sm:px-3 py-1.5 text-[9px] sm:text-xs font-extrabold text-black flex items-center gap-1 rounded-lg"
             >
               <span>🏠</span>
-              <span>[ HOME ]</span>
+              <span className="hidden sm:inline">[ HOME ]</span>
             </button>
           </div>
         </div>
@@ -340,9 +367,15 @@ export const ApplicationPage = ({ onBackHome }) => {
               <span className="font-mono text-[10px] sm:text-xs text-black bg-[#00FF66] px-2.5 py-0.5 font-extrabold rounded">
                 SPOTS: {claimedCount} / {totalSpots.toLocaleString()} CLAIMED
               </span>
-              <span className="font-mono text-[10px] sm:text-xs text-[#FFD700] bg-[#1a1500] px-2 py-0.5 border border-[#443800] rounded">
-                ~$${Number(tokenPrice).toFixed(8)}
-              </span>
+              <a
+                href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View $APEBROKE on Let's Cash"
+                className="font-mono text-[10px] sm:text-xs text-[#FFD700] bg-[#1a1500] px-2 py-0.5 border border-[#443800] rounded hover:border-[#FFD700] hover:text-white transition-colors"
+              >
+                ~$${Number(tokenPrice).toFixed(8)} ↗
+              </a>
             </div>
           </div>
 
@@ -556,12 +589,12 @@ export const ApplicationPage = ({ onBackHome }) => {
                         <div className="bg-black/70 border border-[#333] p-2 rounded text-[11px] text-gray-300 flex items-center justify-between">
                           <span>💡 <em>Tip: Hold ≥ $1.00 in tokens or 1 NFT to get Guaranteed (GTD) mint!</em></span>
                           <a
-                            href="https://dexscreener.com/robinhood/0x67c0c7602a27ad284792d19d159750f260c78c776ce0e5666856533e493c55ae"
+                            href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-[#FFD700] hover:underline shrink-0 ml-2 font-bold"
                           >
-                            [ BUY $APEBROKERS ]
+                            [ BUY $APEBROKE ]
                           </a>
                         </div>
                       )}
@@ -736,12 +769,12 @@ export const ApplicationPage = ({ onBackHome }) => {
                   </p>
                   <div className="pt-1">
                     <a
-                      href="https://dexscreener.com/robinhood/0x67c0c7602a27ad284792d19d159750f260c78c776ce0e5666856533e493c55ae"
+                      href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-[#FFD700] hover:underline font-bold text-[11px]"
                     >
-                      🛒 [ BUY $APEBROKERS TO QUALIFY FOR GTD ] →
+                      🛒 [ BUY $APEBROKE ON LET'S CASH TO QUALIFY FOR GTD ] →
                     </a>
                   </div>
                 </div>

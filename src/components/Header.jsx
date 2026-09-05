@@ -7,6 +7,16 @@ export const Header = () => {
     window.open('https://x.com/Apesyndicates', '_blank', 'noopener,noreferrer');
   };
 
+  const handleOpenSea = () => {
+    sound?.playClick?.();
+    window.open('https://opensea.io/collection/apesyndicate-212388086', '_blank', 'noopener,noreferrer');
+  };
+
+  const handleApebroke = () => {
+    sound?.playClick?.();
+    window.open('https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc', '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full bg-[#00FF66] border-b-4 border-black px-3 sm:px-8 py-2.5 sm:py-3.5 select-none">
       <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
@@ -22,18 +32,37 @@ export const Header = () => {
           </span>
         </a>
 
-        {/* Right: Clean Navigation Buttons with SVG Icons */}
+        {/* Right: Clean Navigation Buttons */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={handleOpenSea}
+            aria-label="OpenSea Collection"
+            className="pixel-btn pixel-btn-black px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[9px] sm:text-xs whitespace-nowrap font-bold text-white hover:text-[#00FF66] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] border-2 border-black flex items-center gap-1 rounded-lg"
+          >
+            <span>[ OPENSEA ]</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleApebroke}
+            aria-label="Buy $APEBROKE"
+            className="pixel-btn pixel-btn-black px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[9px] sm:text-xs whitespace-nowrap font-bold text-[#FFD700] hover:bg-[#FFD700] hover:text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] border-2 border-black flex items-center gap-1 rounded-lg"
+          >
+            <span>[ $APEBROKE ]</span>
+          </button>
+
           <button
             type="button"
             onClick={handleFollowX}
             aria-label="Official X"
-            className="pixel-btn pixel-btn-black px-3 sm:px-4 py-1.5 sm:py-2 text-[9px] sm:text-xs whitespace-nowrap font-extrabold text-[#00FF66] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] border-2 border-black flex items-center gap-1.5 rounded-lg"
+            className="pixel-btn pixel-btn-black px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[9px] sm:text-xs whitespace-nowrap font-extrabold text-[#00FF66] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] border-2 border-black flex items-center gap-1.5 rounded-lg"
           >
             <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
             </svg>
-            <span>[ OFFICIAL X ]</span>
+            <span className="hidden sm:inline">[ OFFICIAL X ]</span>
+            <span className="sm:hidden">[ X ]</span>
           </button>
         </div>
       </div>

@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { sound } from '../utils/audio';
 import { TypewriterText } from './TypewriterText';
 
 export const Hero = ({ onApplyClick }) => {
-  const [collectionText, setCollectionText] = useState('[ OPENSEA ]');
   const mintPrice = '0.0016 ETH';
 
   const handleOpenSea = () => {
     sound?.playClick?.();
-    setCollectionText('[ COMING SOON ]');
-    setTimeout(() => {
-      setCollectionText('[ OPENSEA ]');
-    }, 2500);
+    window.open('https://opensea.io/collection/apesyndicate-212388086', '_blank', 'noopener,noreferrer');
+  };
+
+  const handleApebroke = () => {
+    sound?.playClick?.();
+    window.open('https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc', '_blank', 'noopener,noreferrer');
   };
 
   const handleApply = () => {
@@ -71,7 +72,7 @@ export const Hero = ({ onApplyClick }) => {
         </div>
 
         {/* Action / Navigation Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 sm:gap-4 w-full sm:w-auto pt-2">
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto pt-2">
           <button
             type="button"
             onClick={handleApply}
@@ -83,13 +84,17 @@ export const Hero = ({ onApplyClick }) => {
           <button
             type="button"
             onClick={handleOpenSea}
-            className={`w-full sm:w-auto min-h-[52px] pixel-btn px-8 py-3.5 font-pixel text-xs sm:text-sm font-bold transition-all ${
-              collectionText.includes('SOON')
-                ? 'pixel-btn-black text-[#FFD700] border-[#FFD700]'
-                : 'pixel-btn-black text-white'
-            }`}
+            className="w-full sm:w-auto min-h-[52px] pixel-btn pixel-btn-black px-6 py-3.5 font-pixel text-xs sm:text-sm font-bold text-white hover:text-[#00FF66] transition-all border-2 border-black hover:border-[#00FF66] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
           >
-            {collectionText}
+            [ OPENSEA ]
+          </button>
+
+          <button
+            type="button"
+            onClick={handleApebroke}
+            className="w-full sm:w-auto min-h-[52px] pixel-btn pixel-btn-black px-6 py-3.5 font-pixel text-xs sm:text-sm font-bold text-[#FFD700] hover:bg-[#FFD700] hover:text-black transition-all border-2 border-[#FFD700] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+          >
+            [ $APEBROKE ]
           </button>
         </div>
       </div>
