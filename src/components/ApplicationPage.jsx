@@ -434,20 +434,20 @@ export const ApplicationPage = ({ onBackHome }) => {
                     <span>APPLICATIONS OPEN FOR EVERYONE</span>
                   </div>
                   <p className="font-mono text-xs text-gray-300 leading-relaxed">
-                    Anyone can apply for the 9,000 whitelist spots. Guaranteed (GTD) mint spots are awarded based on holding volume:
+                    Anyone can apply for the 9,000 whitelist spots. Wallets holding both $1.00+ in tokens and 1 ApeSyndicate NFT unlock a 5% chance to win Guaranteed (GTD) mint:
                   </p>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
                     <div className="bg-black/70 border border-[#00FF66]/50 p-2.5 rounded">
                       <div className="text-[#FFD700] font-bold flex items-center gap-1.5">
                         <span className="text-[#FFD700]">[GTD]</span>
-                        <span>GUARANTEED (GTD) MINT</span>
+                        <span>GUARANTEED (GTD) - 5% WIN CHANCE</span>
                       </div>
                       <div className="text-gray-300 mt-1">
-                        Hold <strong>≥ $1.00 USD of $APEBROKERS</strong> OR <strong>≥ 1 ApeSyndicate NFT</strong>.
+                        Hold <strong>≥ $1.00 USD of $APEBROKERS + ≥ 1 ApeSyndicate NFT</strong>.
                       </div>
                       <div className="text-[#00FF66] text-[10px] mt-1 font-semibold">
-                        [✓] Directly Eligible For Mint!
+                        [✓] Unlocks 5% chance from 9,000 spots for GTD mint!
                       </div>
                     </div>
 
@@ -457,7 +457,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                         <span>STANDARD WHITELIST (WL)</span>
                       </div>
                       <div className="text-gray-400 mt-1">
-                        For non-holders or wallets holding under $1.00 in tokens.
+                        For non-holders or entries without both $1 tokens and 1 NFT.
                       </div>
                       <div className="text-gray-400 text-[10px] mt-1">
                         [•] Entered into Whitelist Review
@@ -552,8 +552,10 @@ export const ApplicationPage = ({ onBackHome }) => {
                             verificationResult.isGtd ? 'text-[#00FF66]' : 'text-gray-200'
                           }`}>
                             {verificationResult.isGtd
-                              ? '[GTD] GUARANTEED - DIRECTLY ELIGIBLE FOR MINT!'
-                              : '[WL] STANDARD WHITELIST APPLICATION'}
+                              ? '[GTD] 5% LUCKY WINNER - GUARANTEED GTD ALLOCATION!'
+                              : verificationResult.qualifiesForGtdDraw
+                                ? '[WL] 5% DRAW ENTERED - STANDARD WL SECURED'
+                                : '[WL] STANDARD WHITELIST APPLICATION'}
                           </span>
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded font-pixel ${
@@ -573,7 +575,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                             {Number(verificationResult.tokenBalance).toLocaleString(undefined, { maximumFractionDigits: 2 })} tokens
                           </div>
                           <div className={verificationResult.hasMinToken ? 'text-[#00FF66] font-bold' : 'text-gray-400'}>
-                            ≈ ${Number(verificationResult.tokenUsd).toFixed(2)} USD {verificationResult.hasMinToken ? '(≥ $1.00 GTD Qualified!)' : ''}
+                            ≈ ${Number(verificationResult.tokenUsd).toFixed(2)} USD {verificationResult.hasMinToken ? '(≥ $1.00 ✓)' : '(Needs ≥ $1.00)'}
                           </div>
                         </div>
 
@@ -582,25 +584,31 @@ export const ApplicationPage = ({ onBackHome }) => {
                           <div className="text-white font-bold">
                             {verificationResult.nftBalance} NFT{verificationResult.nftBalance !== 1 ? 's' : ''} owned
                           </div>
-                          <div className={verificationResult.hasNft ? 'text-[#FFD700] font-bold' : 'text-gray-500'}>
-                            {verificationResult.hasNft ? '(≥ 1 NFT GTD Qualified!)' : '0 NFTs'}
+                          <div className={verificationResult.hasMinNft ? 'text-[#FFD700] font-bold' : 'text-gray-500'}>
+                            {verificationResult.hasMinNft ? '(≥ 1 NFT ✓)' : '(Needs ≥ 1 NFT)'}
                           </div>
                         </div>
                       </div>
 
-                      {!verificationResult.isGtd && (
-                        <div className="bg-black/70 border border-[#333] p-2 rounded text-[11px] text-gray-300 flex items-center justify-between">
-                          <span><em>TIP: Hold ≥ $1.00 in tokens or 1 NFT to get Guaranteed (GTD) mint!</em></span>
+                      <div className="bg-black/70 border border-[#333] p-2 rounded text-[11px] text-gray-300 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                        <span>
+                          {verificationResult.qualifiesForGtdDraw
+                            ? (verificationResult.isGtd
+                                ? 'CONGRATULATIONS! Your wallet won the 5% GTD allocation draw!'
+                                : 'Wallet holds $1+ tokens & 1 NFT (5% draw entered). Assigned Standard WL.')
+                            : 'TIP: Hold ≥ $1.00 in $APEBROKER + 1 NFT to enter 5% GTD win chance!'}
+                        </span>
+                        {!verificationResult.hasMinToken && (
                           <a
                             href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-[#FFD700] hover:underline shrink-0 ml-2 font-bold"
+                            className="text-[#FFD700] hover:underline shrink-0 font-bold"
                           >
                             [ BUY $APEBROKE ]
                           </a>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -709,7 +717,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                 <h2 className={`font-pixel text-lg sm:text-xl font-extrabold ${
                   submittedData?.isGtd ? 'text-[#00FF66]' : 'text-white'
                 }`}>
-                  {submittedData?.isGtd ? 'GUARANTEED (GTD) ALLOCATION CONFIRMED!' : 'APPLICATION RECEIVED'}
+                  {submittedData?.isGtd ? 'GUARANTEED (GTD) ALLOCATION CONFIRMED! (5% WINNER)' : 'APPLICATION RECEIVED'}
                 </h2>
               </div>
 
@@ -724,8 +732,10 @@ export const ApplicationPage = ({ onBackHome }) => {
                   <span className="text-gray-400">STATUS:</span>
                   <span className={submittedData?.isGtd ? 'text-[#00FF66] font-bold' : 'text-gray-200 font-bold'}>
                     {submittedData?.isGtd
-                      ? 'GUARANTEED (GTD) - DIRECTLY ELIGIBLE FOR MINT'
-                      : 'STANDARD WHITELIST (WL) - UNDER REVIEW'}
+                      ? 'GUARANTEED (GTD) - 5% DRAW WINNER!'
+                      : submittedData?.verificationResult?.qualifiesForGtdDraw
+                        ? 'STANDARD WHITELIST (WL) - 5% DRAW ENTERED'
+                        : 'STANDARD WHITELIST (WL) - UNDER REVIEW'}
                   </span>
                 </div>
 
@@ -754,10 +764,10 @@ export const ApplicationPage = ({ onBackHome }) => {
                 <div className="bg-[#051c0d] border-2 border-[#00FF66] p-4 rounded-lg text-left font-mono text-xs space-y-2 text-[#00FF66]">
                   <div className="font-pixel text-xs text-[#00FF66] font-extrabold flex items-center gap-1.5">
                     <span className="w-2 h-2 bg-[#00FF66] rounded-full inline-block" />
-                    <span>GUARANTEED (GTD) SPOT SECURED</span>
+                    <span>GUARANTEED (GTD) SPOT SECURED (5% WINNER)</span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-gray-300">
-                    Your allocation has been verified and registered on Robinhood Chain. Your wallet is <strong className="text-white">directly eligible for the upcoming Guaranteed (GTD) mint</strong>!
+                    Your holdings of ≥ $1.00 in $APEBROKERS + 1 ApeSyndicate NFT entered the 5% allocation draw and <strong className="text-white">successfully won a Guaranteed (GTD) mint spot</strong>!
                   </p>
                 </div>
               ) : (
@@ -768,7 +778,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                     <span>APPLICATION IN REVIEW QUEUE</span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-gray-400">
-                    Your application has been received for the Standard Whitelist. Wallets holding at least <strong>$1.00 USD in $APEBROKERS tokens</strong> or <strong>1 ApeSyndicate NFT</strong> on Robinhood Chain receive <strong>Guaranteed (GTD) mint eligibility directly</strong>.
+                    Your application has been received for the Standard Whitelist. Wallets holding at least <strong>$1.00 USD in $APEBROKERS tokens + 1 ApeSyndicate NFT</strong> on Robinhood Chain receive a <strong>5% chance from 9,000 spots to win Guaranteed (GTD) mint</strong>.
                   </p>
                   <div className="pt-1">
                     <a

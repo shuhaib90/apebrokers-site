@@ -8,6 +8,8 @@ export const NFT_CONTRACT = '0x5b9ca37d499eace8f526320d6edea10fb73d4ec6';
 
 export const TOTAL_SPOTS = 9000;
 
+export const GTD_WIN_RATE_PERCENT = 5; // 5% chance to win GTD from 9,000 spots
+
 const ROBINHOOD_RPCS = [
   'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY',
 ];
@@ -64,20 +66,10 @@ function padAddress(addr) {
 
 /**
  * Verify wallet holdings on Robinhood Chain
- * Returns: {
- *   isEligible: boolean, // true for everyone with a valid address
- *   tokenBalance: number,
- *   tokenUsd: number,
- *   nftBalance: number,
- *   hasNft: boolean,
- *   hasToken: boolean,
- *   hasMinToken: boolean, // >= $1.00 USD
- *   isGtd: boolean, // true if holding >= $1 USD tokens OR >= 1 NFT
- *   tier: 'GOLDEN_GTD' | 'STANDARD_WL',
- *   tierLabel: string,
- *   tokenPrice: number,
- *   error?: string
- * }
+ * Rule: Everyone can apply.
+ * GTD Allocation (from 9,000 spots):
+ * If wallet holds >= $1.00 USD in $APEBROKERS AND >= 1 ApeSyndicate NFT:
+ * 5% chance to win a Guaranteed (GTD) mint spot.
  */
 export async function verifyHolderStatus(walletAddress) {
   const clean = (walletAddress || '').trim().toLowerCase();
@@ -118,13 +110,24 @@ export async function verifyHolderStatus(walletAddress) {
     const tokenUsd = tokenBalance * tokenPrice;
     const hasToken = tokenBalance > 0;
     const hasNft = nftBalance > 0;
-    const hasMinToken = tokenUsd >= 1.0; // Min $1.00 USD for GTD
+    const hasMinToken = tokenUsd >= 1.0; // Min $1.00 USD in tokens
+    const hasMinNft = nftBalance >= 1;   // Min 1 ApeSyndicate NFT
+    const qualifiesForGtdDraw = hasMinToken && hasMinNft; // Must hold BOTH $1+ token + 1 NFT
 
-    // Qualified for GTD if holding >= $1.00 in tokens OR >= 1 NFT
-    const isGtd = hasMinToken || hasNft;
+    // Deterministic 0-99 roll based on wallet address hash
+    let roll = 0;
+    for (let i = 0; i < clean.length; i++) {
+      roll = (roll * 31 + clean.charCodeAt(i)) % 100;
+    }
+    const winRoll = roll;
+    const isGtd = qualifiesForGtdDraw && winRoll < GTD_WIN_RATE_PERCENT; // 5% chance
 
     const tier = isGtd ? 'GOLDEN_GTD' : 'STANDARD_WL';
-    const tierLabel = isGtd ? 'GUARANTEED (GTD) - DIRECTLY ELIGIBLE FOR MINT' : 'STANDARD WHITELIST (WL)';
+    const tierLabel = isGtd
+      ? 'GUARANTEED (GTD) - 5% LUCKY WINNER!'
+      : qualifiesForGtdDraw
+        ? 'STANDARD WHITELIST (WL) - 5% DRAW ENTERED'
+        : 'STANDARD WHITELIST (WL)';
 
     return {
       isEligible: true, // Everyone can apply
@@ -134,6 +137,9 @@ export async function verifyHolderStatus(walletAddress) {
       hasNft,
       hasToken,
       hasMinToken,
+      hasMinNft,
+      qualifiesForGtdDraw,
+      winRoll,
       isGtd,
       tier,
       tierLabel,
@@ -141,7 +147,6 @@ export async function verifyHolderStatus(walletAddress) {
     };
   } catch (err) {
     console.error('Error verifying holder status:', err);
-    // If RPC fails, allow standard application submission anyway!
     return {
       isEligible: true,
       tokenBalance: 0,
@@ -150,6 +155,9 @@ export async function verifyHolderStatus(walletAddress) {
       hasNft: false,
       hasToken: false,
       hasMinToken: false,
+      hasMinNft: false,
+      qualifiesForGtdDraw: false,
+      winRoll: 99,
       isGtd: false,
       tier: 'STANDARD_WL',
       tierLabel: 'STANDARD WHITELIST (WL)',
