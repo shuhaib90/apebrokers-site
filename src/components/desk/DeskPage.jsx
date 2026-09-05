@@ -12,6 +12,7 @@ export function DeskPage({ onBackHome }) {
     address,
     isConnected,
     isCorrectChain,
+    isScanningNfts,
     switchChain,
     isLoading,
     globalStats,
@@ -29,6 +30,9 @@ export function DeskPage({ onBackHome }) {
     adminClaimFees,
     adminDepositRewards,
   } = useApeBrokerDesk();
+
+  // Pagination for user desks
+  const [visibleCount, setVisibleCount] = useState(12);
 
   // Modals state
   const [actionModal, setActionModal] = useState({
@@ -414,10 +418,23 @@ export function DeskPage({ onBackHome }) {
 
         {/* Desks Grid */}
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs sm:text-sm font-extrabold text-white tracking-wider">
-              YOUR MONITORED DESKS ({userDesks.length})
-            </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-xs sm:text-sm font-extrabold text-white tracking-wider">
+                YOUR MONITORED DESKS ({userDesks.length})
+              </h3>
+              {userDesks.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#052b16] border border-[#00FF66] text-[#00FF66] text-[9px] font-mono rounded">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00FF66] animate-pulse" />
+                  AUTO-DETECTED FROM WALLET
+                </span>
+              )}
+              {isScanningNfts && (
+                <span className="text-[10px] text-cyan-400 font-mono animate-pulse">
+                  (Scanning Robinhood...)
+                </span>
+              )}
+            </div>
             <button
               type="button"
               onClick={() => {
@@ -438,7 +455,7 @@ export function DeskPage({ onBackHome }) {
                 CONNECT ROBINHOOD EVM WALLET TO ACCESS DESKS
               </div>
               <p className="text-xs font-mono text-gray-400 max-w-md mx-auto">
-                Each Ape Broker NFT represents 1 Desk. Connect your wallet to activate desks, apply boosts (2x to 10x max), and collect 5-hour ETH rewards.
+                Each Ape Broker NFT represents 1 Desk. Connect your wallet to auto-detect your NFTs, activate desks, apply boosts (2x to 10x max), and collect 5-hour ETH rewards.
               </p>
               <div className="pt-2 flex justify-center">
                 <ConnectButton />
@@ -447,34 +464,39 @@ export function DeskPage({ onBackHome }) {
           ) : userDesks.length === 0 ? (
             <div className="bg-[#10072b] border-2 border-dashed border-purple-800/80 rounded-xl p-8 text-center space-y-3">
               <div className="text-sm font-bold text-gray-300">
-                NO APE BROKER NFTS DISCOVERED IN CONNECTED WALLET
+                {isScanningNfts
+                  ? 'AUTO-DETECTING APE BROKER NFTS FROM CONNECTED WALLET...'
+                  : 'NO APE BROKER NFTS FOUND IN THIS WALLET'}
               </div>
               <p className="text-xs font-mono text-gray-400 max-w-lg mx-auto">
-                Use the search box above to manually enter your Ape Broker NFT Token ID (e.g. #1 to #5555) to activate and boost your Desk.
+                {isScanningNfts
+                  ? 'Scanning Robinhood EVM blockchain records...'
+                  : 'If you recently received your NFT, enter its Token ID (#1 - #5555) in the search box above to load it directly.'}
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {userDesks.map((desk) => {
-                const isActive = desk.active;
-                const boostCount = desk.boostCount || 0;
-                const weight = desk.currentWeight || 100;
-                const nextCostFormatted = desk.nextBoostCost
-                  ? Number(formatEther(desk.nextBoostCost)).toLocaleString()
-                  : '0';
-                const pendingEthFormatted = Number(
-                  formatEther(desk.pendingRewardsEth || 0n)
-                ).toFixed(6);
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {userDesks.slice(0, visibleCount).map((desk) => {
+                  const isActive = desk.active;
+                  const boostCount = desk.boostCount || 0;
+                  const weight = desk.currentWeight || 100;
+                  const nextCostFormatted = desk.nextBoostCost
+                    ? Number(formatEther(desk.nextBoostCost)).toLocaleString()
+                    : '0';
+                  const pendingEthFormatted = Number(
+                    formatEther(desk.pendingRewardsEth || 0n)
+                  ).toFixed(6);
 
-                return (
-                  <div
-                    key={desk.tokenId}
-                    className={`relative bg-[#100729]/95 border-3 rounded-xl p-4 sm:p-5 flex flex-col justify-between space-y-4 shadow-[5px_5px_0px_#000] transition-all ${
-                      isActive
-                        ? 'border-[#00FF66] shadow-[0_0_15px_rgba(0,255,102,0.15)]'
-                        : 'border-purple-800/70 hover:border-purple-600'
-                    }`}
-                  >
+                  return (
+                    <div
+                      key={desk.tokenId}
+                      className={`relative bg-[#100729]/95 border-3 rounded-xl p-4 sm:p-5 flex flex-col justify-between space-y-4 shadow-[5px_5px_0px_#000] transition-all ${
+                        isActive
+                          ? 'border-[#00FF66] shadow-[0_0_15px_rgba(0,255,102,0.15)]'
+                          : 'border-purple-800/70 hover:border-purple-600'
+                      }`}
+                    >
                     {/* Card Header */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -604,7 +626,35 @@ export function DeskPage({ onBackHome }) {
                   </div>
                 );
               })}
-            </div>
+              </div>
+
+              {/* Pagination / Load More Controls */}
+              {userDesks.length > visibleCount && (
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4 font-mono">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound?.playClick?.();
+                      setVisibleCount((prev) => prev + 12);
+                    }}
+                    className="pixel-btn pixel-btn-vibrant-cyan px-5 py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000]"
+                  >
+                    [ LOAD MORE DESKS (+12) ]
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound?.playClick?.();
+                      setVisibleCount(userDesks.length);
+                    }}
+                    className="pixel-btn pixel-btn-black px-5 py-2.5 text-xs font-bold text-gray-300 hover:text-white rounded-lg border border-purple-800"
+                  >
+                    [ SHOW ALL ({userDesks.length}) DESKS ]
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </section>
 

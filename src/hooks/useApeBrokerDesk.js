@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAccount, usePublicClient, useWalletClient, useSwitchChain } from 'wagmi';
-import { formatEther, parseEther, formatUnits, parseUnits } from 'viem';
+import { formatEther, parseEther } from 'viem';
 import deskDeployConfig from '../config/apeBrokerDesk.json';
 import { robinhoodChain } from '../providers/Web3Provider';
 import {
@@ -24,6 +24,8 @@ export const APE_BROKER_NFT_ADDRESS =
   import.meta.env.VITE_APE_BROKER_NFT_ADDRESS ||
   deskDeployConfig.apeBrokerNftAddress ||
   '0x5b9ca37d499eace8f526320d6edea10fb73d4ec6';
+
+export const ALCHEMY_API_KEY = 'alch_008u8jC_qTSIJvqgLbdGY';
 
 export const ACTIVATION_FEE_RAW = 349693n * 10n ** 18n;
 
@@ -84,6 +86,83 @@ export const ERC721_ABI = [
   },
 ];
 
+/**
+ * Auto-detect user's Ape Broker NFTs using Alchemy NFT API on Robinhood Chain
+ */
+export async function fetchOwnedNftsFromAlchemy(ownerAddress) {
+  if (!ownerAddress) return [];
+  try {
+    const url = `https://robinhood-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_API_KEY}/getNFTsForOwner?owner=${ownerAddress}&contractAddresses[]=${APE_BROKER_NFT_ADDRESS}&withMetadata=true`;
+    const res = await fetch(url).then((r) => r.json());
+    if (res && res.ownedNfts && Array.isArray(res.ownedNfts)) {
+      return res.ownedNfts.map((n) => ({
+        tokenId: Number(n.tokenId),
+        name: n.name || `Ape Broker #${n.tokenId}`,
+        image:
+          n.image?.cachedUrl ||
+          n.image?.thumbnailUrl ||
+          `/gifs/${(Number(n.tokenId) % 100) + 1}.gif`,
+      }));
+    }
+  } catch (err) {
+    console.warn('Alchemy NFT fetch note:', err);
+  }
+  return [];
+}
+
+/**
+ * Direct RPC queries for balances as resilient fallback
+ */
+async function fetchDirectBalances(ownerAddress) {
+  const rpc =
+    import.meta.env.VITE_ROBINHOOD_RPC_URL ||
+    'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY';
+  try {
+    const [ethRes, tokenRes] = await Promise.all([
+      fetch(rpc, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'eth_getBalance',
+          params: [ownerAddress, 'latest'],
+        }),
+      })
+        .then((r) => r.json())
+        .catch(() => ({})),
+      fetch(rpc, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 2,
+          method: 'eth_call',
+          params: [
+            {
+              to: APEBROKE_TOKEN_ADDRESS,
+              data:
+                '0x70a08231' +
+                ownerAddress.toLowerCase().replace('0x', '').padStart(64, '0'),
+            },
+            'latest',
+          ],
+        }),
+      })
+        .then((r) => r.json())
+        .catch(() => ({})),
+    ]);
+
+    const ethBal =
+      ethRes.result && ethRes.result !== '0x' ? BigInt(ethRes.result) : 0n;
+    const tokenBal =
+      tokenRes.result && tokenRes.result !== '0x' ? BigInt(tokenRes.result) : 0n;
+    return { ethBal, tokenBal };
+  } catch (err) {
+    return { ethBal: 0n, tokenBal: 0n };
+  }
+}
+
 export function useApeBrokerDesk() {
   const { address, isConnected, chain } = useAccount();
   const publicClient = usePublicClient();
@@ -91,6 +170,7 @@ export function useApeBrokerDesk() {
   const { switchChain } = useSwitchChain();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isScanningNfts, setIsScanningNfts] = useState(false);
   const [error, setError] = useState(null);
 
   // Global Protocol State
@@ -122,11 +202,15 @@ export function useApeBrokerDesk() {
   const [userDesks, setUserDesks] = useState([]);
   const [trackedTokenIds, setTrackedTokenIds] = useState([]);
 
-  // Check if connected to correct chain
+  // Check if connected to correct chain (supports 4663, 4689, 31337, or chain name match)
   const isCorrectChain =
-    chain?.id === robinhoodChain.id ||
+    !chain ||
+    chain?.id === 4663 ||
+    chain?.id === 4689 ||
     chain?.id === 31337 ||
-    chain?.id === 4689;
+    chain?.id === 1337 ||
+    chain?.id === robinhoodChain.id ||
+    chain?.name?.toLowerCase().includes('robinhood');
 
   /**
    * Refetch Global Protocol Stats
@@ -147,61 +231,83 @@ export function useApeBrokerDesk() {
         baseBoostCost,
         contractOwner,
       ] = await Promise.all([
-        publicClient.readContract({
-          address: DESK_CONTRACT_ADDRESS,
-          abi: deskDeployConfig.abi,
-          functionName: 'totalEligibleWeight',
-        }).catch(() => 0n),
-        publicClient.readContract({
-          address: DESK_CONTRACT_ADDRESS,
-          abi: deskDeployConfig.abi,
-          functionName: 'getRewardPoolBalance',
-        }).catch(() => 0n),
-        publicClient.readContract({
-          address: DESK_CONTRACT_ADDRESS,
-          abi: deskDeployConfig.abi,
-          functionName: 'getProtocolFeeBalance',
-        }).catch(() => 0n),
-        publicClient.readContract({
-          address: DESK_CONTRACT_ADDRESS,
-          abi: deskDeployConfig.abi,
-          functionName: 'currentEpoch',
-        }).catch(() => 0n),
-        publicClient.readContract({
-          address: DESK_CONTRACT_ADDRESS,
-          abi: deskDeployConfig.abi,
-          functionName: 'timeUntilNextEpoch',
-        }).catch(() => 0n),
-        publicClient.readContract({
-          address: DESK_CONTRACT_ADDRESS,
-          abi: deskDeployConfig.abi,
-          functionName: 'totalEthRewardsDeposited',
-        }).catch(() => 0n),
-        publicClient.readContract({
-          address: DESK_CONTRACT_ADDRESS,
-          abi: deskDeployConfig.abi,
-          functionName: 'totalEthRewardsClaimed',
-        }).catch(() => 0n),
-        publicClient.readContract({
-          address: DESK_CONTRACT_ADDRESS,
-          abi: deskDeployConfig.abi,
-          functionName: 'totalBoostFeesCollected',
-        }).catch(() => 0n),
-        publicClient.readContract({
-          address: DESK_CONTRACT_ADDRESS,
-          abi: deskDeployConfig.abi,
-          functionName: 'baseDeskWeight',
-        }).catch(() => 100n),
-        publicClient.readContract({
-          address: DESK_CONTRACT_ADDRESS,
-          abi: deskDeployConfig.abi,
-          functionName: 'baseBoostCost',
-        }).catch(() => 349693n * 10n ** 18n),
-        publicClient.readContract({
-          address: DESK_CONTRACT_ADDRESS,
-          abi: deskDeployConfig.abi,
-          functionName: 'owner',
-        }).catch(() => null),
+        publicClient
+          .readContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
+            functionName: 'totalEligibleWeight',
+          })
+          .catch(() => 0n),
+        publicClient
+          .readContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
+            functionName: 'getRewardPoolBalance',
+          })
+          .catch(() => 0n),
+        publicClient
+          .readContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
+            functionName: 'getProtocolFeeBalance',
+          })
+          .catch(() => 0n),
+        publicClient
+          .readContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
+            functionName: 'currentEpoch',
+          })
+          .catch(() => 0n),
+        publicClient
+          .readContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
+            functionName: 'timeUntilNextEpoch',
+          })
+          .catch(() => 0n),
+        publicClient
+          .readContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
+            functionName: 'totalEthRewardsDeposited',
+          })
+          .catch(() => 0n),
+        publicClient
+          .readContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
+            functionName: 'totalEthRewardsClaimed',
+          })
+          .catch(() => 0n),
+        publicClient
+          .readContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
+            functionName: 'totalBoostFeesCollected',
+          })
+          .catch(() => 0n),
+        publicClient
+          .readContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
+            functionName: 'baseDeskWeight',
+          })
+          .catch(() => 100n),
+        publicClient
+          .readContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
+            functionName: 'baseBoostCost',
+          })
+          .catch(() => 349693n * 10n ** 18n),
+        publicClient
+          .readContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
+            functionName: 'owner',
+          })
+          .catch(() => null),
       ]);
 
       const isAdmin =
@@ -228,10 +334,10 @@ export function useApeBrokerDesk() {
   }, [publicClient, address]);
 
   /**
-   * Refetch User Balances & Desks
+   * Refetch User Balances & Auto-detect Owned Desks
    */
   const refetchUserData = useCallback(async () => {
-    if (!publicClient || !address) {
+    if (!address) {
       setUserDesks([]);
       setUserBalances({
         apeBrokeBalance: 0n,
@@ -243,36 +349,66 @@ export function useApeBrokerDesk() {
       return;
     }
 
+    setIsScanningNfts(true);
+
     try {
-      // 1. Read User Balances
-      const [apeBrokeBal, ethBal, allowance, activeDeskCount, historicalClaimable] =
-        await Promise.all([
-          publicClient.readContract({
-            address: APEBROKE_TOKEN_ADDRESS,
-            abi: ERC20_ABI,
-            functionName: 'balanceOf',
-            args: [address],
-          }).catch(() => 0n),
-          publicClient.getBalance({ address }).catch(() => 0n),
-          publicClient.readContract({
-            address: APEBROKE_TOKEN_ADDRESS,
-            abi: ERC20_ABI,
-            functionName: 'allowance',
-            args: [address, DESK_CONTRACT_ADDRESS],
-          }).catch(() => 0n),
-          publicClient.readContract({
-            address: DESK_CONTRACT_ADDRESS,
-            abi: deskDeployConfig.abi,
-            functionName: 'getActiveDeskCount',
-            args: [address],
-          }).catch(() => 0n),
-          publicClient.readContract({
-            address: DESK_CONTRACT_ADDRESS,
-            abi: deskDeployConfig.abi,
-            functionName: 'userClaimableRewards',
-            args: [address],
-          }).catch(() => 0n),
-        ]);
+      // 1. Fetch Balances via publicClient and direct RPC fallback
+      const directBalances = await fetchDirectBalances(address);
+
+      let apeBrokeBal = directBalances.tokenBal;
+      let ethBal = directBalances.ethBal;
+      let allowance = 0n;
+      let activeDeskCount = 0n;
+      let historicalClaimable = 0n;
+
+      if (publicClient) {
+        try {
+          const [cTokenBal, cEthBal, cAllowance, cActiveCount, cHistorical] =
+            await Promise.all([
+              publicClient
+                .readContract({
+                  address: APEBROKE_TOKEN_ADDRESS,
+                  abi: ERC20_ABI,
+                  functionName: 'balanceOf',
+                  args: [address],
+                })
+                .catch(() => directBalances.tokenBal),
+              publicClient.getBalance({ address }).catch(() => directBalances.ethBal),
+              publicClient
+                .readContract({
+                  address: APEBROKE_TOKEN_ADDRESS,
+                  abi: ERC20_ABI,
+                  functionName: 'allowance',
+                  args: [address, DESK_CONTRACT_ADDRESS],
+                })
+                .catch(() => 0n),
+              publicClient
+                .readContract({
+                  address: DESK_CONTRACT_ADDRESS,
+                  abi: deskDeployConfig.abi,
+                  functionName: 'getActiveDeskCount',
+                  args: [address],
+                })
+                .catch(() => 0n),
+              publicClient
+                .readContract({
+                  address: DESK_CONTRACT_ADDRESS,
+                  abi: deskDeployConfig.abi,
+                  functionName: 'userClaimableRewards',
+                  args: [address],
+                })
+                .catch(() => 0n),
+            ]);
+
+          apeBrokeBal = cTokenBal || directBalances.tokenBal;
+          ethBal = cEthBal || directBalances.ethBal;
+          allowance = cAllowance;
+          activeDeskCount = cActiveCount;
+          historicalClaimable = cHistorical;
+        } catch (e) {
+          // Keep direct RPC balances
+        }
+      }
 
       setUserBalances({
         apeBrokeBalance: apeBrokeBal,
@@ -282,116 +418,134 @@ export function useApeBrokerDesk() {
         historicalClaimableEth: historicalClaimable,
       });
 
-      // 2. Discover Owned NFTs and Tracked Token IDs
+      // 2. Auto-Detect Owned NFTs:
+      // Priority A: Fetch directly from Alchemy NFT API on Robinhood Chain
       const discoveredTokenIds = new Set(trackedTokenIds);
+      const nftMetadataMap = new Map();
 
-      // A. Check indexed desks from Supabase
+      const alchemyNfts = await fetchOwnedNftsFromAlchemy(address);
+      alchemyNfts.forEach((n) => {
+        discoveredTokenIds.add(n.tokenId);
+        nftMetadataMap.set(n.tokenId, n);
+      });
+
+      // Priority B: Fetch indexed desks from Supabase
       const dbDesks = await fetchUserDesksFromDb(address);
       dbDesks.forEach((d) => discoveredTokenIds.add(Number(d.token_id)));
-
-      // B. Scan ERC-721 tokenOfOwnerByIndex if supported
-      try {
-        const nftBalance = await publicClient.readContract({
-          address: APE_BROKER_NFT_ADDRESS,
-          abi: ERC721_ABI,
-          functionName: 'balanceOf',
-          args: [address],
-        });
-
-        const maxScan = Math.min(Number(nftBalance), 10);
-        for (let i = 0; i < maxScan; i++) {
-          try {
-            const tid = await publicClient.readContract({
-              address: APE_BROKER_NFT_ADDRESS,
-              abi: ERC721_ABI,
-              functionName: 'tokenOfOwnerByIndex',
-              args: [address, BigInt(i)],
-            });
-            discoveredTokenIds.add(Number(tid));
-          } catch (e) {
-            break;
-          }
-        }
-      } catch (e) {
-        // Enumerable not supported, continue with discovered
-      }
 
       // 3. For each token ID, read on-chain Desk status
       const desksList = [];
       for (const tid of Array.from(discoveredTokenIds)) {
-        try {
-          const [deskData, boostCount, currentWeight, pendingEth, nftOwner] =
-            await Promise.all([
-              publicClient.readContract({
-                address: DESK_CONTRACT_ADDRESS,
-                abi: deskDeployConfig.abi,
-                functionName: 'getDesk',
-                args: [BigInt(tid)],
-              }),
-              publicClient.readContract({
-                address: DESK_CONTRACT_ADDRESS,
-                abi: deskDeployConfig.abi,
-                functionName: 'getBoostCount',
-                args: [BigInt(tid)],
-              }),
-              publicClient.readContract({
-                address: DESK_CONTRACT_ADDRESS,
-                abi: deskDeployConfig.abi,
-                functionName: 'getDeskWeight',
-                args: [BigInt(tid)],
-              }),
-              publicClient.readContract({
-                address: DESK_CONTRACT_ADDRESS,
-                abi: deskDeployConfig.abi,
-                functionName: 'getPendingRewards',
-                args: [BigInt(tid)],
-              }).catch(() => 0n),
-              publicClient.readContract({
-                address: APE_BROKER_NFT_ADDRESS,
-                abi: ERC721_ABI,
-                functionName: 'ownerOf',
-                args: [BigInt(tid)],
-              }).catch(() => null),
+        let deskData = { active: false, baseWeight: 100n };
+        let boostCount = 0n;
+        let currentWeight = 100n;
+        let pendingEth = 0n;
+        let nftOwner = address;
+
+        if (publicClient) {
+          try {
+            const [dData, bCount, cWeight, pEth, nOwner] = await Promise.all([
+              publicClient
+                .readContract({
+                  address: DESK_CONTRACT_ADDRESS,
+                  abi: deskDeployConfig.abi,
+                  functionName: 'getDesk',
+                  args: [BigInt(tid)],
+                })
+                .catch(() => ({ active: false, baseWeight: 100n })),
+              publicClient
+                .readContract({
+                  address: DESK_CONTRACT_ADDRESS,
+                  abi: deskDeployConfig.abi,
+                  functionName: 'getBoostCount',
+                  args: [BigInt(tid)],
+                })
+                .catch(() => 0n),
+              publicClient
+                .readContract({
+                  address: DESK_CONTRACT_ADDRESS,
+                  abi: deskDeployConfig.abi,
+                  functionName: 'getDeskWeight',
+                  args: [BigInt(tid)],
+                })
+                .catch(() => 100n),
+              publicClient
+                .readContract({
+                  address: DESK_CONTRACT_ADDRESS,
+                  abi: deskDeployConfig.abi,
+                  functionName: 'getPendingRewards',
+                  args: [BigInt(tid)],
+                })
+                .catch(() => 0n),
+              publicClient
+                .readContract({
+                  address: APE_BROKER_NFT_ADDRESS,
+                  abi: ERC721_ABI,
+                  functionName: 'ownerOf',
+                  args: [BigInt(tid)],
+                })
+                .catch(() => address),
             ]);
 
-          const isActive = Boolean(deskData.active);
-          const currentBoosts = Number(boostCount);
-          const nextBoostNumber = currentBoosts < 5 ? currentBoosts + 1 : 5;
-          const nextBoostCost =
-            currentBoosts < 5
-              ? globalStats.baseBoostCost * (2n * BigInt(nextBoostNumber))
-              : 0n;
-
-          const isOwnerOfNft =
-            Boolean(nftOwner && address) &&
-            nftOwner.toLowerCase() === address.toLowerCase();
-
-          desksList.push({
-            tokenId: tid,
-            active: isActive,
-            boostCount: currentBoosts,
-            currentWeight: Number(currentWeight),
-            baseWeight: Number(deskData.baseWeight || 100n),
-            pendingRewardsEth: pendingEth,
-            nextBoostCost,
-            nextBoostNumber,
-            nftOwner,
-            isOwnerOfNft,
-          });
-
-          // Sync active desk to Supabase if caller is owner
-          if (isActive && isOwnerOfNft) {
-            syncDeskToDb({
-              tokenId: tid,
-              owner: address,
-              active: true,
-              boostCount: currentBoosts,
-              baseWeight: Number(deskData.baseWeight || 100n),
-              currentWeight: Number(currentWeight),
-            }).catch(() => {});
+            deskData = dData;
+            boostCount = bCount;
+            currentWeight = cWeight;
+            pendingEth = pEth;
+            nftOwner = nOwner;
+          } catch (e) {
+            // Keep default
           }
-        } catch (err) {
-          console.warn(`Error querying token #${tid}:`, err);
+        }
+
+        // Fallback to Supabase state if on-chain returned inactive
+        if (!deskData.active) {
+          const dbDesk = dbDesks.find((d) => Number(d.token_id) === tid);
+          if (dbDesk && dbDesk.active) {
+            deskData = { active: true, baseWeight: BigInt(dbDesk.base_weight || 100) };
+            boostCount = BigInt(dbDesk.boost_count || 0);
+            currentWeight = BigInt(dbDesk.current_weight || 100);
+          }
+        }
+
+        const isActive = Boolean(deskData.active);
+        const currentBoosts = Number(boostCount);
+        const nextBoostNumber = currentBoosts < 5 ? currentBoosts + 1 : 5;
+        const nextBoostCost =
+          currentBoosts < 5
+            ? globalStats.baseBoostCost * (2n * BigInt(nextBoostNumber))
+            : 0n;
+
+        const isOwnerOfNft =
+          !nftOwner ||
+          nftOwner.toLowerCase() === address.toLowerCase();
+
+        const meta = nftMetadataMap.get(tid);
+
+        desksList.push({
+          tokenId: tid,
+          name: meta?.name || `Ape Broker #${tid}`,
+          image: meta?.image || `/gifs/${(tid % 100) + 1}.gif`,
+          active: isActive,
+          boostCount: currentBoosts,
+          currentWeight: Number(currentWeight),
+          baseWeight: Number(deskData.baseWeight || 100n),
+          pendingRewardsEth: pendingEth,
+          nextBoostCost,
+          nextBoostNumber,
+          nftOwner: nftOwner || address,
+          isOwnerOfNft,
+        });
+
+        // Sync active desk to Supabase if caller is owner
+        if (isActive && isOwnerOfNft) {
+          syncDeskToDb({
+            tokenId: tid,
+            owner: address,
+            active: true,
+            boostCount: currentBoosts,
+            baseWeight: Number(deskData.baseWeight || 100n),
+            currentWeight: Number(currentWeight),
+          }).catch(() => {});
         }
       }
 
@@ -399,6 +553,8 @@ export function useApeBrokerDesk() {
       setUserDesks(desksList);
     } catch (err) {
       console.warn('Error reading user data:', err);
+    } finally {
+      setIsScanningNfts(false);
     }
   }, [publicClient, address, trackedTokenIds, globalStats.baseBoostCost]);
 
@@ -418,7 +574,7 @@ export function useApeBrokerDesk() {
   }, [refetchGlobalStats, refetchUserData]);
 
   /**
-   * Add a Token ID to track (e.g. from user input)
+   * Add a Token ID to track manually
    */
   const addTokenToTrack = useCallback((tokenId) => {
     const num = Number(tokenId);
@@ -439,7 +595,9 @@ export function useApeBrokerDesk() {
         functionName: 'approve',
         args: [DESK_CONTRACT_ADDRESS, amountRaw],
       });
-      await publicClient.waitForTransactionReceipt({ hash: tx });
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash: tx });
+      }
       await refetchUserData();
       return tx;
     },
@@ -458,9 +616,11 @@ export function useApeBrokerDesk() {
         functionName: 'activateDesk',
         args: [BigInt(tokenId)],
       });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      let receipt = { blockNumber: 0 };
+      if (publicClient) {
+        receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      }
 
-      // Sync with Supabase
       syncDeskToDb({
         tokenId,
         owner: address,
@@ -489,9 +649,11 @@ export function useApeBrokerDesk() {
         functionName: 'boostDesk',
         args: [BigInt(tokenId)],
       });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      let receipt = { blockNumber: 0 };
+      if (publicClient) {
+        receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      }
 
-      // Record in Supabase
       recordDeskBoostInDb({
         tokenId,
         owner: address,
@@ -500,7 +662,7 @@ export function useApeBrokerDesk() {
         weightBefore: currentWeight,
         weightAfter: currentWeight + 100,
         txHash: tx,
-        blockNumber: receipt.blockNumber,
+        blockNumber: receipt?.blockNumber,
       }).catch(() => {});
 
       syncDeskToDb({
@@ -531,7 +693,10 @@ export function useApeBrokerDesk() {
         functionName: 'claimRewards',
         args: [BigInt(tokenId)],
       });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      let receipt = { blockNumber: 0 };
+      if (publicClient) {
+        receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      }
 
       recordRewardClaimInDb({
         tokenId,
@@ -539,7 +704,7 @@ export function useApeBrokerDesk() {
         amountEth: formatEther(pendingEth || 0n),
         claimType: 'single',
         txHash: tx,
-        blockNumber: receipt.blockNumber,
+        blockNumber: receipt?.blockNumber,
       }).catch(() => {});
 
       await refetchGlobalStats();
@@ -561,7 +726,10 @@ export function useApeBrokerDesk() {
         functionName: 'claimAllRewards',
         args: [tokenIds.map((id) => BigInt(id))],
       });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      let receipt = { blockNumber: 0 };
+      if (publicClient) {
+        receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      }
 
       recordRewardClaimInDb({
         tokenId: null,
@@ -569,7 +737,7 @@ export function useApeBrokerDesk() {
         amountEth: formatEther(totalClaimable || 0n),
         claimType: 'all',
         txHash: tx,
-        blockNumber: receipt.blockNumber,
+        blockNumber: receipt?.blockNumber,
       }).catch(() => {});
 
       await refetchGlobalStats();
@@ -590,7 +758,10 @@ export function useApeBrokerDesk() {
         abi: deskDeployConfig.abi,
         functionName: 'claimHistoricalRewards',
       });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      let receipt = { blockNumber: 0 };
+      if (publicClient) {
+        receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      }
 
       recordRewardClaimInDb({
         tokenId: null,
@@ -598,7 +769,7 @@ export function useApeBrokerDesk() {
         amountEth: formatEther(totalHistorical || 0n),
         claimType: 'historical',
         txHash: tx,
-        blockNumber: receipt.blockNumber,
+        blockNumber: receipt?.blockNumber,
       }).catch(() => {});
 
       await refetchGlobalStats();
@@ -620,7 +791,10 @@ export function useApeBrokerDesk() {
         functionName: 'claimProtocolFees',
         args: [amountRaw],
       });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      let receipt = { blockNumber: 0 };
+      if (publicClient) {
+        receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      }
 
       recordProtocolFeeClaimInDb({
         treasury: globalStats.contractOwner || address,
@@ -647,14 +821,17 @@ export function useApeBrokerDesk() {
         functionName: 'depositRewards',
         value,
       });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      let receipt = { blockNumber: 0 };
+      if (publicClient) {
+        receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      }
 
       recordRewardDepositInDb({
         depositor: address,
         amountEth: ethAmount,
         epoch: Number(globalStats.currentEpoch),
         txHash: tx,
-        blockNumber: receipt.blockNumber,
+        blockNumber: receipt?.blockNumber,
       }).catch(() => {});
 
       await refetchGlobalStats();
@@ -668,6 +845,7 @@ export function useApeBrokerDesk() {
     address,
     isConnected,
     isCorrectChain,
+    isScanningNfts,
     switchChain,
     isLoading,
     error,
