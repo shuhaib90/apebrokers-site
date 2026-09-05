@@ -164,7 +164,7 @@ async function fetchDirectBalances(ownerAddress) {
 }
 
 export function useApeBrokerDesk() {
-  const { address, isConnected, chain } = useAccount();
+  const { address, isConnected, chain, chainId } = useAccount();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
   const { switchChain } = useSwitchChain();
@@ -202,15 +202,71 @@ export function useApeBrokerDesk() {
   const [userDesks, setUserDesks] = useState([]);
   const [trackedTokenIds, setTrackedTokenIds] = useState([]);
 
-  // Check if connected to correct chain (supports 4663, 4689, 31337, or chain name match)
+  // Check if connected to correct chain (Robinhood 4663 / 4689, or hardhat 31337 / 1337)
   const isCorrectChain =
-    !chain ||
+    !isConnected ||
+    chainId === 4663 ||
+    chainId === 4689 ||
+    chainId === 31337 ||
+    chainId === 1337 ||
     chain?.id === 4663 ||
     chain?.id === 4689 ||
-    chain?.id === 31337 ||
-    chain?.id === 1337 ||
     chain?.id === robinhoodChain.id ||
-    chain?.name?.toLowerCase().includes('robinhood');
+    Boolean(chain?.name?.toLowerCase().includes('robinhood'));
+
+  // Seamless helper to switch or add Robinhood Chain automatically
+  const switchToRobinhoodChain = useCallback(async () => {
+    try {
+      if (switchChain) {
+        await switchChain({ chainId: 4663 });
+        return true;
+      }
+    } catch (err) {
+      console.warn('wagmi switchChain failed, trying window.ethereum fallback:', err);
+    }
+
+    if (typeof window !== 'undefined' && window.ethereum) {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x1237' }], // 4663 in hex
+        });
+        return true;
+      } catch (switchError) {
+        if (
+          switchError?.code === 4902 ||
+          switchError?.data?.originalError?.code === 4902 ||
+          String(switchError?.message || '').includes('4902')
+        ) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [
+                {
+                  chainId: '0x1237',
+                  chainName: 'Robinhood Chain',
+                  nativeCurrency: {
+                    name: 'Ether',
+                    symbol: 'ETH',
+                    decimals: 18,
+                  },
+                  rpcUrls: [
+                    import.meta.env.VITE_ROBINHOOD_RPC_URL ||
+                      'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY',
+                  ],
+                  blockExplorerUrls: ['https://explorer.robinhood.com'],
+                },
+              ],
+            });
+            return true;
+          } catch (addError) {
+            console.error('Failed to add Robinhood Chain:', addError);
+          }
+        }
+      }
+    }
+    return false;
+  }, [switchChain]);
 
   /**
    * Refetch Global Protocol Stats
@@ -845,8 +901,10 @@ export function useApeBrokerDesk() {
     address,
     isConnected,
     isCorrectChain,
+    chainId,
     isScanningNfts,
     switchChain,
+    switchToRobinhoodChain,
     isLoading,
     error,
     globalStats,

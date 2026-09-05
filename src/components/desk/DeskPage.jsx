@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { useDisconnect } from 'wagmi';
 import { formatEther } from 'viem';
 import { useApeBrokerDesk } from '../../hooks/useApeBrokerDesk';
 import { DeskActionModal } from './DeskActionModal';
@@ -8,12 +9,16 @@ import { fetchRecentProtocolActivity } from '../../utils/supabaseDesk';
 import { sound } from '../../utils/audio';
 
 export function DeskPage({ onBackHome }) {
+  const { openConnectModal } = useConnectModal();
+  const { disconnect } = useDisconnect();
+
   const {
     address,
     isConnected,
     isCorrectChain,
     isScanningNfts,
     switchChain,
+    switchToRobinhoodChain,
     isLoading,
     globalStats,
     userBalances,
@@ -73,6 +78,13 @@ export function DeskPage({ onBackHome }) {
     }, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  // Auto-detect network: if connected to wrong network (e.g. Polygon), auto-prompt switch to Robinhood Chain
+  useEffect(() => {
+    if (isConnected && !isCorrectChain) {
+      switchToRobinhoodChain();
+    }
+  }, [isConnected, isCorrectChain, switchToRobinhoodChain]);
 
   const formatCountdown = (secs) => {
     const s = Math.max(0, secs);
@@ -222,26 +234,54 @@ export function DeskPage({ onBackHome }) {
               [ ← HOME ]
             </button>
 
-            {/* RainbowKit Wallet Connect */}
-            <div className="scale-90 sm:scale-100 origin-right">
-              <ConnectButton showBalance={false} />
-            </div>
+            {/* Wallet Connect & Disconnect Only (No chain selection) */}
+            {!isConnected ? (
+              <button
+                type="button"
+                onClick={() => {
+                  sound?.playClick?.();
+                  openConnectModal?.();
+                }}
+                className="pixel-btn pixel-btn-vibrant-lime px-3 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-xs font-extrabold rounded-md sm:rounded-lg shadow-[2px_2px_0px_#000] flex items-center gap-1.5"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-black animate-ping" />
+                <span>[ CONNECT WALLET ]</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="bg-[#12082b] border-2 border-[#00FF66]/60 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-mono text-[#00FF66] flex items-center gap-1.5 shadow-[2px_2px_0px_#000]">
+                  <span className="w-2 h-2 rounded-full bg-[#00FF66] shadow-[0_0_6px_#00FF66]" />
+                  <span>{address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'CONNECTED'}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound?.playClick?.();
+                    disconnect();
+                  }}
+                  className="pixel-btn pixel-btn-black px-2.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-950/40 border-2 border-red-900/60 rounded-md sm:rounded-lg shadow-[2px_2px_0px_#000] flex items-center gap-1"
+                  title="Disconnect Wallet"
+                >
+                  <span>[ DISCONNECT ]</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </nav>
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-8 pt-6 space-y-6 relative z-10">
-        {/* Network Warning */}
+        {/* Network Warning (Auto-detect with 1-click switch, no chain picker) */}
         {isConnected && !isCorrectChain && (
           <div className="bg-red-950/90 border-2 border-[#FF2247] p-3.5 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-[4px_4px_0px_#000]">
             <div className="flex items-center gap-2 text-[#FF2247]">
-              <span className="text-base">⚠</span>
-              <span>WRONG NETWORK DETECTED: Please switch to Robinhood EVM.</span>
+              <span className="text-base animate-pulse">⚠</span>
+              <span>WRONG NETWORK DETECTED: Switch to Robinhood Chain to interact with Desks.</span>
             </div>
             <button
               type="button"
-              onClick={() => switchChain?.({ chainId: 4689 })}
+              onClick={switchToRobinhoodChain}
               className="pixel-btn pixel-btn-vibrant-crimson px-4 py-1.5 text-[10px] font-bold rounded"
             >
               [ SWITCH TO ROBINHOOD ]
@@ -458,7 +498,17 @@ export function DeskPage({ onBackHome }) {
                 Each Ape Broker NFT represents 1 Desk. Connect your wallet to auto-detect your NFTs, activate desks, apply boosts (2x to 10x max), and collect 5-hour ETH rewards.
               </p>
               <div className="pt-2 flex justify-center">
-                <ConnectButton />
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound?.playClick?.();
+                    openConnectModal?.();
+                  }}
+                  className="pixel-btn pixel-btn-vibrant-lime px-6 sm:px-8 py-3 sm:py-3.5 text-xs sm:text-sm font-extrabold rounded-lg shadow-[4px_4px_0px_#000] flex items-center gap-2"
+                >
+                  <span className="w-2 h-2 rounded-full bg-black animate-ping" />
+                  <span>[ CONNECT WALLET ]</span>
+                </button>
               </div>
             </div>
           ) : userDesks.length === 0 ? (
