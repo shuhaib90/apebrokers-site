@@ -2,17 +2,29 @@ import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { sound } from '../utils/audio';
 import { verifyHolderStatus, fetchLiveTokenPrice, TOKEN_CONTRACT, NFT_CONTRACT, DEFAULT_TOKEN_PRICE, TOTAL_SPOTS } from '../utils/holderVerification';
-import { supabase, saveApplicationToSupabase } from '../utils/supabase';
+import { supabase, saveApplicationToSupabase, checkExistingApplication } from '../utils/supabase';
+
+// Burn / Dummy addresses to block from spamming
+const BLOCKED_ADDRESSES = [
+  '0x0000000000000000000000000000000000000000',
+  '0x000000000000000000000000000000000000dead',
+  '0x0000000000000000000000000000000000000001',
+  '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+];
 
 export const ApplicationPage = ({ onBackHome }) => {
   const [tokenPrice, setTokenPrice] = useState(DEFAULT_TOKEN_PRICE);
   const [totalSpots] = useState(TOTAL_SPOTS);
   const [claimedCount, setClaimedCount] = useState(0);
+  const [formMountedAt] = useState(Date.now());
 
   const [formData, setFormData] = useState({
     xUsername: '',
     walletAddress: '',
   });
+
+  // Anti-bot honeypot field
+  const [honeypot, setHoneypot] = useState('');
 
   const [verificationStatus, setVerificationStatus] = useState('IDLE'); // 'IDLE' | 'VERIFYING' | 'CHECKED' | 'ERROR'
   const [verificationResult, setVerificationResult] = useState(null);
@@ -24,6 +36,7 @@ export const ApplicationPage = ({ onBackHome }) => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [duplicateData, setDuplicateData] = useState(null);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
   const [submittedData, setSubmittedData] = useState(null);
 
@@ -71,6 +84,13 @@ export const ApplicationPage = ({ onBackHome }) => {
       return;
     }
 
+    if (BLOCKED_ADDRESSES.includes(rawWallet.toLowerCase())) {
+      sound?.playBlip?.();
+      setVerificationStatus('ERROR');
+      setVerificationResult({ error: 'Invalid address: Burn or dummy address cannot be used.' });
+      return;
+    }
+
     sound?.playClick?.();
     setVerificationStatus('VERIFYING');
     setVerificationResult(null);
@@ -107,20 +127,43 @@ export const ApplicationPage = ({ onBackHome }) => {
     }, 600);
   };
 
-  // Submit Application
+  // Submit Application with Anti-Spam & Duplicate Checks
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
+    setDuplicateData(null);
 
-    const cleanX = formData.xUsername.trim();
-    if (!cleanX || cleanX.length < 2) {
-      setSubmitError('Please enter a valid X (Twitter) username.');
+    // Anti-Bot: Honeypot check
+    if (honeypot && honeypot.trim().length > 0) {
+      console.warn('Bot detected via honeypot.');
+      setSubmitError('Submission blocked by security filter.');
       return;
     }
 
-    const cleanWallet = formData.walletAddress.trim();
-    if (!cleanWallet || !/^0x[a-fA-F0-9]{40}$/.test(cleanWallet)) {
-      setSubmitError('Please enter a valid 42-character 0x wallet address.');
+    // Anti-Bot: Submission speed check (must be at least 1.5 seconds)
+    if (Date.now() - formMountedAt < 1500) {
+      setSubmitError('Submission too rapid. Please take a moment to review.');
+      return;
+    }
+
+    // Validate X handle
+    let cleanX = formData.xUsername.trim();
+    if (cleanX.startsWith('@')) cleanX = cleanX.substring(1);
+
+    if (!cleanX || !/^[a-zA-Z0-9_]{2,20}$/.test(cleanX)) {
+      setSubmitError('Please enter a valid X (Twitter) handle (letters, numbers, underscores only, 2-20 chars).');
+      return;
+    }
+
+    // Validate Wallet
+    const cleanWallet = formData.walletAddress.trim().toLowerCase();
+    if (!cleanWallet || !/^0x[a-f0-9]{40}$/.test(cleanWallet)) {
+      setSubmitError('Please enter a valid 42-character 0x EVM wallet address.');
+      return;
+    }
+
+    if (BLOCKED_ADDRESSES.includes(cleanWallet)) {
+      setSubmitError('Invalid address: Burn or dummy addresses are rejected.');
       return;
     }
 
@@ -132,7 +175,24 @@ export const ApplicationPage = ({ onBackHome }) => {
     setIsSubmitting(true);
     sound?.playClick?.();
 
-    // Check holdings if not already checked
+    // 1. Client-Side Pre-Check for Duplicates
+    try {
+      const dupCheck = await checkExistingApplication('@' + cleanX, cleanWallet);
+      if (dupCheck.exists) {
+        sound?.playStamp?.();
+        setDuplicateData({
+          duplicateUser: dupCheck.duplicateUser,
+          duplicateWallet: dupCheck.duplicateWallet,
+          existingApp: dupCheck.existingApp,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+    } catch (dupErr) {
+      console.warn('Pre-check duplicate note:', dupErr);
+    }
+
+    // 2. Check holdings if not already checked
     let currentCheck = verificationResult;
     if (!currentCheck) {
       try {
@@ -145,13 +205,14 @@ export const ApplicationPage = ({ onBackHome }) => {
 
     const isGtd = !!currentCheck?.isGtd;
     const cardTier = isGtd ? 'GOLDEN_GTD' : 'STANDARD';
-    const brokerId = `#APE-${Math.floor(1000 + Math.random() * 9000)}`;
+    const brokerId = '#APE-' + Math.floor(1000 + Math.random() * 9000);
 
     try {
       const saveRes = await saveApplicationToSupabase({
         brokerId,
-        xUsername: cleanX.startsWith('@') ? cleanX : `@${cleanX}`,
+        xUsername: '@' + cleanX,
         walletAddress: cleanWallet,
+        isGtd,
         proofLinks: {
           holder_verification: {
             tokenContract: TOKEN_CONTRACT,
@@ -167,9 +228,28 @@ export const ApplicationPage = ({ onBackHome }) => {
         },
       });
 
+      // If database caught duplicate (via unique index or check)
+      if (saveRes.isDuplicate) {
+        sound?.playStamp?.();
+        setDuplicateData({
+          duplicateUser: saveRes.duplicateUser,
+          duplicateWallet: saveRes.duplicateWallet,
+          existingApp: saveRes.existingApp,
+          message: saveRes.error || 'An application with this wallet address or X username is already registered.',
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!saveRes.success) {
+        setSubmitError('Failed to register application. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
       const submissionPayload = {
         brokerId,
-        xUsername: cleanX.startsWith('@') ? cleanX : `@${cleanX}`,
+        xUsername: '@' + cleanX,
         walletAddress: cleanWallet,
         timestamp: new Date().toLocaleTimeString(),
         isGtd,
@@ -180,6 +260,7 @@ export const ApplicationPage = ({ onBackHome }) => {
       setSubmittedData(submissionPayload);
       setClaimedCount((prev) => prev + 1);
       setSubmissionSuccess(true);
+
       if (isGtd) {
         sound?.playFanfare?.();
         confetti({
@@ -265,7 +346,43 @@ export const ApplicationPage = ({ onBackHome }) => {
             </div>
           </div>
 
-          {!submissionSuccess ? (
+          {/* DUPLICATE APPLICATION NOTICE */}
+          {duplicateData && (
+            <div className="bg-[#241306] border-2 border-[#FFD700] p-5 rounded-lg text-left font-mono text-xs space-y-3 mb-6">
+              <div className="flex items-center gap-2 text-[#FFD700] font-pixel text-xs font-extrabold">
+                <span>⚠️</span>
+                <span>DUPLICATE APPLICATION DETECTED</span>
+              </div>
+              <p className="text-gray-300 text-[11px] leading-relaxed">
+                An application with this {duplicateData.duplicateWallet && duplicateData.duplicateUser ? 'wallet address and X handle' : duplicateData.duplicateWallet ? 'wallet address' : 'X handle'} is already registered in the whitelist.
+              </p>
+              {duplicateData.existingApp && (
+                <div className="bg-black/80 border border-[#593d0d] p-3 rounded space-y-1 text-[11px] text-gray-300">
+                  <div>REGISTERED ID: <strong className="text-[#FFD700]">{duplicateData.existingApp.broker_id || 'LOGGED'}</strong></div>
+                  <div>STATUS: <strong className={duplicateData.existingApp.is_gtd ? 'text-[#00FF66]' : 'text-gray-200'}>{duplicateData.existingApp.is_gtd ? 'GUARANTEED (GTD)' : 'STANDARD WHITELIST (WL)'}</strong></div>
+                  <div>DATE: <span className="text-gray-400">{new Date(duplicateData.existingApp.created_at || Date.now()).toLocaleDateString()}</span></div>
+                </div>
+              )}
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDuplicateData(null)}
+                  className="pixel-btn pixel-btn-black text-white px-3 py-1.5 text-[10px] font-bold border border-[#555]"
+                >
+                  [ TRY DIFFERENT WALLET ]
+                </button>
+                <button
+                  type="button"
+                  onClick={handleHome}
+                  className="pixel-btn pixel-btn-lime text-black px-3 py-1.5 text-[10px] font-extrabold"
+                >
+                  [ RETURN HOME ]
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!submissionSuccess && !duplicateData ? (
             <div>
               {/* Headline & Allocation Rules */}
               <div className="space-y-4 mb-6">
@@ -315,6 +432,17 @@ export const ApplicationPage = ({ onBackHome }) => {
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Honeypot hidden input for anti-bot / spam prevention */}
+                <input
+                  type="text"
+                  name="bot_field_honey"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  style={{ display: 'none', position: 'absolute', left: '-9999px' }}
+                />
+
                 {/* Field 1: X (Twitter) Handle */}
                 <div className="space-y-1.5">
                   <label className="block font-pixel text-[10px] sm:text-xs text-gray-300">
@@ -323,6 +451,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                   <input
                     type="text"
                     required
+                    maxLength={25}
                     placeholder="@YourHandle"
                     value={formData.xUsername}
                     onChange={(e) => {
@@ -342,6 +471,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                     <input
                       type="text"
                       required
+                      maxLength={44}
                       placeholder="0x..."
                       value={formData.walletAddress}
                       onChange={(e) => {
@@ -524,13 +654,15 @@ export const ApplicationPage = ({ onBackHome }) => {
                     disabled={isSubmitting}
                     className="w-full pixel-btn pixel-btn-lime py-3.5 text-xs sm:text-sm font-extrabold text-black disabled:opacity-40 disabled:cursor-not-allowed shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:opacity-95"
                   >
-                    {isSubmitting ? '[ SUBMITTING APPLICATION... ]' : '[ SUBMIT WHITELIST APPLICATION ]'}
+                    {isSubmitting ? '[ CHECKING & SUBMITTING... ]' : '[ SUBMIT WHITELIST APPLICATION ]'}
                   </button>
                 </div>
               </form>
             </div>
-          ) : (
-            /* SUCCESS CONFIRMATION SCREEN */
+          ) : null}
+
+          {/* SUCCESS CONFIRMATION SCREEN */}
+          {submissionSuccess && (
             <div className="text-center space-y-6">
               {/* Header Badge */}
               <div className={`inline-block border-2 px-4 py-2 rounded-lg ${

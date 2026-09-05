@@ -70,18 +70,8 @@ export async function saveApplicationToSupabase(data) {
       };
     }
 
-    // 2. Strict Cap Enforcement on GTD
-    let isGtd = data.isGtd === true;
-    let gtdArtId = data.gtdArtId || null;
-
-    if (isGtd) {
-      const gtdConfig = await fetchGtdConfig();
-      if (!gtdConfig.enabled || gtdConfig.currentWinners >= gtdConfig.maxLimit) {
-        isGtd = false;
-        gtdArtId = null;
-      }
-    }
-
+    // 2. GTD status from verified on-chain holding
+    const isGtd = data.isGtd === true;
     const cardTier = isGtd ? 'GOLDEN_GTD' : 'STANDARD';
 
     const { data: inserted, error } = await supabase
@@ -96,16 +86,24 @@ export async function saveApplicationToSupabase(data) {
           proof_links: data.proofLinks || {},
           is_gtd: isGtd,
           card_tier: cardTier,
-          gtd_art_id: gtdArtId,
+          gtd_art_id: data.gtdArtId || null,
         },
       ])
       .select();
 
     if (error) {
+      // Postgres unique constraint violation (code 23505)
+      if (error.code === '23505' || (error.message && error.message.toLowerCase().includes('duplicate'))) {
+        return {
+          success: false,
+          isDuplicate: true,
+          error: 'An application with this wallet address or X username is already registered.',
+        };
+      }
       console.warn('Supabase insert warning:', error);
       return { success: false, error };
     }
-    return { success: true, isGtd, cardTier, gtdArtId, data: inserted };
+    return { success: true, isGtd, cardTier, data: inserted };
   } catch (err) {
     console.error('Supabase error:', err);
     return { success: false, error: err };
