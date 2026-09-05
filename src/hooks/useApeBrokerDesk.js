@@ -474,24 +474,46 @@ export function useApeBrokerDesk() {
         historicalClaimableEth: historicalClaimable,
       });
 
-      // 2. Auto-Detect Owned NFTs:
-      // Priority A: Fetch directly from Alchemy NFT API on Robinhood Chain
-      const discoveredTokenIds = new Set(trackedTokenIds);
+      // 2. Auto-Detect Owned NFTs (Capped to max 5 desks / 5 NFTs):
       const nftMetadataMap = new Map();
 
       const alchemyNfts = await fetchOwnedNftsFromAlchemy(address);
       alchemyNfts.forEach((n) => {
-        discoveredTokenIds.add(n.tokenId);
         nftMetadataMap.set(n.tokenId, n);
       });
 
-      // Priority B: Fetch indexed desks from Supabase
+      // Fetch indexed desks from Supabase
       const dbDesks = await fetchUserDesksFromDb(address);
-      dbDesks.forEach((d) => discoveredTokenIds.add(Number(d.token_id)));
 
-      // 3. For each token ID, read on-chain Desk status
+      // Select strictly at most 5 token IDs:
+      // Priority 1: User-tracked token ID
+      // Priority 2: Known active desks in DB
+      // Priority 3: Owned NFTs from Alchemy up to 5 total
+      const selectedTokenIds = new Set();
+
+      trackedTokenIds.forEach((id) => {
+        if (selectedTokenIds.size < 5) selectedTokenIds.add(id);
+      });
+
+      dbDesks
+        .filter((d) => d.active)
+        .forEach((d) => {
+          if (selectedTokenIds.size < 5) selectedTokenIds.add(Number(d.token_id));
+        });
+
+      for (const n of alchemyNfts) {
+        if (selectedTokenIds.size >= 5) break;
+        selectedTokenIds.add(n.tokenId);
+      }
+
+      for (const d of dbDesks) {
+        if (selectedTokenIds.size >= 5) break;
+        selectedTokenIds.add(Number(d.token_id));
+      }
+
+      // 3. For the selected token IDs (max 5), read on-chain Desk status
       const desksList = [];
-      for (const tid of Array.from(discoveredTokenIds)) {
+      for (const tid of Array.from(selectedTokenIds)) {
         let deskData = { active: false, baseWeight: 100n };
         let boostCount = 0n;
         let currentWeight = 100n;
@@ -605,8 +627,8 @@ export function useApeBrokerDesk() {
         }
       }
 
-      desksList.sort((a, b) => a.tokenId - b.tokenId);
-      setUserDesks(desksList);
+      desksList.sort((a, b) => (b.active ? 1 : 0) - (a.active ? 1 : 0) || a.tokenId - b.tokenId);
+      setUserDesks(desksList.slice(0, 5));
     } catch (err) {
       console.warn('Error reading user data:', err);
     } finally {

@@ -36,9 +36,6 @@ export function DeskPage({ onBackHome }) {
     adminDepositRewards,
   } = useApeBrokerDesk();
 
-  // Pagination for user desks
-  const [visibleCount, setVisibleCount] = useState(12);
-
   // Modals state
   const [actionModal, setActionModal] = useState({
     isOpen: false,
@@ -461,7 +458,7 @@ export function DeskPage({ onBackHome }) {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <h3 className="text-xs sm:text-sm font-extrabold text-white tracking-wider">
-                YOUR MONITORED DESKS ({userDesks.length})
+                YOUR BROKER DESKS ({Math.min(userDesks.length, 5)} / 5 MAX)
               </h3>
               {userDesks.length > 0 && (
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#052b16] border border-[#00FF66] text-[#00FF66] text-[9px] font-mono rounded">
@@ -492,7 +489,7 @@ export function DeskPage({ onBackHome }) {
             <div className="bg-[#10072b] border-2 border-dashed border-purple-800/80 rounded-xl p-8 sm:p-12 text-center space-y-4 shadow-[4px_4px_0px_#000]">
               <div className="text-3xl text-purple-400">⚡</div>
               <div className="text-sm sm:text-base font-bold text-[#00FF66]">
-                CONNECT ROBINHOOD EVM WALLET TO ACCESS DESKS
+                CONNECT WALLET TO ACCESS DESKS
               </div>
               <p className="text-xs font-mono text-gray-400 max-w-md mx-auto">
                 Each Ape Broker NFT represents 1 Desk. Connect your wallet to auto-detect your NFTs, activate desks, apply boosts (2x to 10x max), and collect 5-hour ETH rewards.
@@ -527,7 +524,7 @@ export function DeskPage({ onBackHome }) {
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {userDesks.slice(0, visibleCount).map((desk) => {
+                {userDesks.slice(0, 5).map((desk) => {
                   const isActive = desk.active;
                   const boostCount = desk.boostCount || 0;
                   const weight = desk.currentWeight || 100;
@@ -677,33 +674,6 @@ export function DeskPage({ onBackHome }) {
                 );
               })}
               </div>
-
-              {/* Pagination / Load More Controls */}
-              {userDesks.length > visibleCount && (
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4 font-mono">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sound?.playClick?.();
-                      setVisibleCount((prev) => prev + 12);
-                    }}
-                    className="pixel-btn pixel-btn-vibrant-cyan px-5 py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000]"
-                  >
-                    [ LOAD MORE DESKS (+12) ]
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sound?.playClick?.();
-                      setVisibleCount(userDesks.length);
-                    }}
-                    className="pixel-btn pixel-btn-black px-5 py-2.5 text-xs font-bold text-gray-300 hover:text-white rounded-lg border border-purple-800"
-                  >
-                    [ SHOW ALL ({userDesks.length}) DESKS ]
-                  </button>
-                </div>
-              )}
             </>
           )}
         </section>
