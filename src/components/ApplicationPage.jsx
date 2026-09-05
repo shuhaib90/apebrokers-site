@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { sound } from '../utils/audio';
-import { TypewriterText } from './TypewriterText';
-import { verifyHolderStatus, fetchLiveTokenPrice, TOKEN_CONTRACT, NFT_CONTRACT, DEFAULT_TOKEN_PRICE } from '../utils/holderVerification';
-import { saveApplicationToSupabase } from '../utils/supabase';
+import { verifyHolderStatus, fetchLiveTokenPrice, TOKEN_CONTRACT, NFT_CONTRACT, DEFAULT_TOKEN_PRICE, TOTAL_SPOTS } from '../utils/holderVerification';
+import { supabase, saveApplicationToSupabase } from '../utils/supabase';
 import { generateBrokerCardDataUrl } from '../utils/generateBrokerCard';
 
 export const ApplicationPage = ({ onBackHome }) => {
   const [tokenPrice, setTokenPrice] = useState(DEFAULT_TOKEN_PRICE);
+  const [totalSpots] = useState(TOTAL_SPOTS);
+  const [claimedCount, setClaimedCount] = useState(0);
 
   const [formData, setFormData] = useState({
     xUsername: '',
@@ -28,11 +29,21 @@ export const ApplicationPage = ({ onBackHome }) => {
   const [submittedData, setSubmittedData] = useState(null);
   const [cardDataUrl, setCardDataUrl] = useState(null);
 
-  // Fetch token price on mount
+  // Fetch token price and claimed count on mount
   useEffect(() => {
     fetchLiveTokenPrice().then((p) => {
       if (p > 0) setTokenPrice(p);
     });
+
+    // Fetch active applications count from Supabase
+    supabase
+      .from('apebrokers_applications')
+      .select('*', { count: 'exact', head: true })
+      .then(({ count, error }) => {
+        if (!error && typeof count === 'number') {
+          setClaimedCount(count);
+        }
+      });
   }, []);
 
   const handleFollowX = () => {
@@ -119,12 +130,12 @@ export const ApplicationPage = ({ onBackHome }) => {
     }
 
     if (verificationStatus !== 'QUALIFIED' || !verificationResult?.isEligible) {
-      setSubmitError('You must verify wallet eligibility holding min $1 $APEBROKERS or 1 ApeSyndicate NFT.');
+      setSubmitError('You must hold at least some $APEBROKERS tokens or 1 ApeSyndicate NFT to apply.');
       return;
     }
 
     if (tasks.followX !== 'VERIFIED' || tasks.repostWL !== 'VERIFIED') {
-      setSubmitError('Please complete and verify both community checklist tasks.');
+      setSubmitError('Please complete both community checklist tasks.');
       return;
     }
 
@@ -134,6 +145,9 @@ export const ApplicationPage = ({ onBackHome }) => {
     const brokerId = `#APE-${Math.floor(1000 + Math.random() * 9000)}`;
 
     try {
+      const isGtd = !!verificationResult.isGtd;
+      const cardTier = isGtd ? 'GOLDEN_GTD' : (verificationResult.tier || 'STANDARD');
+
       const saveRes = await saveApplicationToSupabase({
         brokerId,
         xUsername: cleanX.startsWith('@') ? cleanX : `@${cleanX}`,
@@ -143,11 +157,12 @@ export const ApplicationPage = ({ onBackHome }) => {
             tokenContract: TOKEN_CONTRACT,
             tokenBalance: verificationResult.tokenBalance,
             tokenUsd: verificationResult.tokenUsd,
-            hasMinToken: verificationResult.hasMinToken,
             nftContract: NFT_CONTRACT,
             nftBalance: verificationResult.nftBalance,
-            hasNft: verificationResult.hasNft,
             tokenPrice: verificationResult.tokenPrice,
+            isGtd,
+            tier: cardTier,
+            score: verificationResult.score,
             verifiedAt: new Date().toISOString(),
           },
         },
@@ -158,12 +173,13 @@ export const ApplicationPage = ({ onBackHome }) => {
         xUsername: cleanX.startsWith('@') ? cleanX : `@${cleanX}`,
         walletAddress: formData.walletAddress.trim(),
         timestamp: new Date().toLocaleTimeString(),
-        isGtd: saveRes.isGtd || verificationResult.hasMinToken || verificationResult.hasNft,
-        cardTier: saveRes.cardTier || 'GOLDEN_GTD',
+        isGtd,
+        cardTier,
         verificationResult,
       };
 
       setSubmittedData(submissionPayload);
+      setClaimedCount((prev) => prev + 1);
 
       // Generate card image
       try {
@@ -171,7 +187,7 @@ export const ApplicationPage = ({ onBackHome }) => {
           brokerId,
           xUsername: submissionPayload.xUsername,
           walletAddress: submissionPayload.walletAddress,
-          isGtd: submissionPayload.isGtd,
+          isGtd,
         });
         setCardDataUrl(cardUrl);
       } catch (cardErr) {
@@ -243,48 +259,48 @@ export const ApplicationPage = ({ onBackHome }) => {
       <main className="flex-grow flex items-center justify-center p-4 sm:p-6 relative z-10 my-6">
         <div className="w-full max-w-2xl bg-[#0d0d0d] border-4 border-black p-5 sm:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative">
           
-          {/* Header Status Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-[#222] pb-4 mb-6 gap-2">
+          {/* Header Status Bar with 9,000 SPOTS COUNTER */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-[#222] pb-4 mb-6 gap-3">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 bg-[#00FF66] rounded-full animate-blink" />
               <span className="font-pixel text-[10px] sm:text-xs text-[#00FF66] font-extrabold tracking-wider">
-                ● HOLDER WHITELIST PORTAL OPEN
+                ● 9,000 SPOTS ALLOCATION
               </span>
             </div>
-            <div className="flex items-center gap-2 text-right">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] sm:text-xs text-black bg-[#00FF66] px-2.5 py-0.5 font-extrabold rounded">
+                SPOTS: {claimedCount} / {totalSpots.toLocaleString()} CLAIMED
+              </span>
               <span className="font-mono text-[10px] sm:text-xs text-[#FFD700] bg-[#1a1500] px-2 py-0.5 border border-[#443800] rounded">
-                $APEBROKERS: ~$${Number(tokenPrice).toFixed(8)}
+                ~$${Number(tokenPrice).toFixed(8)}
               </span>
             </div>
           </div>
 
           {!submissionSuccess ? (
             <div>
-              {/* Headline & Eligibility Rules */}
+              {/* Headline & Dynamic GTD Allocation System */}
               <div className="space-y-4 mb-6">
                 <h1 className="font-pixel text-lg sm:text-2xl text-white font-extrabold tracking-tight">
                   APPLY FOR WHITELIST
                 </h1>
 
-                {/* Gate Rules Card */}
+                {/* 9,000 Spots & GTD Explanation Card */}
                 <div className="bg-[#121a14] border-2 border-[#00FF66]/50 p-4 rounded-lg space-y-2.5">
-                  <div className="flex items-center gap-2 text-[#00FF66] text-xs font-extrabold">
-                    <span>🛡️</span>
-                    <span>EXCLUSIVE HOLDER ELIGIBILITY REQUIREMENT</span>
+                  <div className="flex items-center gap-2 text-[#FFD700] text-xs font-extrabold">
+                    <span>⚡</span>
+                    <span>9,000 SPOTS: WEIGHTED GTD ALLOCATION</span>
                   </div>
                   <p className="font-mono text-xs text-gray-300 leading-relaxed">
-                    This whitelist application is strictly reserved for verified Robinhood Chain holders meeting at least one of the criteria below:
+                    Open to all wallets holding <strong>$APEBROKERS tokens</strong> or <strong>ApeSyndicate NFTs</strong> on Robinhood Chain (no minimum token amount required to apply, just at least hold).
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
-                    <div className="bg-black/60 border border-[#223828] p-2.5 rounded">
-                      <div className="text-[#00FF66] font-bold">1) $APEBROKERS TOKEN</div>
-                      <div className="text-gray-300">Min. <strong className="text-white">$1.00 USD</strong> holding</div>
-                      <div className="text-gray-500 text-[9px] truncate mt-1">0xe0F384eb...62cc</div>
+                  <div className="bg-black/80 border border-[#00FF66]/30 p-3 rounded space-y-1.5 font-mono text-[11px]">
+                    <div className="text-[#00FF66] font-bold">🔥 HOW GTD SPOTS ARE AWARDED:</div>
+                    <div className="text-gray-300">
+                      Guaranteed (GTD) spots are allocated based on <strong>how much dollar value ($) in tokens</strong> and <strong>how many NFTs</strong> you hold.
                     </div>
-                    <div className="bg-black/60 border border-[#223828] p-2.5 rounded">
-                      <div className="text-[#FFD700] font-bold">2) APESYNDICATE NFT</div>
-                      <div className="text-gray-300">Min. <strong className="text-white">1 NFT</strong> owned</div>
-                      <div className="text-gray-500 text-[9px] truncate mt-1">0x5b9ca37d...4ec6</div>
+                    <div className="text-[#FFD700] font-semibold pt-1">
+                      👉 <em>The more tokens ($) and NFTs you hold, the higher your GTD priority and allocation tier!</em>
                     </div>
                   </div>
                 </div>
@@ -310,7 +326,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                   />
                 </div>
 
-                {/* Field 2: Wallet Address + Live On-Chain Verification */}
+                {/* Field 2: Wallet Address + Live GTD On-Chain Verification */}
                 <div className="space-y-2">
                   <label className="block font-pixel text-[10px] sm:text-xs text-gray-300">
                     2. ROBINHOOD CHAIN WALLET ADDRESS <span className="text-[#00FF66]">*</span>
@@ -337,7 +353,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                       onClick={handleVerifyWallet}
                       className="pixel-btn pixel-btn-lime px-4 py-2.5 text-[10px] sm:text-xs font-extrabold text-black shrink-0 disabled:opacity-50"
                     >
-                      {verificationStatus === 'VERIFYING' ? '[ SCANNING... ]' : '[ VERIFY WALLET ]'}
+                      {verificationStatus === 'VERIFYING' ? '[ SCANNING... ]' : '[ VERIFY HOLDINGS ]'}
                     </button>
                   </div>
 
@@ -345,51 +361,83 @@ export const ApplicationPage = ({ onBackHome }) => {
                   {verificationStatus === 'VERIFYING' && (
                     <div className="bg-[#111] border border-[#333] p-3 rounded text-left font-mono text-xs text-[#00FF66] flex items-center gap-2">
                       <span className="w-2 h-2 bg-[#00FF66] rounded-full animate-ping" />
-                      <span>Checking holdings on Robinhood Chain RPC...</span>
+                      <span>Scanning Robinhood Chain RPC & calculating GTD weight...</span>
                     </div>
                   )}
 
+                  {/* QUALIFIED / HOLDER DISPLAY */}
                   {verificationStatus === 'QUALIFIED' && verificationResult && (
-                    <div className="bg-[#051c0d] border-2 border-[#00FF66] p-4 rounded text-left font-mono text-xs space-y-2">
-                      <div className="flex items-center gap-2 text-[#00FF66] font-pixel text-[11px] font-extrabold">
-                        <span>✓</span>
-                        <span>WALLET VERIFIED: ELIGIBLE FOR ALLOCATION!</span>
+                    <div className="bg-[#051c0d] border-2 border-[#00FF66] p-4 rounded text-left font-mono text-xs space-y-3">
+                      {/* GTD Tier Badge */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#143b20] pb-2.5 gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">{verificationResult.isGtd ? '🌟' : '⚡'}</span>
+                          <span className="font-pixel text-[11px] font-extrabold text-[#00FF66]">
+                            {verificationResult.isGtd ? 'GTD ALLOCATION: GUARANTEED SPOT' : 'HOLDER ENTRY: QUALIFIED'}
+                          </span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded font-pixel ${
+                          verificationResult.isGtd
+                            ? 'bg-[#FFD700] text-black'
+                            : 'bg-[#113318] text-[#00FF66] border border-[#00FF66]/40'
+                        }`}>
+                          {verificationResult.chanceLabel}
+                        </span>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-gray-300 text-[11px]">
-                        <div className="bg-black/60 p-2 rounded border border-[#143b20]">
-                          <div className="text-gray-400">$APEBROKERS Balance:</div>
-                          <div className="text-white font-bold">
+
+                      {/* Holdings Breakdown */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-300 text-[11px]">
+                        <div className="bg-black/60 p-2.5 rounded border border-[#143b20]">
+                          <div className="text-gray-400 font-semibold">$APEBROKERS Token:</div>
+                          <div className="text-white font-bold text-xs mt-0.5">
                             {Number(verificationResult.tokenBalance).toLocaleString(undefined, { maximumFractionDigits: 2 })} tokens
                           </div>
-                          <div className={verificationResult.hasMinToken ? 'text-[#00FF66] font-bold' : 'text-gray-400'}>
-                            ≈ ${Number(verificationResult.tokenUsd).toFixed(2)} USD {verificationResult.hasMinToken ? '(QUALIFIED ≥ $1)' : ''}
+                          <div className="text-[#00FF66] font-mono text-[11px] mt-0.5">
+                            ≈ ${Number(verificationResult.tokenUsd).toFixed(2)} USD
                           </div>
                         </div>
-                        <div className="bg-black/60 p-2 rounded border border-[#143b20]">
-                          <div className="text-gray-400">ApeSyndicate NFTs:</div>
-                          <div className="text-white font-bold">
+
+                        <div className="bg-black/60 p-2.5 rounded border border-[#143b20]">
+                          <div className="text-gray-400 font-semibold">ApeSyndicate NFTs:</div>
+                          <div className="text-white font-bold text-xs mt-0.5">
                             {verificationResult.nftBalance} NFT{verificationResult.nftBalance !== 1 ? 's' : ''} owned
                           </div>
-                          <div className={verificationResult.hasNft ? 'text-[#00FF66] font-bold' : 'text-gray-400'}>
-                            {verificationResult.hasNft ? 'QUALIFIED (≥ 1 NFT)' : 'None'}
+                          <div className={verificationResult.nftBalance > 0 ? 'text-[#FFD700] text-[11px] mt-0.5' : 'text-gray-500 text-[11px] mt-0.5'}>
+                            {verificationResult.nftBalance > 0 ? '✓ NFT Holder Priority' : '0 NFTs'}
                           </div>
                         </div>
                       </div>
+
+                      {/* Advice for upgrading tier */}
+                      {!verificationResult.isGtd && (
+                        <div className="bg-black/70 border border-[#234d28] p-2 rounded text-[11px] text-gray-300 flex items-center justify-between">
+                          <span>💡 <em>Want 100% Guaranteed GTD? Hold more tokens ($) or an ApeSyndicate NFT!</em></span>
+                          <a
+                            href="https://dexscreener.com/robinhood/0x67c0c7602a27ad284792d19d159750f260c78c776ce0e5666856533e493c55ae"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#FFD700] hover:underline shrink-0 ml-2 font-bold"
+                          >
+                            [ BUY MORE ]
+                          </a>
+                        </div>
+                      )}
                     </div>
                   )}
 
+                  {/* INELIGIBLE DISPLAY (Holds 0 tokens AND 0 NFTs) */}
                   {verificationStatus === 'INELIGIBLE' && verificationResult && (
                     <div className="bg-[#24060b] border-2 border-[#FF2247] p-4 rounded text-left font-mono text-xs space-y-2.5">
                       <div className="flex items-center gap-2 text-[#FF2247] font-pixel text-[11px] font-extrabold">
                         <span>✕</span>
-                        <span>INELIGIBLE: MINIMUM HOLDING NOT MET</span>
+                        <span>WALLET NOT DETECTED AS HOLDER</span>
                       </div>
                       <p className="text-gray-300 text-[11px] leading-relaxed">
-                        This wallet does not hold at least <strong>$1.00 USD of $APEBROKERS</strong> or <strong>1 ApeSyndicate NFT</strong> on Robinhood Chain.
+                        To qualify for the 9,000 spots, this wallet must hold at least some <strong>$APEBROKERS tokens</strong> or an <strong>ApeSyndicate NFT</strong> on Robinhood Chain.
                       </p>
                       <div className="bg-black/60 p-2 rounded border border-[#52131d] text-[11px] text-gray-300 space-y-1">
-                        <div>$APEBROKERS: <span className="text-[#FF2247] font-bold">{Number(verificationResult.tokenBalance).toLocaleString(undefined, { maximumFractionDigits: 2 })} (${Number(verificationResult.tokenUsd).toFixed(2)} / $1.00 needed)</span></div>
-                        <div>ApeSyndicate NFTs: <span className="text-[#FF2247] font-bold">{verificationResult.nftBalance} (1 needed)</span></div>
+                        <div>Detected $APEBROKERS: <span className="text-[#FF2247] font-bold">0 tokens ($0.00)</span></div>
+                        <div>Detected NFTs: <span className="text-[#FF2247] font-bold">0 NFTs</span></div>
                       </div>
                       <div className="pt-1">
                         <a
@@ -398,7 +446,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 text-[10px] font-pixel text-[#FFD700] hover:underline"
                         >
-                          <span>🛒 [ BUY $APEBROKERS ON DEXSCREENER ]</span>
+                          <span>🛒 [ BUY $APEBROKERS ON DEXSCREENER & RETRY ]</span>
                           <span>→</span>
                         </a>
                       </div>
@@ -495,7 +543,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                   </button>
                   {verificationStatus !== 'QUALIFIED' && (
                     <p className="font-mono text-[10px] text-gray-500 text-center mt-2">
-                      * Wallet verification required before application submission.
+                      * Verify holdings on-chain to unlock application submission.
                     </p>
                   )}
                 </div>
@@ -506,20 +554,28 @@ export const ApplicationPage = ({ onBackHome }) => {
             <div className="text-center space-y-6">
               <div className="inline-block bg-[#06240d] border-2 border-[#00FF66] px-4 py-2 rounded-lg">
                 <h2 className="font-pixel text-lg sm:text-xl text-[#00FF66] font-extrabold">
-                  APPLICATION SUBMITTED!
+                  APPLICATION REGISTERED!
                 </h2>
               </div>
 
-              <div className="bg-black/90 border-2 border-[#222] p-5 rounded-lg space-y-4 text-left font-mono text-xs">
-                <div className="flex items-center justify-between border-b border-[#222] pb-3">
+              <div className="bg-black/90 border-2 border-[#222] p-5 rounded-lg space-y-3.5 text-left font-mono text-xs">
+                <div className="flex items-center justify-between border-b border-[#222] pb-2.5">
                   <span className="text-gray-400">BROKER ID:</span>
                   <span className="font-pixel text-[#FFD700] text-sm">{submittedData?.brokerId}</span>
                 </div>
-                <div className="flex items-center justify-between border-b border-[#222] pb-3">
+                <div className="flex items-center justify-between border-b border-[#222] pb-2.5">
                   <span className="text-gray-400">ALLOCATION STATUS:</span>
-                  <span className="text-[#00FF66] font-bold">✓ VERIFIED HOLDER ALLOCATION</span>
+                  <span className={submittedData?.isGtd ? 'text-[#FFD700] font-bold' : 'text-[#00FF66] font-bold'}>
+                    {submittedData?.isGtd ? '🌟 GUARANTEED (GTD) ALLOCATION' : '✓ VERIFIED HOLDER ALLOCATION'}
+                  </span>
                 </div>
-                <div className="flex items-center justify-between border-b border-[#222] pb-3">
+                <div className="flex items-center justify-between border-b border-[#222] pb-2.5">
+                  <span className="text-gray-400">HOLDINGS VERIFIED:</span>
+                  <span className="text-gray-200">
+                    ~$${Number(submittedData?.verificationResult?.tokenUsd || 0).toFixed(2)} USD • {submittedData?.verificationResult?.nftBalance || 0} NFTs
+                  </span>
+                </div>
+                <div className="flex items-center justify-between border-b border-[#222] pb-2.5">
                   <span className="text-gray-400">X HANDLE:</span>
                   <span className="text-white font-bold">{submittedData?.xUsername}</span>
                 </div>
