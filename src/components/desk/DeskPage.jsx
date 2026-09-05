@@ -362,7 +362,7 @@ export function DeskPage({ onBackHome }) {
               <div className="text-base sm:text-xl font-bold text-[#FFD700] mt-1">
                 {Number(formatEther(globalStats.totalEthDeposited)).toFixed(4)} ETH
               </div>
-              <div className="text-[9px] text-gray-500 mt-0.5">Admin Funded</div>
+              <div className="text-[9px] text-gray-500 mt-0.5">Pool Funded</div>
             </div>
 
             {/* Protocol Fees Collected */}
@@ -738,12 +738,12 @@ export function DeskPage({ onBackHome }) {
                           : 'bg-[#051f2b] text-[#00F0FF] border border-[#00F0FF]'
                       }`}
                     >
-                      {item.type}
+                      {item.type === 'deposit' ? 'POOL' : item.type}
                     </span>
                     <span className="text-gray-200">{item.detail}</span>
                   </div>
                   <div className="flex items-center gap-2 text-[10px] text-gray-400">
-                    <span>{item.user ? `${item.user.slice(0, 6)}...` : ''}</span>
+                    <span>{item.user === 'Pool' ? 'Pool' : item.user ? `${item.user.slice(0, 6)}...` : ''}</span>
                     <span>•</span>
                     <span>{new Date(item.timestamp).toLocaleTimeString()}</span>
                   </div>

@@ -274,8 +274,8 @@ export async function fetchRecentProtocolActivity(limit = 15) {
       items.push({
         type: 'deposit',
         id: `deposit-${d.id}`,
-        user: d.depositor,
-        detail: `Admin ETH Deposit: ${d.amount_eth} ETH (Epoch ${d.epoch})`,
+        user: 'Pool',
+        detail: 'Pool Deposit',
         txHash: d.tx_hash,
         timestamp: d.created_at,
       });
