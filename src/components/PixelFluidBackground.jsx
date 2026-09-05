@@ -4,13 +4,13 @@ import React, { useEffect, useRef } from 'react';
  * PixelFluidBackground
  *
  * Real Navier-Stokes Eulerian Grid Interactive Pixel Fluid Simulation.
- * - Low-velocity, hypnotic ambient drift
- * - Vibrant neon cyber colors (Lime #00FF66, Cyan #00E5FF, Magenta #FF007F, Purple #9D00FF, Gold #FFB800)
- * - Chunky retro pixel cells (each cell is a simulated physical fluid pixel!)
- * - High interactivity: user stirs, pushes, and paints luminous swirling vortices
- * - Click/Tap explosive ripple shockwaves
- * - 60 FPS locked on CPU TypedArrays with zero WebGL dependencies or context-loss risks
- * - Pointer-events-none so all buttons, inputs, and links remain 100% interactive
+ * VIBRANT LIGHT COLOR THEME:
+ * - Radiant, bright, illuminated synthwave sunrise/neon sky base
+ * - Swirling vibrant neon dyes (Electric Pink #FF2A8D, Cyber Cyan #00E5FF, Neon Lime #00FF66, Solar Gold #FFC700, Lilac #B845FF)
+ * - True physical fluid advection & diffusion at low velocity
+ * - Interactive cursor stirring, wake streaks, and click ripple shockwaves
+ * - Chunky retro pixel rendering (image-rendering: pixelated)
+ * - Zero dimming overlays; placed at z-0 so it is 100% visible behind the UI cards
  */
 export const PixelFluidBackground = () => {
   const canvasRef = useRef(null);
@@ -22,11 +22,10 @@ export const PixelFluidBackground = () => {
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
-    // Simulation Grid Dimensions (Chunky retro pixels)
-    // 140x80 gives a 16:9 ratio and ~8-12px size per pixel block
+    // Simulation Grid (Chunky retro pixels)
     const isMobile = window.innerWidth < 768;
-    const NX = isMobile ? 80 : 136;
-    const NY = isMobile ? 120 : 76;
+    const NX = isMobile ? 84 : 144;
+    const NY = isMobile ? 124 : 80;
     const size = (NX + 2) * (NY + 2);
 
     canvas.width = NX;
@@ -34,13 +33,13 @@ export const PixelFluidBackground = () => {
 
     const IX = (x, y) => x + y * (NX + 2);
 
-    // Fluid fields
+    // Fluid velocity fields
     const u = new Float32Array(size); // velocity X
     const v = new Float32Array(size); // velocity Y
     const u_prev = new Float32Array(size);
     const v_prev = new Float32Array(size);
 
-    // Vibrant Dye fields (RGB)
+    // Color fields (RGB) - Initialized with vibrant light gradient
     const densR = new Float32Array(size);
     const densG = new Float32Array(size);
     const densB = new Float32Array(size);
@@ -48,24 +47,75 @@ export const PixelFluidBackground = () => {
     const densG_prev = new Float32Array(size);
     const densB_prev = new Float32Array(size);
 
-    // Vibrant Neon Palette for dynamic interaction
-    const PALETTE = [
-      { r: 0, g: 255, b: 102 },   // ApeBrokers Neon Lime (#00FF66)
-      { r: 0, g: 235, b: 255 },   // Electric Cyan (#00E5FF)
-      { r: 255, g: 0, b: 140 },   // Vivid Neon Magenta (#FF008C)
-      { r: 160, g: 0, b: 255 },   // Cyber Violet (#A000FF)
-      { r: 255, g: 195, b: 0 },   // Radiant Gold (#FFC300)
+    // Function to calculate vibrant light base color at (x, y) with low-velocity time
+    const getAmbientBaseColor = (i, j, t) => {
+      const uGrad = i / NX;
+      const vGrad = j / NY;
+
+      // Multi-frequency gentle ambient wave
+      const w1 = Math.sin(uGrad * 3.0 + vGrad * 2.0 + t);
+      const w2 = Math.cos(uGrad * 2.0 - vGrad * 3.0 - t * 0.7);
+      const w3 = Math.sin((uGrad + vGrad) * 2.5 + t * 0.5);
+
+      // Radiant color interpolation (bright, saturated, vibrant light colors)
+      // Top: Electric Sky Cyan & Lilac
+      // Middle: Vibrant Neon Coral-Pink
+      // Bottom: Sunny Gold & Electric Lime
+      const r1 = 255;
+      const g1 = Math.floor(70 + (w1 * 0.5 + 0.5) * 110);
+      const b1 = Math.floor(160 + (w2 * 0.5 + 0.5) * 95);
+
+      const r2 = Math.floor(40 + (w2 * 0.5 + 0.5) * 120);
+      const g2 = Math.floor(215 + (w3 * 0.5 + 0.5) * 40);
+      const b2 = 255;
+
+      const r3 = Math.floor(255 * (1 - vGrad * 0.4) + 40 * (vGrad * 0.4));
+      const g3 = Math.floor(220 * (1 - uGrad * 0.3) + 90 * (uGrad * 0.3));
+      const b3 = Math.floor(70 + (w1 * 0.5 + 0.5) * 120);
+
+      // Blend based on coordinates
+      const blend = (w1 + w2 + w3) / 3.0 * 0.5 + 0.5;
+      const r = Math.min(255, Math.floor(r1 * (1 - vGrad) * blend + r2 * vGrad * (1 - blend) + r3 * blend * 0.5));
+      const g = Math.min(255, Math.floor(g1 * (1 - uGrad) * 0.5 + g2 * uGrad * 0.7 + g3 * blend * 0.4));
+      const b = Math.min(255, Math.floor(b1 * (1 - vGrad) * 0.7 + b2 * vGrad * 0.8 + b3 * 0.2));
+
+      return {
+        r: Math.max(120, r), // Keep baseline bright and vibrant
+        g: Math.max(120, g),
+        b: Math.max(140, b),
+      };
+    };
+
+    // Populate initial vibrant light field
+    for (let j = 1; j <= NY; j++) {
+      for (let i = 1; i <= NX; i++) {
+        const col = getAmbientBaseColor(i, j, 0);
+        const idx = IX(i, j);
+        densR[idx] = col.r;
+        densG[idx] = col.g;
+        densB[idx] = col.b;
+      }
+    }
+
+    // Dynamic Saturated Neon Dye Palette for Cursor Injection
+    const DYE_PALETTE = [
+      { r: 255, g: 20, b: 147 },   // Deep Neon Pink (#FF1493)
+      { r: 0, g: 240, b: 255 },     // Electric Cyan (#00F0FF)
+      { r: 0, g: 255, b: 102 },     // Vibrant Lime (#00FF66)
+      { r: 255, g: 195, b: 0 },     // Radiant Gold (#FFC300)
+      { r: 175, g: 45, b: 255 },    // Cyber Violet (#AF2DFF)
+      { r: 255, g: 80, b: 50 },     // Neon Tangerine (#FF5032)
     ];
 
     let colorPhase = 0;
 
-    const getCurrentColor = () => {
-      const idx = Math.floor(colorPhase) % PALETTE.length;
-      const nextIdx = (idx + 1) % PALETTE.length;
+    const getCurrentDyeColor = () => {
+      const idx = Math.floor(colorPhase) % DYE_PALETTE.length;
+      const nextIdx = (idx + 1) % DYE_PALETTE.length;
       const frac = colorPhase - Math.floor(colorPhase);
 
-      const c1 = PALETTE[idx];
-      const c2 = PALETTE[nextIdx];
+      const c1 = DYE_PALETTE[idx];
+      const c2 = DYE_PALETTE[nextIdx];
 
       return {
         r: c1.r + (c2.r - c1.r) * frac,
@@ -110,7 +160,7 @@ export const PixelFluidBackground = () => {
       linSolve(b, x, x0, a, 1 + 4 * a);
     };
 
-    // Advection (Transporting quantities along velocity field)
+    // Advection (Transporting colors and velocities along fluid flow)
     const advect = (b, d, d0, uField, vField, dt) => {
       const dt0X = dt * NX;
       const dt0Y = dt * NY;
@@ -145,7 +195,7 @@ export const PixelFluidBackground = () => {
       setBnd(b, d);
     };
 
-    // Mass conservation & pressure projection (creates realistic fluid vortices)
+    // Mass conservation & pressure projection
     const project = (uField, vField, p, div) => {
       for (let j = 1; j <= NY; j++) {
         const row = j * (NX + 2);
@@ -187,26 +237,23 @@ export const PixelFluidBackground = () => {
       advect(2, v, v_prev, u_prev, v_prev, dt);
       project(u, v, u_prev, v_prev);
 
-      // 3. Dye diffusion & advection
-      diffuse(0, densR_prev, densR, 0.00005, dt);
-      diffuse(0, densG_prev, densG, 0.00005, dt);
-      diffuse(0, densB_prev, densB, 0.00005, dt);
+      // 3. Color field diffusion & advection
+      diffuse(0, densR_prev, densR, 0.00008, dt);
+      diffuse(0, densG_prev, densG, 0.00008, dt);
+      diffuse(0, densB_prev, densB, 0.00008, dt);
 
       advect(0, densR, densR_prev, u, v, dt);
       advect(0, densG, densG_prev, u, v, dt);
       advect(0, densB, densB_prev, u, v, dt);
 
-      // 4. Low-velocity dissipation (fade over ~4 seconds, keep velocity calm)
+      // 4. Low-velocity dissipation
       for (let i = 0; i < size; i++) {
-        densR[i] *= 0.985;
-        densG[i] *= 0.985;
-        densB[i] *= 0.985;
-        u[i] *= 0.978;
-        v[i] *= 0.978;
+        u[i] *= 0.982;
+        v[i] *= 0.982;
       }
     };
 
-    // Function to inject fluid dye and velocity into grid cells
+    // Inject velocity and dye
     const injectFluid = (gridX, gridY, velX, velY, color, radius = 2, intensity = 1.0) => {
       const rad = Math.max(1, radius);
       for (let dy = -rad; dy <= rad; dy++) {
@@ -219,12 +266,14 @@ export const PixelFluidBackground = () => {
               const falloff = (1 - Math.sqrt(distSq) / (rad + 1)) * intensity;
               const idx = IX(gx, gy);
 
-              u[idx] += velX * falloff * 0.35;
-              v[idx] += velY * falloff * 0.35;
+              u[idx] += velX * falloff * 0.4;
+              v[idx] += velY * falloff * 0.4;
 
-              densR[idx] = Math.min(255, densR[idx] + color.r * falloff * 0.85);
-              densG[idx] = Math.min(255, densG[idx] + color.g * falloff * 0.85);
-              densB[idx] = Math.min(255, densB[idx] + color.b * falloff * 0.85);
+              // Blend injected vibrant dye with current color
+              const blend = falloff * 0.65;
+              densR[idx] = densR[idx] * (1 - blend) + color.r * blend;
+              densG[idx] = densG[idx] * (1 - blend) + color.g * blend;
+              densB[idx] = densB[idx] * (1 - blend) + color.b * blend;
             }
           }
         }
@@ -233,8 +282,6 @@ export const PixelFluidBackground = () => {
 
     // Interaction handling
     const pointer = {
-      x: window.innerWidth * 0.5,
-      y: window.innerHeight * 0.5,
       prevX: window.innerWidth * 0.5,
       prevY: window.innerHeight * 0.5,
       hasMoved: false,
@@ -260,19 +307,19 @@ export const PixelFluidBackground = () => {
 
       if (dist > 0) {
         // Cycle colors smoothly along mouse strokes
-        colorPhase += dist * 0.015;
-        const color = getCurrentColor();
+        colorPhase += dist * 0.02;
+        const color = getCurrentDyeColor();
 
-        const velX = (dx / window.innerWidth) * NX * 2.2;
-        const velY = (dy / window.innerHeight) * NY * 2.2;
+        const velX = (dx / window.innerWidth) * NX * 2.8;
+        const velY = (dy / window.innerHeight) * NY * 2.8;
 
-        // Interpolate along line segment so rapid mouse flicks paint a continuous fluid stream
-        const steps = Math.min(16, Math.max(1, Math.ceil(Math.hypot(currGX - prevGX, currGY - prevGY) * 1.5)));
+        // Interpolate along stroke
+        const steps = Math.min(18, Math.max(1, Math.ceil(Math.hypot(currGX - prevGX, currGY - prevGY) * 1.5)));
         for (let s = 0; s <= steps; s++) {
           const t = s / steps;
           const gx = Math.round(prevGX + (currGX - prevGX) * t);
           const gy = Math.round(prevGY + (currGY - prevGY) * t);
-          injectFluid(gx, gy, velX, velY, color, isMobile ? 2 : 3, 1.2);
+          injectFluid(gx, gy, velX, velY, color, isMobile ? 3 : 4, 1.4);
         }
       }
 
@@ -295,25 +342,24 @@ export const PixelFluidBackground = () => {
       const gx = Math.floor((clientX / window.innerWidth) * NX);
       const gy = Math.floor((clientY / window.innerHeight) * NY);
 
-      colorPhase += 0.8;
-      const color = getCurrentColor();
+      colorPhase += 1.2;
+      const color = getCurrentDyeColor();
 
-      // Radial blast of velocity + bright neon burst
-      const burstRadius = isMobile ? 4 : 6;
+      const burstRadius = isMobile ? 6 : 8;
       for (let dy = -burstRadius; dy <= burstRadius; dy++) {
         for (let dx = -burstRadius; dx <= burstRadius; dx++) {
           const dist = Math.hypot(dx, dy);
           if (dist > 0 && dist <= burstRadius) {
             const radAngle = Math.atan2(dy, dx);
-            const force = (1 - dist / (burstRadius + 1)) * 3.5;
+            const force = (1 - dist / (burstRadius + 1)) * 4.2;
             injectFluid(
               gx + dx,
               gy + dy,
               Math.cos(radAngle) * force,
               Math.sin(radAngle) * force,
               color,
-              2,
-              1.8
+              3,
+              2.0
             );
           }
         }
@@ -331,89 +377,82 @@ export const PixelFluidBackground = () => {
     let animationId;
     let frame = 0;
 
-    // Main animation & simulation loop
+    // Main animation loop
     const loop = () => {
       frame++;
+      const t = frame * 0.012; // Low velocity ambient time
 
       // ========================================================
-      // AMBIENT LOW-VELOCITY DRIFT (Hypnotic, slow liquid motion)
+      // AMBIENT LOW-VELOCITY STIRRING (Hypnotic, slow liquid motion)
       // ========================================================
-      const t = frame * 0.016; // Low velocity time scale
-
-      // Gentle ambient source 1: Swirling Emerald/Cyan breeze from bottom-left
-      const p1x = Math.floor(NX * 0.25 + Math.cos(t * 0.5) * (NX * 0.12));
-      const p1y = Math.floor(NY * 0.70 + Math.sin(t * 0.6) * (NY * 0.10));
+      // Gentle ambient vortex 1: Neon Magenta / Coral wave
+      const p1x = Math.floor(NX * 0.28 + Math.cos(t * 0.6) * (NX * 0.16));
+      const p1y = Math.floor(NY * 0.35 + Math.sin(t * 0.7) * (NY * 0.14));
       injectFluid(
         p1x,
         p1y,
-        Math.cos(t * 0.8) * 0.45,
-        -Math.abs(Math.sin(t * 0.7)) * 0.5,
-        { r: 0, g: 255, b: 110 },
-        isMobile ? 2 : 3,
+        Math.cos(t * 0.7) * 0.5,
+        Math.sin(t * 0.7) * 0.5,
+        { r: 255, g: 40, b: 150 },
+        isMobile ? 3 : 5,
         0.18
       );
 
-      // Gentle ambient source 2: Swirling Magenta/Violet breeze from top-right
-      const p2x = Math.floor(NX * 0.75 + Math.sin(t * 0.5) * (NX * 0.12));
-      const p2y = Math.floor(NY * 0.30 + Math.cos(t * 0.6) * (NY * 0.10));
+      // Gentle ambient vortex 2: Electric Sky Cyan wave
+      const p2x = Math.floor(NX * 0.72 + Math.sin(t * 0.5) * (NX * 0.18));
+      const p2y = Math.floor(NY * 0.65 + Math.cos(t * 0.6) * (NY * 0.14));
       injectFluid(
         p2x,
         p2y,
-        -Math.abs(Math.cos(t * 0.7)) * 0.45,
-        Math.sin(t * 0.8) * 0.45,
-        { r: 210, g: 0, b: 240 },
-        isMobile ? 2 : 3,
+        -Math.sin(t * 0.8) * 0.5,
+        Math.cos(t * 0.8) * 0.5,
+        { r: 0, g: 235, b: 255 },
+        isMobile ? 3 : 5,
         0.16
       );
 
-      // Gentle ambient source 3: Warm Gold/Cyan slow wave in center
-      const p3x = Math.floor(NX * 0.50 + Math.sin(t * 0.4) * (NX * 0.18));
-      const p3y = Math.floor(NY * 0.50 + Math.cos(t * 0.3) * (NY * 0.12));
+      // Gentle ambient vortex 3: Solar Gold / Lime wave
+      const p3x = Math.floor(NX * 0.50 + Math.sin(t * 0.4) * (NX * 0.20));
+      const p3y = Math.floor(NY * 0.50 + Math.cos(t * 0.3) * (NY * 0.16));
       injectFluid(
         p3x,
         p3y,
-        Math.cos(t * 0.5) * 0.35,
-        Math.sin(t * 0.5) * 0.35,
-        { r: 0, g: 220, b: 255 },
-        isMobile ? 2 : 3,
-        0.14
+        Math.cos(t * 0.5) * 0.4,
+        -Math.sin(t * 0.5) * 0.4,
+        { r: 255, g: 215, b: 20 },
+        isMobile ? 3 : 5,
+        0.15
       );
 
-      // Step physics
+      // Step physical fluid advection & diffusion
       fluidStep(0.12);
 
-      // Render to Pixel Buffer with Synthwave Twilight Sky Gradient
+      // Gently relax color field toward vibrant light ambient base
+      // (ensures screen stays bright, vibrant, and luminous indefinitely)
+      const relaxRate = 0.012;
+      for (let j = 1; j <= NY; j++) {
+        for (let i = 1; i <= NX; i++) {
+          const idx = IX(i, j);
+          const target = getAmbientBaseColor(i, j, t);
+          densR[idx] += (target.r - densR[idx]) * relaxRate;
+          densG[idx] += (target.g - densG[idx]) * relaxRate;
+          densB[idx] += (target.b - densB[idx]) * relaxRate;
+        }
+      }
+
+      // Direct write to pixel canvas
       let pixelIdx = 0;
       for (let j = 1; j <= NY; j++) {
         const row = j * (NX + 2);
-        // Vertical gradient: deep purple at top, vibrant sunset glow near bottom-middle
-        const vGrad = j / NY;
-        const horizon = Math.exp(-Math.pow((vGrad - 0.65) * 4.0, 2.0));
-        const baseR = Math.floor(14 + horizon * 32);
-        const baseG = Math.floor(8 + horizon * 8);
-        const baseB = Math.floor(28 + horizon * 22);
-
         for (let i = 1; i <= NX; i++) {
           const idx = row + i;
-          const rDye = densR[idx];
-          const gDye = densG[idx];
-          const bDye = densB[idx];
 
-          // Blend fluid over synthwave sunset sky
-          const r = Math.min(255, baseR + rDye);
-          const g = Math.min(255, baseG + gDye);
-          const b = Math.min(255, baseB + bDye);
+          const r = Math.min(255, Math.max(0, Math.floor(densR[idx])));
+          const g = Math.min(255, Math.max(0, Math.floor(densG[idx])));
+          const b = Math.min(255, Math.max(0, Math.floor(densB[idx])));
 
-          // Little bit of luminance boost for neon vibrancy
-          const lum = (rDye * 0.299 + gDye * 0.587 + bDye * 0.114);
-          const bloom = lum > 130 ? (lum - 130) * 0.45 : 0;
-
-          const finalR = Math.min(255, r + bloom);
-          const finalG = Math.min(255, g + bloom);
-          const finalB = Math.min(255, b + bloom);
-
-          // Little ABGR byte packing for 32-bit direct canvas write
-          data32[pixelIdx++] = (255 << 24) | (finalB << 16) | (finalG << 8) | finalR;
+          // ABGR byte packing for 32-bit fast canvas copy
+          data32[pixelIdx++] = (255 << 24) | (b << 16) | (g << 8) | r;
         }
       }
 
@@ -433,18 +472,18 @@ export const PixelFluidBackground = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 w-full h-full pointer-events-none -z-10 overflow-hidden bg-[#060411]">
-      {/* Real Interactive Pixel Fluid Simulation Canvas */}
+    <div className="fixed inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
+      {/* Real Interactive Vibrant Light Pixel Fluid Canvas */}
       <canvas
         ref={canvasRef}
         aria-hidden="true"
         className="w-full h-full object-cover select-none"
         style={{
-          imageRendering: 'pixelated', // Crisp retro pixel blocks
+          imageRendering: 'pixelated', // Chunky retro pixel blocks
         }}
       />
-      {/* Subtle CRT Phosphor Scanline Overlay for authentic retro pixel aesthetic */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,38,0)_50%,rgba(0,0,0,0.35)_50%)] bg-[length:100%_4px] pointer-events-none opacity-45" />
+      {/* Subtle Retro CRT scanline texture (soft opacity so vibrant light colors shine brightly) */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_50%,rgba(0,0,0,0.08)_50%)] bg-[length:100%_4px] pointer-events-none opacity-30" />
     </div>
   );
 };

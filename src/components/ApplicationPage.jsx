@@ -297,13 +297,9 @@ export const ApplicationPage = ({ onBackHome }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#070314] text-white flex flex-col justify-between font-pixel selection:bg-[#00FF66] selection:text-black relative overflow-x-hidden">
+    <div className="min-h-screen text-white flex flex-col justify-between font-pixel selection:bg-[#00FF66] selection:text-black relative overflow-x-hidden">
       {/* Interactive Pixel Fluid Background */}
       <PixelFluidBackground />
-      
-      {/* Background Dimmer & Scanline Overlay */}
-      <div className="fixed inset-0 bg-black/40 pointer-events-none -z-0" />
-      <div className="fixed inset-0 bg-[linear-gradient(rgba(18,16,38,0)_50%,rgba(0,0,0,0.35)_50%)] bg-[length:100%_4px] pointer-events-none opacity-35 -z-0" />
 
       {/* Top Header */}
       <header className="sticky top-0 z-50 w-full bg-[#0c061e]/95 backdrop-blur-md border-b-4 border-black px-4 sm:px-8 py-3 select-none relative shadow-[0_4px_20px_rgba(0,0,0,0.8)]">

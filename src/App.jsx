@@ -36,12 +36,9 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen text-black flex flex-col justify-between font-pixel selection:bg-black selection:text-[#00FF66] bg-[#060411] relative overflow-hidden">
-      {/* Vibrant Low-Velocity Interactive Pixel Fluid Background */}
-      <PixelFluidBackground pixelSize={6} />
-
-      {/* Background Soft Dimmer Layer for enhanced text & UI contrast */}
-      <div className="fixed inset-0 bg-black/30 pointer-events-none -z-0" />
+    <div className="min-h-screen text-black flex flex-col justify-between font-pixel selection:bg-black selection:text-[#00FF66] relative overflow-hidden">
+      {/* Vibrant Light Interactive Pixel Fluid Background */}
+      <PixelFluidBackground />
 
       {/* Top Header */}
       <div className="relative z-50">
