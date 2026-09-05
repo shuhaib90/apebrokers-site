@@ -434,20 +434,20 @@ export const ApplicationPage = ({ onBackHome }) => {
                     <span>APPLICATIONS OPEN FOR EVERYONE</span>
                   </div>
                   <p className="font-mono text-xs text-gray-300 leading-relaxed">
-                    Anyone can apply for the 9,000 whitelist spots. Wallets holding both $1.00+ in tokens and 1 ApeSyndicate NFT unlock a dynamic chance to win Guaranteed (GTD) mint:
+                    Anyone can apply for the 9,000 whitelist spots. Wallets holding both $1.00+ in tokens and 1 ApeSyndicate NFT unlock Guaranteed (GTD) mint allocation based on holdings:
                   </p>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
                     <div className="bg-black/70 border border-[#00FF66]/50 p-2.5 rounded">
                       <div className="text-[#FFD700] font-bold flex items-center gap-1.5">
                         <span className="text-[#FFD700]">[GTD]</span>
-                        <span>DYNAMIC GTD WIN CHANCE</span>
+                        <span>GUARANTEED (GTD) MINT</span>
                       </div>
                       <div className="text-gray-300 mt-1">
                         Hold <strong>≥ $1.00 USD of $APEBROKERS + ≥ 1 ApeSyndicate NFT</strong>.
                       </div>
                       <div className="text-[#00FF66] text-[10px] mt-1 font-semibold">
-                        [✓] $1 = 5% • $10 = 50% • $20+ = 100% GTD!
+                        [✓] Higher token & NFT holdings increase GTD allocation chance!
                       </div>
                     </div>
 
@@ -598,7 +598,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                                 GTD WIN CHANCE: {verificationResult.winChancePercent}%
                               </span>
                               <span className="text-gray-400 text-[10px] ml-2">
-                                (Scales with tokens: $1 = 5%, $10 = 50%, $20+ = 100%)
+                                (Higher holdings increase your allocation chance)
                               </span>
                             </div>
                           ) : (
@@ -790,7 +790,7 @@ export const ApplicationPage = ({ onBackHome }) => {
                     <span>APPLICATION IN REVIEW QUEUE</span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-gray-400">
-                    Your application has been received for the Standard Whitelist. Wallets holding at least <strong>$1.00 USD in $APEBROKERS tokens + 1 ApeSyndicate NFT</strong> receive a dynamic chance to win Guaranteed (GTD) mint spots (<strong>$1 = 5% • $10 = 50% • $20+ = 100% GTD</strong>).
+                    Your application has been received for the Standard Whitelist. Wallets holding at least <strong>$1.00 USD in $APEBROKERS tokens + 1 ApeSyndicate NFT</strong> receive Guaranteed (GTD) mint allocation based on holdings.
                   </p>
                   <div className="pt-1">
                     <a

@@ -44,7 +44,7 @@ export const Hero = ({ onApplyClick }) => {
             <TypewriterText
               text={[
                 'OPEN FOR EVERYONE.',
-                'DYNAMIC GTD: $1=5%, $10=50%.',
+                'HOLD MORE FOR HIGHER GTD CHANCE.',
                 '9,000 WHITELIST SPOTS.',
                 'ROBINHOOD CHAIN.',
               ]}
@@ -62,7 +62,7 @@ export const Hero = ({ onApplyClick }) => {
         <div className="bg-black/90 backdrop-blur-md p-4 sm:p-5 border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] max-w-xl mx-auto min-h-[75px] sm:min-h-[85px] flex items-center justify-center">
           <p className="font-mono text-sm sm:text-base text-gray-100 font-semibold leading-relaxed">
             <TypewriterText
-              text="Everyone can apply for the 9,000 whitelist spots. Wallets holding min. $1.00 in $APEBROKERS tokens + 1 ApeSyndicate NFT get a dynamic chance for Guaranteed (GTD) mint: $1 = 5%, $10 = 50%, $20+ = 100% GTD! All other entries receive Standard WL."
+              text="Everyone can apply for the 9,000 whitelist spots. Wallets holding $APEBROKERS tokens + ApeSyndicate NFTs receive Guaranteed (GTD) mint allocation based on holdings. All other entries receive Standard WL."
               speed={20}
               delay={800}
               playSound={false}
