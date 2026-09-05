@@ -12,7 +12,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'When is the mint?',
-    a: 'Mint date is Sep 3rd with a mint price of 0.0016 ETH exclusively on Robinhood Chain.',
+    a: 'Mint date is Sep 6th with a free mint exclusively on Robinhood Chain.',
   },
   {
     q: 'Which chain is ApeSyndicate on?',

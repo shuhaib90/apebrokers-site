@@ -6,7 +6,7 @@ import {
   darkTheme,
 } from '@rainbow-me/rainbowkit';
 import { WagmiProvider, http } from 'wagmi';
-import { mainnet, base, arbitrum, polygon } from 'wagmi/chains';
+import { mainnet, base, arbitrum, polygon, hardhat } from 'wagmi/chains';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 
 // Define Robinhood Chain
@@ -16,10 +16,10 @@ export const robinhoodChain = {
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: {
     default: {
-      http: ['https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY'],
+      http: [import.meta.env.VITE_ROBINHOOD_RPC_URL || 'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY'],
     },
     public: {
-      http: ['https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY'],
+      http: [import.meta.env.VITE_ROBINHOOD_RPC_URL || 'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY'],
     },
   },
   blockExplorers: {
@@ -30,15 +30,16 @@ export const robinhoodChain = {
 const queryClient = new QueryClient();
 
 export const config = getDefaultConfig({
-  appName: 'ApeSyndicate',
-  projectId: '3a8170812b534d0ff9d794f19a901d64', // Public demo WalletConnect ProjectId
-  chains: [mainnet, base, arbitrum, polygon, robinhoodChain],
+  appName: 'Ape Broker Desk',
+  projectId: '3a8170812b534d0ff9d794f19a901d64', // Demo ProjectId
+  chains: [robinhoodChain, hardhat, mainnet, base, arbitrum, polygon],
   transports: {
+    [robinhoodChain.id]: http(import.meta.env.VITE_ROBINHOOD_RPC_URL || 'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY'),
+    [hardhat.id]: http('http://127.0.0.1:8545'),
     [mainnet.id]: http(),
     [base.id]: http(),
     [arbitrum.id]: http(),
     [polygon.id]: http(),
-    [robinhoodChain.id]: http('https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY'),
   },
   ssr: false,
 });

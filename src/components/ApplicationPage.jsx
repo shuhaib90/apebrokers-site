@@ -13,7 +13,7 @@ const BLOCKED_ADDRESSES = [
   '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
 ];
 
-export const ApplicationPage = ({ onBackHome, onAdminClick }) => {
+export const ApplicationPage = ({ onBackHome }) => {
   const [tokenPrice, setTokenPrice] = useState(DEFAULT_TOKEN_PRICE);
   const [totalSpots] = useState(TOTAL_SPOTS);
   const [claimedCount, setClaimedCount] = useState(0);
@@ -354,18 +354,6 @@ export const ApplicationPage = ({ onBackHome, onAdminClick }) => {
             >
               <span>[ HOME ]</span>
             </button>
-
-            {onAdminClick && (
-              <button
-                type="button"
-                onClick={onAdminClick}
-                aria-label="Admin Dashboard"
-                title="Admin Dashboard"
-                className="pixel-btn pixel-btn-black px-1.5 sm:px-2.5 py-1.5 sm:py-2 text-[8px] sm:text-[10px] whitespace-nowrap font-bold text-gray-400 hover:text-white border-2 border-black rounded-md sm:rounded-lg shadow-[2px_2px_0px_#000]"
-              >
-                <span>⚙</span>
-              </button>
-            )}
           </div>
         </div>
       </header>

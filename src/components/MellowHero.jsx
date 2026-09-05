@@ -69,7 +69,7 @@ export const MellowHero = ({ onOpenWhitelist }) => {
 
             {/* Stat 2 */}
             <div className="bg-[#0b1219]/90 p-5 text-center flex flex-col justify-center">
-              <b className="text-2xl sm:text-3xl font-black text-[#FFD700] tracking-tight">TBA</b>
+              <b className="text-2xl sm:text-3xl font-black text-[#FFD700] tracking-tight">FREE</b>
               <span className="text-[11px] font-bold text-gray-400 tracking-[2px] mt-1 uppercase">MINT PRICE</span>
             </div>
 

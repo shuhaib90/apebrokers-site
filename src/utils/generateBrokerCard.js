@@ -588,7 +588,7 @@ export async function generateCodeClaimerCardDataUrl({ brokerId, xUsername, wall
 
         ctx.font = "bold 8px 'Courier New', monospace";
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillText('MINT DATE: SEP 3RD', 0, 28);
+        ctx.fillText('MINT DATE: SEP 6TH', 0, 28);
 
         ctx.restore();
 

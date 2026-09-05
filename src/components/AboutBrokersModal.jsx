@@ -76,13 +76,13 @@ export const AboutBrokersModal = ({ onClose, onOpenTerminal }) => {
             {/* Mint Price */}
             <div className="bg-broker-card p-2.5 border-2 border-black space-y-1">
               <div className="text-gray-400 text-[8px]">MINT PRICE</div>
-              <div className="text-broker-gold text-xs font-bold">0.0016 ETH</div>
+              <div className="text-broker-gold text-xs font-bold">FREE</div>
             </div>
 
             {/* Mint Date */}
             <div className="bg-broker-card p-2.5 border-2 border-black space-y-1">
               <div className="text-gray-400 text-[8px]">MINT DATE</div>
-              <div className="text-broker-cyan text-xs font-bold">TBA</div>
+              <div className="text-broker-cyan text-xs font-bold">SEP 6TH</div>
             </div>
 
             {/* Network Chain */}

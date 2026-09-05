@@ -4,10 +4,11 @@ import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ApplicationPage } from './components/ApplicationPage';
 import { AdminDashboard } from './components/AdminDashboard';
+import { DeskPage } from './components/desk/DeskPage';
 import { PixelFluidBackground } from './components/PixelFluidBackground';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'apply' | 'admin'
+  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'apply' | 'admin' | 'desk'
 
   useEffect(() => {
     const handleRoute = () => {
@@ -17,6 +18,8 @@ function App() {
         setCurrentPage('admin');
       } else if (path === '/apply' || hash === '#apply') {
         setCurrentPage('apply');
+      } else if (path === '/desk' || hash === '#desk') {
+        setCurrentPage('desk');
       } else {
         setCurrentPage('home');
       }
@@ -33,6 +36,12 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
+  const handleDesk = () => {
+    window.location.hash = 'desk';
+    setCurrentPage('desk');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
   const handleAdmin = () => {
     window.location.hash = 'admin';
     setCurrentPage('admin');
@@ -44,6 +53,15 @@ function App() {
     setCurrentPage('home');
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
+
+  if (currentPage === 'desk') {
+    return (
+      <>
+        <DeskPage onBackHome={handleBackHome} />
+        <Analytics />
+      </>
+    );
+  }
 
   if (currentPage === 'admin') {
     return (
@@ -57,7 +75,7 @@ function App() {
   if (currentPage === 'apply') {
     return (
       <>
-        <ApplicationPage onBackHome={handleBackHome} onAdminClick={handleAdmin} />
+        <ApplicationPage onBackHome={handleBackHome} />
         <Analytics />
       </>
     );
@@ -70,12 +88,12 @@ function App() {
 
       {/* Top Header */}
       <div className="relative z-50">
-        <Header onApplyClick={handleApply} onAdminClick={handleAdmin} />
+        <Header onApplyClick={handleApply} onDeskClick={handleDesk} />
       </div>
 
       {/* Hero Content with Stats */}
       <main className="flex-grow flex flex-col items-center justify-center w-full relative z-10">
-        <Hero onApplyClick={handleApply} />
+        <Hero onApplyClick={handleApply} onDeskClick={handleDesk} />
       </main>
 
       {/* Vercel Analytics */}
