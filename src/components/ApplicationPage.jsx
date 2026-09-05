@@ -374,29 +374,6 @@ export const ApplicationPage = ({ onBackHome, onAdminClick }) => {
       <main className="flex-grow flex items-center justify-center p-2.5 sm:p-6 relative z-10 my-4 sm:my-6">
         <div className="w-full max-w-2xl bg-[#0e0722]/95 backdrop-blur-md border-3 sm:border-4 border-black ring-2 ring-[#FF007F]/40 p-3.5 sm:p-8 shadow-[6px_6px_0px_0px_#000] sm:shadow-[8px_8px_0px_0px_#000] relative rounded-lg">
           
-          {/* Header Status Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-[#36195e] pb-4 mb-6 gap-3">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 bg-[#00FF66] rounded-full animate-blink shadow-[0_0_8px_#00FF66]" />
-              <span className="font-pixel text-[10px] sm:text-xs text-[#00FF66] font-extrabold tracking-wider">
-                ● 9,000 SPOTS ALLOCATION
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] sm:text-xs text-black bg-[#00FF66] px-2.5 py-0.5 font-extrabold rounded shadow-[2px_2px_0px_#000]">
-                SPOTS: {claimedCount} / {totalSpots.toLocaleString()} CLAIMED
-              </span>
-              <a
-                href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="View $APEBROKE on Let's Cash"
-                className="font-mono text-[10px] sm:text-xs text-[#FFB800] bg-[#241705] px-2 py-0.5 border border-[#FFB800] rounded hover:text-white transition-colors shadow-[2px_2px_0px_#000]"
-              >
-                ~$${Number(tokenPrice).toFixed(8)} ↗
-              </a>
-            </div>
-          </div>
 
           {/* DUPLICATE APPLICATION NOTICE */}
           {duplicateData && (
