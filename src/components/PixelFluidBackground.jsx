@@ -2,424 +2,447 @@ import React, { useEffect, useRef } from 'react';
 
 /**
  * PixelFluidBackground
- * 
- * High-performance, interactive, low-velocity pixel fluid simulation.
- * Features:
- * - Low velocity, hypnotic, ambient liquid drift
- * - Vibrant cyberpunk / neon color spectrum (Lime #00FF66, Cyan #00E5FF, Magenta #FF007F, Purple #9D00FF, Gold #FFB800)
- * - Chunky retro pixel grid aesthetics (customizable pixel size)
- * - Interactive mouse swirl, velocity wake, and click ripple shockwaves
- * - Seamless pointer-events-none overlay (zero disruption to buttons & links)
- * - Robust WebGL renderer with graceful 2D canvas fallback
+ *
+ * Real Navier-Stokes Eulerian Grid Interactive Pixel Fluid Simulation.
+ * - Low-velocity, hypnotic ambient drift
+ * - Vibrant neon cyber colors (Lime #00FF66, Cyan #00E5FF, Magenta #FF007F, Purple #9D00FF, Gold #FFB800)
+ * - Chunky retro pixel cells (each cell is a simulated physical fluid pixel!)
+ * - High interactivity: user stirs, pushes, and paints luminous swirling vortices
+ * - Click/Tap explosive ripple shockwaves
+ * - 60 FPS locked on CPU TypedArrays with zero WebGL dependencies or context-loss risks
+ * - Pointer-events-none so all buttons, inputs, and links remain 100% interactive
  */
-export const PixelFluidBackground = ({ pixelSize = 6 }) => {
+export const PixelFluidBackground = () => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    let animationFrameId;
-    let gl = null;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) return;
 
-    // Try initializing WebGL
-    try {
-      gl = canvas.getContext('webgl', { alpha: false, depth: false, antialias: false, powerPreference: 'high-performance' }) ||
-           canvas.getContext('experimental-webgl', { alpha: false, depth: false, antialias: false });
-    } catch (e) {
-      gl = null;
-    }
+    // Simulation Grid Dimensions (Chunky retro pixels)
+    // 140x80 gives a 16:9 ratio and ~8-12px size per pixel block
+    const isMobile = window.innerWidth < 768;
+    const NX = isMobile ? 80 : 136;
+    const NY = isMobile ? 120 : 76;
+    const size = (NX + 2) * (NY + 2);
 
-    // Interactive state
-    const mouse = {
-      x: window.innerWidth * 0.5,
-      y: window.innerHeight * 0.5,
-      targetX: window.innerWidth * 0.5,
-      targetY: window.innerHeight * 0.5,
-      vx: 0,
-      vy: 0,
-      speed: 0,
-      lastMove: Date.now(),
-    };
+    canvas.width = NX;
+    canvas.height = NY;
 
-    // Ripples for click/tap
-    const MAX_RIPPLES = 5;
-    const ripples = Array.from({ length: MAX_RIPPLES }, () => ({
-      x: 0,
-      y: 0,
-      age: 1.0, // 0 = new, 1 = dead
-      active: false,
-    }));
+    const IX = (x, y) => x + y * (NX + 2);
 
-    let rippleIndex = 0;
-    const triggerRipple = (x, y) => {
-      ripples[rippleIndex] = {
-        x,
-        y: window.innerHeight - y, // flip Y for GL
-        age: 0.01,
-        active: true,
+    // Fluid fields
+    const u = new Float32Array(size); // velocity X
+    const v = new Float32Array(size); // velocity Y
+    const u_prev = new Float32Array(size);
+    const v_prev = new Float32Array(size);
+
+    // Vibrant Dye fields (RGB)
+    const densR = new Float32Array(size);
+    const densG = new Float32Array(size);
+    const densB = new Float32Array(size);
+    const densR_prev = new Float32Array(size);
+    const densG_prev = new Float32Array(size);
+    const densB_prev = new Float32Array(size);
+
+    // Vibrant Neon Palette for dynamic interaction
+    const PALETTE = [
+      { r: 0, g: 255, b: 102 },   // ApeBrokers Neon Lime (#00FF66)
+      { r: 0, g: 235, b: 255 },   // Electric Cyan (#00E5FF)
+      { r: 255, g: 0, b: 140 },   // Vivid Neon Magenta (#FF008C)
+      { r: 160, g: 0, b: 255 },   // Cyber Violet (#A000FF)
+      { r: 255, g: 195, b: 0 },   // Radiant Gold (#FFC300)
+    ];
+
+    let colorPhase = 0;
+
+    const getCurrentColor = () => {
+      const idx = Math.floor(colorPhase) % PALETTE.length;
+      const nextIdx = (idx + 1) % PALETTE.length;
+      const frac = colorPhase - Math.floor(colorPhase);
+
+      const c1 = PALETTE[idx];
+      const c2 = PALETTE[nextIdx];
+
+      return {
+        r: c1.r + (c2.r - c1.r) * frac,
+        g: c1.g + (c2.g - c1.g) * frac,
+        b: c1.b + (c2.b - c1.b) * frac,
       };
-      rippleIndex = (rippleIndex + 1) % MAX_RIPPLES;
     };
 
-    // Window event listeners for seamless interaction across the entire screen
-    const handleMouseMove = (e) => {
-      const x = e.clientX;
-      const y = e.clientY;
-      const dx = x - mouse.targetX;
-      const dy = y - mouse.targetY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      mouse.targetX = x;
-      mouse.targetY = y;
-      mouse.vx = mouse.vx * 0.6 + dx * 0.4;
-      mouse.vy = mouse.vy * 0.6 + dy * 0.4;
-      mouse.speed = Math.min(mouse.speed + dist * 0.04, 3.0);
-      mouse.lastMove = Date.now();
+    // Boundary conditions
+    const setBnd = (b, x) => {
+      for (let i = 1; i <= NX; i++) {
+        x[IX(i, 0)] = b === 2 ? -x[IX(i, 1)] : x[IX(i, 1)];
+        x[IX(i, NY + 1)] = b === 2 ? -x[IX(i, NY)] : x[IX(i, NY)];
+      }
+      for (let j = 1; j <= NY; j++) {
+        x[IX(0, j)] = b === 1 ? -x[IX(1, j)] : x[IX(1, j)];
+        x[IX(NX + 1, j)] = b === 1 ? -x[IX(NX, j)] : x[IX(NX, j)];
+      }
+      x[IX(0, 0)] = 0.5 * (x[IX(1, 0)] + x[IX(0, 1)]);
+      x[IX(0, NY + 1)] = 0.5 * (x[IX(1, NY + 1)] + x[IX(0, NY)]);
+      x[IX(NX + 1, 0)] = 0.5 * (x[IX(NX, 0)] + x[IX(NX + 1, 1)]);
+      x[IX(NX + 1, NY + 1)] = 0.5 * (x[IX(NX, NY + 1)] + x[IX(NX + 1, NY)]);
     };
 
-    const handleTouchMove = (e) => {
-      if (e.touches && e.touches[0]) {
-        handleMouseMove(e.touches[0]);
+    // Linear solver (Gauss-Seidel relaxation)
+    const linSolve = (b, x, x0, a, c) => {
+      for (let k = 0; k < 4; k++) {
+        for (let j = 1; j <= NY; j++) {
+          const row = j * (NX + 2);
+          for (let i = 1; i <= NX; i++) {
+            const idx = row + i;
+            x[idx] = (x0[idx] + a * (x[idx - 1] + x[idx + 1] + x[idx - (NX + 2)] + x[idx + (NX + 2)])) / c;
+          }
+        }
+        setBnd(b, x);
       }
     };
 
-    const handlePointerDown = (e) => {
-      triggerRipple(e.clientX, e.clientY);
-      mouse.speed = Math.min(mouse.speed + 1.5, 3.5);
+    // Diffusion
+    const diffuse = (b, x, x0, diff, dt) => {
+      const a = dt * diff * NX * NY;
+      linSolve(b, x, x0, a, 1 + 4 * a);
     };
 
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
-    window.addEventListener('pointerdown', handlePointerDown, { passive: true });
+    // Advection (Transporting quantities along velocity field)
+    const advect = (b, d, d0, uField, vField, dt) => {
+      const dt0X = dt * NX;
+      const dt0Y = dt * NY;
 
-    // Handle Resize
-    const resizeCanvas = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      const width = window.innerWidth;
-      const height = window.innerHeight;
+      for (let j = 1; j <= NY; j++) {
+        const row = j * (NX + 2);
+        for (let i = 1; i <= NX; i++) {
+          const idx = row + i;
+          let x = i - dt0X * uField[idx];
+          let y = j - dt0Y * vField[idx];
 
-      if (canvas.width !== Math.floor(width * dpr) || canvas.height !== Math.floor(height * dpr)) {
-        canvas.width = Math.floor(width * dpr);
-        canvas.height = Math.floor(height * dpr);
-        if (gl) {
-          gl.viewport(0, 0, canvas.width, canvas.height);
+          if (x < 0.5) x = 0.5;
+          if (x > NX + 0.5) x = NX + 0.5;
+          const i0 = Math.floor(x);
+          const i1 = i0 + 1;
+
+          if (y < 0.5) y = 0.5;
+          if (y > NY + 0.5) y = NY + 0.5;
+          const j0 = Math.floor(y);
+          const j1 = j0 + 1;
+
+          const s1 = x - i0;
+          const s0 = 1 - s1;
+          const t1 = y - j0;
+          const t0 = 1 - t1;
+
+          d[idx] =
+            s0 * (t0 * d0[IX(i0, j0)] + t1 * d0[IX(i0, j1)]) +
+            s1 * (t0 * d0[IX(i1, j0)] + t1 * d0[IX(i1, j1)]);
         }
+      }
+      setBnd(b, d);
+    };
+
+    // Mass conservation & pressure projection (creates realistic fluid vortices)
+    const project = (uField, vField, p, div) => {
+      for (let j = 1; j <= NY; j++) {
+        const row = j * (NX + 2);
+        for (let i = 1; i <= NX; i++) {
+          const idx = row + i;
+          div[idx] =
+            (-0.5 *
+              (uField[idx + 1] - uField[idx - 1] + vField[idx + (NX + 2)] - vField[idx - (NX + 2)])) /
+            Math.sqrt(NX * NY);
+          p[idx] = 0;
+        }
+      }
+      setBnd(0, div);
+      setBnd(0, p);
+
+      linSolve(0, p, div, 1, 4);
+
+      for (let j = 1; j <= NY; j++) {
+        const row = j * (NX + 2);
+        for (let i = 1; i <= NX; i++) {
+          const idx = row + i;
+          uField[idx] -= 0.5 * (p[idx + 1] - p[idx - 1]) * NX;
+          vField[idx] -= 0.5 * (p[idx + (NX + 2)] - p[idx - (NX + 2)]) * NY;
+        }
+      }
+      setBnd(1, uField);
+      setBnd(2, vField);
+    };
+
+    // Fluid step
+    const fluidStep = (dt) => {
+      // 1. Velocity diffusion & projection
+      diffuse(1, u_prev, u, 0.0001, dt);
+      diffuse(2, v_prev, v, 0.0001, dt);
+      project(u_prev, v_prev, u, v);
+
+      // 2. Velocity advection & projection
+      advect(1, u, u_prev, u_prev, v_prev, dt);
+      advect(2, v, v_prev, u_prev, v_prev, dt);
+      project(u, v, u_prev, v_prev);
+
+      // 3. Dye diffusion & advection
+      diffuse(0, densR_prev, densR, 0.00005, dt);
+      diffuse(0, densG_prev, densG, 0.00005, dt);
+      diffuse(0, densB_prev, densB, 0.00005, dt);
+
+      advect(0, densR, densR_prev, u, v, dt);
+      advect(0, densG, densG_prev, u, v, dt);
+      advect(0, densB, densB_prev, u, v, dt);
+
+      // 4. Low-velocity dissipation (fade over ~4 seconds, keep velocity calm)
+      for (let i = 0; i < size; i++) {
+        densR[i] *= 0.985;
+        densG[i] *= 0.985;
+        densB[i] *= 0.985;
+        u[i] *= 0.978;
+        v[i] *= 0.978;
       }
     };
 
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
+    // Function to inject fluid dye and velocity into grid cells
+    const injectFluid = (gridX, gridY, velX, velY, color, radius = 2, intensity = 1.0) => {
+      const rad = Math.max(1, radius);
+      for (let dy = -rad; dy <= rad; dy++) {
+        for (let dx = -rad; dx <= rad; dx++) {
+          const gx = gridX + dx;
+          const gy = gridY + dy;
+          if (gx >= 1 && gx <= NX && gy >= 1 && gy <= NY) {
+            const distSq = dx * dx + dy * dy;
+            if (distSq <= rad * rad) {
+              const falloff = (1 - Math.sqrt(distSq) / (rad + 1)) * intensity;
+              const idx = IX(gx, gy);
 
-    // ==========================================
-    // WEBGL SHADER IMPLEMENTATION
-    // ==========================================
-    if (gl) {
-      const vsSource = `
-        attribute vec2 position;
-        void main() {
-          gl_Position = vec4(position, 0.0, 1.0);
-        }
-      `;
+              u[idx] += velX * falloff * 0.35;
+              v[idx] += velY * falloff * 0.35;
 
-      const fsSource = `
-        precision highp float;
-        uniform vec2 u_resolution;
-        uniform float u_time;
-        uniform vec2 u_mouse;
-        uniform vec2 u_mouse_vel;
-        uniform float u_mouse_speed;
-        uniform float u_pixel_size;
-        uniform vec3 u_ripples[5];
-
-        vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-        vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-        vec3 permute(vec3 x) { return mod289(((x * 34.0) + 1.0) * x); }
-
-        float snoise(vec2 v) {
-          const vec4 C = vec4(0.211324865405187,
-                              0.366025403784439,
-                             -0.577350269189626,
-                              0.024390243902439);
-          vec2 i  = floor(v + dot(v, C.yy));
-          vec2 x0 = v - i + dot(i, C.xx);
-          vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
-          vec4 x12 = x0.xyxy + C.xxzz;
-          x12.xy -= i1;
-          i = mod289(i);
-          vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0))
-                + i.x + vec3(0.0, i1.x, 1.0));
-          vec3 m = max(0.5 - vec3(dot(x0, x0), dot(x12.xy, x12.xy), dot(x12.zw, x12.zw)), 0.0);
-          m = m * m;
-          m = m * m;
-          vec3 x = 2.0 * fract(p * C.www) - 1.0;
-          vec3 h = abs(x) - 0.5;
-          vec3 ox = floor(x + 0.5);
-          vec3 a0 = x - ox;
-          m *= 1.79284291400159 - 0.85373472095314 * (a0 * a0 + h * h);
-          vec3 g;
-          g.x  = a0.x * x0.x + h.x * x0.y;
-          g.yz = a0.yz * x12.xz + h.yz * x12.yw;
-          return 130.0 * dot(m, g);
-        }
-
-        float fbm(vec2 p) {
-          float f = 0.0;
-          f += 0.5000 * snoise(p); p *= 2.02;
-          f += 0.2500 * snoise(p); p *= 2.03;
-          f += 0.1250 * snoise(p); p *= 2.01;
-          f += 0.0625 * snoise(p);
-          return f;
-        }
-
-        void main() {
-          // Discrete pixel grid quantization
-          vec2 pSize = vec2(u_pixel_size);
-          vec2 pixelCoord = floor(gl_FragCoord.xy / pSize) * pSize;
-          
-          // Normalized aspect UV
-          vec2 aspectUv = (pixelCoord - 0.5 * u_resolution.xy) / u_resolution.y;
-
-          // Low-velocity ambient time
-          float t = u_time * 0.12;
-
-          // Mouse interaction field
-          vec2 mouseAspect = (u_mouse - 0.5 * u_resolution.xy) / u_resolution.y;
-          vec2 toMouse = aspectUv - mouseAspect;
-          float mouseDist = length(toMouse);
-
-          // Viscous swirling wake around mouse
-          vec2 mouseSwirl = vec2(-toMouse.y, toMouse.x) * exp(-mouseDist * 5.0);
-          vec2 mousePush = (u_mouse_vel / u_resolution.y) * exp(-mouseDist * 3.8) * 2.5;
-          vec2 mouseInfluence = (mouseSwirl * 0.8 + mousePush) * min(u_mouse_speed * 0.7 + 0.15, 2.8);
-
-          // Click ripple shockwaves
-          float rippleDisplace = 0.0;
-          for (int i = 0; i < 5; i++) {
-            if (u_ripples[i].z > 0.0 && u_ripples[i].z < 1.0) {
-              vec2 ripPos = (u_ripples[i].xy - 0.5 * u_resolution.xy) / u_resolution.y;
-              float d = length(aspectUv - ripPos);
-              float waveRadius = u_ripples[i].z * 0.85;
-              float waveDist = abs(d - waveRadius);
-              float wave = sin(waveDist * 35.0 - u_ripples[i].z * 16.0) * exp(-waveDist * 14.0);
-              rippleDisplace += wave * (1.0 - u_ripples[i].z) * 0.25;
+              densR[idx] = Math.min(255, densR[idx] + color.r * falloff * 0.85);
+              densG[idx] = Math.min(255, densG[idx] + color.g * falloff * 0.85);
+              densB[idx] = Math.min(255, densB[idx] + color.b * falloff * 0.85);
             }
           }
-
-          // Flow domain coordinates
-          vec2 flowUv = aspectUv * 2.2 + mouseInfluence * 0.3;
-
-          // Domain Warping (Multi-stage fluid vorticity)
-          vec2 q = vec2(
-            fbm(flowUv + vec2(0.0, 0.0) + t * 0.65),
-            fbm(flowUv + vec2(3.2, 1.7) + t * 0.5)
-          );
-
-          vec2 r = vec2(
-            fbm(flowUv + 3.2 * q + vec2(1.7, 9.2) + t * 0.35 + rippleDisplace),
-            fbm(flowUv + 3.2 * q + vec2(8.3, 2.8) - t * 0.4)
-          );
-
-          float f = fbm(flowUv + 3.5 * r + t * 0.2);
-
-          // ==========================================
-          // VIBRANT NEON / CYBERPUNK COLOR PALETTE
-          // ==========================================
-          vec3 bgCol    = vec3(0.03, 0.02, 0.07);  // Deep cosmic indigo
-          vec3 lime     = vec3(0.00, 1.00, 0.40);  // Vibrant emerald / ApeBrokers Lime
-          vec3 cyan     = vec3(0.00, 0.88, 1.00);  // Electric Cyan
-          vec3 magenta  = vec3(1.00, 0.05, 0.55);  // Vivid Neon Magenta
-          vec3 purple   = vec3(0.60, 0.00, 1.00);  // Cyber Violet
-          vec3 gold     = vec3(1.00, 0.74, 0.00);  // Radiant Amber Gold
-
-          // Dynamic fluid color mixing based on vorticity
-          float fNorm = clamp((f + 0.45) * 0.95, 0.0, 1.0);
-          float blend1 = smoothstep(0.12, 0.55, length(q));
-          float blend2 = smoothstep(0.20, 0.75, length(r));
-          float blend3 = smoothstep(0.35, 0.85, fNorm);
-
-          vec3 fluidCol = mix(purple, magenta, sin(length(q) * 3.5 + t * 1.2) * 0.5 + 0.5);
-          fluidCol = mix(fluidCol, cyan, blend1);
-          fluidCol = mix(fluidCol, lime, blend2 * (sin(t * 0.7) * 0.3 + 0.7));
-          fluidCol = mix(fluidCol, gold, pow(blend3, 2.6) * 0.95);
-
-          // Interactive luminous cursor wake
-          float mouseGlow = exp(-mouseDist * 3.5) * (u_mouse_speed * 0.45 + 0.25);
-          fluidCol += mix(cyan, lime, sin(t * 2.5) * 0.5 + 0.5) * mouseGlow * 0.85;
-
-          // Composite fluid ribbons over dark cosmic base
-          vec3 finalColor = mix(bgCol, fluidCol, smoothstep(0.04, 0.68, fNorm * 1.15));
-
-          // Retro pixel micro-grid bevel (subtle CRT / arcade phosphor pixel styling)
-          vec2 grid = fract(gl_FragCoord.xy / pSize);
-          float pixelBorder = step(0.07, grid.x) * step(0.07, grid.y);
-          finalColor *= (0.86 + 0.14 * pixelBorder);
-
-          gl_FragColor = vec4(finalColor, 1.0);
         }
-      `;
+      }
+    };
 
-      const createShader = (type, source) => {
-        const shader = gl.createShader(type);
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-          console.warn('Shader compile error:', gl.getShaderInfoLog(shader));
-          gl.deleteShader(shader);
-          return null;
-        }
-        return shader;
-      };
+    // Interaction handling
+    const pointer = {
+      x: window.innerWidth * 0.5,
+      y: window.innerHeight * 0.5,
+      prevX: window.innerWidth * 0.5,
+      prevY: window.innerHeight * 0.5,
+      hasMoved: false,
+    };
 
-      const vs = createShader(gl.VERTEX_SHADER, vsSource);
-      const fs = createShader(gl.FRAGMENT_SHADER, fsSource);
-      if (!vs || !fs) return;
+    const handlePointerMove = (clientX, clientY) => {
+      const currGX = Math.floor((clientX / window.innerWidth) * NX);
+      const currGY = Math.floor((clientY / window.innerHeight) * NY);
 
-      const program = gl.createProgram();
-      gl.attachShader(program, vs);
-      gl.attachShader(program, fs);
-      gl.linkProgram(program);
-
-      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.warn('Program link error:', gl.getProgramInfoLog(program));
+      if (!pointer.hasMoved) {
+        pointer.prevX = clientX;
+        pointer.prevY = clientY;
+        pointer.hasMoved = true;
         return;
       }
 
-      gl.useProgram(program);
+      const prevGX = Math.floor((pointer.prevX / window.innerWidth) * NX);
+      const prevGY = Math.floor((pointer.prevY / window.innerHeight) * NY);
 
-      // Full-screen quad
-      const quadVertices = new Float32Array([
-        -1, -1,
-         1, -1,
-        -1,  1,
-        -1,  1,
-         1, -1,
-         1,  1,
-      ]);
+      const dx = clientX - pointer.prevX;
+      const dy = clientY - pointer.prevY;
+      const dist = Math.hypot(dx, dy);
 
-      const buffer = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-      gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW);
+      if (dist > 0) {
+        // Cycle colors smoothly along mouse strokes
+        colorPhase += dist * 0.015;
+        const color = getCurrentColor();
 
-      const posAttr = gl.getAttribLocation(program, 'position');
-      gl.enableVertexAttribArray(posAttr);
-      gl.vertexAttribPointer(posAttr, 2, gl.FLOAT, false, 0, 0);
+        const velX = (dx / window.innerWidth) * NX * 2.2;
+        const velY = (dy / window.innerHeight) * NY * 2.2;
 
-      // Uniform locations
-      const uRes = gl.getUniformLocation(program, 'u_resolution');
-      const uTime = gl.getUniformLocation(program, 'u_time');
-      const uMouse = gl.getUniformLocation(program, 'u_mouse');
-      const uMouseVel = gl.getUniformLocation(program, 'u_mouse_vel');
-      const uMouseSpeed = gl.getUniformLocation(program, 'u_mouse_speed');
-      const uPixelSize = gl.getUniformLocation(program, 'u_pixel_size');
-      const uRipples = gl.getUniformLocation(program, 'u_ripples');
-
-      const startTime = performance.now();
-
-      const render = () => {
-        const now = performance.now();
-        const elapsed = (now - startTime) * 0.001;
-
-        // Smooth mouse follow & low-velocity decay
-        mouse.x += (mouse.targetX - mouse.x) * 0.12;
-        mouse.y += (mouse.targetY - mouse.y) * 0.12;
-        mouse.vx *= 0.94;
-        mouse.vy *= 0.94;
-        mouse.speed *= 0.94;
-
-        // Update ripples
-        const rippleData = [];
-        for (let i = 0; i < MAX_RIPPLES; i++) {
-          if (ripples[i].active) {
-            ripples[i].age += 0.016;
-            if (ripples[i].age >= 1.0) {
-              ripples[i].active = false;
-            }
-          }
-          rippleData.push(
-            ripples[i].x * (canvas.width / window.innerWidth),
-            ripples[i].y * (canvas.height / window.innerHeight),
-            ripples[i].active ? ripples[i].age : 0.0
-          );
+        // Interpolate along line segment so rapid mouse flicks paint a continuous fluid stream
+        const steps = Math.min(16, Math.max(1, Math.ceil(Math.hypot(currGX - prevGX, currGY - prevGY) * 1.5)));
+        for (let s = 0; s <= steps; s++) {
+          const t = s / steps;
+          const gx = Math.round(prevGX + (currGX - prevGX) * t);
+          const gy = Math.round(prevGY + (currGY - prevGY) * t);
+          injectFluid(gx, gy, velX, velY, color, isMobile ? 2 : 3, 1.2);
         }
+      }
 
-        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-        gl.uniform2f(uRes, canvas.width, canvas.height);
-        gl.uniform1f(uTime, elapsed);
-        gl.uniform2f(uMouse, mouse.x * dpr, (window.innerHeight - mouse.y) * dpr);
-        gl.uniform2f(uMouseVel, mouse.vx * dpr, -mouse.vy * dpr);
-        gl.uniform1f(uMouseSpeed, mouse.speed);
-        gl.uniform1f(uPixelSize, Math.max(pixelSize * dpr, 4.0));
-        gl.uniform3fv(uRipples, new Float32Array(rippleData));
+      pointer.prevX = clientX;
+      pointer.prevY = clientY;
+    };
 
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
+    const onMouseMove = (e) => handlePointerMove(e.clientX, e.clientY);
+    const onTouchMove = (e) => {
+      if (e.touches && e.touches[0]) {
+        handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
 
-        animationFrameId = requestAnimationFrame(render);
-      };
+    // Explosive ripple shockwave on click / tap
+    const onPointerDown = (e) => {
+      const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : window.innerWidth * 0.5);
+      const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : window.innerHeight * 0.5);
 
-      render();
+      const gx = Math.floor((clientX / window.innerWidth) * NX);
+      const gy = Math.floor((clientY / window.innerHeight) * NY);
 
-    } else {
-      // ==========================================
-      // 2D CANVAS FALLBACK (Low-res pixel grid)
-      // ==========================================
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      colorPhase += 0.8;
+      const color = getCurrentColor();
 
-      const startTime = performance.now();
-
-      const renderFallback = () => {
-        const elapsed = (performance.now() - startTime) * 0.001 * 0.25;
-        const w = canvas.width;
-        const h = canvas.height;
-        const gridStep = Math.max(pixelSize * 2, 12);
-
-        ctx.fillStyle = '#060412';
-        ctx.fillRect(0, 0, w, h);
-
-        for (let x = 0; x < w; x += gridStep) {
-          for (let y = 0; y < h; y += gridStep) {
-            const nx = x / w;
-            const ny = y / h;
-            const wave = Math.sin(nx * 4 + elapsed) + Math.cos(ny * 4 - elapsed * 0.8);
-            const distToMouse = Math.hypot(x - mouse.x, y - mouse.y);
-            const mouseBoost = Math.max(0, 1 - distToMouse / 220);
-
-            const v = Math.sin(wave * 2.0 + mouseBoost * 3.0) * 0.5 + 0.5;
-
-            if (v > 0.35) {
-              const r = Math.floor(v * 180 * (1 - mouseBoost) + mouseBoost * 0);
-              const g = Math.floor(v * 255);
-              const b = Math.floor(v * 200 + mouseBoost * 255);
-              ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${v * 0.7})`;
-              ctx.fillRect(x, y, gridStep - 1, gridStep - 1);
-            }
+      // Radial blast of velocity + bright neon burst
+      const burstRadius = isMobile ? 4 : 6;
+      for (let dy = -burstRadius; dy <= burstRadius; dy++) {
+        for (let dx = -burstRadius; dx <= burstRadius; dx++) {
+          const dist = Math.hypot(dx, dy);
+          if (dist > 0 && dist <= burstRadius) {
+            const radAngle = Math.atan2(dy, dx);
+            const force = (1 - dist / (burstRadius + 1)) * 3.5;
+            injectFluid(
+              gx + dx,
+              gy + dy,
+              Math.cos(radAngle) * force,
+              Math.sin(radAngle) * force,
+              color,
+              2,
+              1.8
+            );
           }
         }
+      }
+    };
 
-        animationFrameId = requestAnimationFrame(renderFallback);
-      };
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('pointerdown', onPointerDown, { passive: true });
 
-      renderFallback();
-    }
+    // ImageData buffer for fast pixel rendering
+    const imgData = ctx.createImageData(NX, NY);
+    const data32 = new Uint32Array(imgData.data.buffer);
+
+    let animationId;
+    let frame = 0;
+
+    // Main animation & simulation loop
+    const loop = () => {
+      frame++;
+
+      // ========================================================
+      // AMBIENT LOW-VELOCITY DRIFT (Hypnotic, slow liquid motion)
+      // ========================================================
+      const t = frame * 0.016; // Low velocity time scale
+
+      // Gentle ambient source 1: Swirling Emerald/Cyan breeze from bottom-left
+      const p1x = Math.floor(NX * 0.25 + Math.cos(t * 0.5) * (NX * 0.12));
+      const p1y = Math.floor(NY * 0.70 + Math.sin(t * 0.6) * (NY * 0.10));
+      injectFluid(
+        p1x,
+        p1y,
+        Math.cos(t * 0.8) * 0.45,
+        -Math.abs(Math.sin(t * 0.7)) * 0.5,
+        { r: 0, g: 255, b: 110 },
+        isMobile ? 2 : 3,
+        0.18
+      );
+
+      // Gentle ambient source 2: Swirling Magenta/Violet breeze from top-right
+      const p2x = Math.floor(NX * 0.75 + Math.sin(t * 0.5) * (NX * 0.12));
+      const p2y = Math.floor(NY * 0.30 + Math.cos(t * 0.6) * (NY * 0.10));
+      injectFluid(
+        p2x,
+        p2y,
+        -Math.abs(Math.cos(t * 0.7)) * 0.45,
+        Math.sin(t * 0.8) * 0.45,
+        { r: 210, g: 0, b: 240 },
+        isMobile ? 2 : 3,
+        0.16
+      );
+
+      // Gentle ambient source 3: Warm Gold/Cyan slow wave in center
+      const p3x = Math.floor(NX * 0.50 + Math.sin(t * 0.4) * (NX * 0.18));
+      const p3y = Math.floor(NY * 0.50 + Math.cos(t * 0.3) * (NY * 0.12));
+      injectFluid(
+        p3x,
+        p3y,
+        Math.cos(t * 0.5) * 0.35,
+        Math.sin(t * 0.5) * 0.35,
+        { r: 0, g: 220, b: 255 },
+        isMobile ? 2 : 3,
+        0.14
+      );
+
+      // Step physics
+      fluidStep(0.12);
+
+      // Render to Pixel Buffer
+      // Base background: Deep cosmic midnight void (#060411)
+      const baseR = 6;
+      const baseG = 4;
+      const baseB = 17;
+
+      let pixelIdx = 0;
+      for (let j = 1; j <= NY; j++) {
+        const row = j * (NX + 2);
+        for (let i = 1; i <= NX; i++) {
+          const idx = row + i;
+          const rDye = densR[idx];
+          const gDye = densG[idx];
+          const bDye = densB[idx];
+
+          // Blend fluid over deep dark background
+          const r = Math.min(255, baseR + rDye);
+          const g = Math.min(255, baseG + gDye);
+          const b = Math.min(255, baseB + bDye);
+
+          // Little bit of luminance boost for neon vibrancy
+          const lum = (rDye * 0.299 + gDye * 0.587 + bDye * 0.114);
+          const bloom = lum > 140 ? (lum - 140) * 0.4 : 0;
+
+          const finalR = Math.min(255, r + bloom);
+          const finalG = Math.min(255, g + bloom);
+          const finalB = Math.min(255, b + bloom);
+
+          // Little ABGR byte packing for 32-bit direct canvas write
+          data32[pixelIdx++] = (255 << 24) | (finalB << 16) | (finalG << 8) | finalR;
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+
+      animationId = requestAnimationFrame(loop);
+    };
+
+    animationId = requestAnimationFrame(loop);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('pointerdown', handlePointerDown);
-      window.removeEventListener('resize', resizeCanvas);
+      cancelAnimationFrame(animationId);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('pointerdown', onPointerDown);
     };
-  }, [pixelSize]);
+  }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden="true"
-      className="fixed inset-0 w-full h-full pointer-events-none -z-10"
-      style={{
-        imageRendering: 'pixelated',
-      }}
-    />
+    <div className="fixed inset-0 w-full h-full pointer-events-none -z-10 overflow-hidden bg-[#060411]">
+      {/* Real Interactive Pixel Fluid Simulation Canvas */}
+      <canvas
+        ref={canvasRef}
+        aria-hidden="true"
+        className="w-full h-full object-cover select-none"
+        style={{
+          imageRendering: 'pixelated', // Crisp retro pixel blocks
+        }}
+      />
+      {/* Subtle CRT Phosphor Scanline Overlay for authentic retro pixel aesthetic */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,38,0)_50%,rgba(0,0,0,0.35)_50%)] bg-[length:100%_4px] pointer-events-none opacity-45" />
+    </div>
   );
 };
