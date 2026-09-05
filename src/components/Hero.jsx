@@ -29,9 +29,9 @@ export const Hero = ({ onApplyClick }) => {
       {/* Centered Hero Content */}
       <div className="max-w-3xl mx-auto flex flex-col items-center text-center space-y-6 sm:space-y-7">
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 bg-black text-[#FF2247] px-4 py-2 border-3 border-black font-pixel text-[10px] sm:text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <span className="w-2.5 h-2.5 bg-[#FF2247] inline-block animate-blink" />
-          <span>WL APPLICATIONS CLOSED</span>
+        <div className="inline-flex items-center gap-2 bg-black text-[#00FF66] px-4 py-2 border-3 border-black font-pixel text-[10px] sm:text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <span className="w-2.5 h-2.5 bg-[#00FF66] inline-block animate-blink" />
+          <span>WL OPEN: $APEBROKERS & NFT HOLDERS</span>
         </div>
 
         {/* Headline */}
@@ -42,10 +42,10 @@ export const Hero = ({ onApplyClick }) => {
           <h2 className="font-pixel text-xl sm:text-3xl md:text-4xl text-[#00FF66] tracking-tight font-extrabold drop-shadow-[4px_4px_0px_rgba(0,0,0,1)] min-h-[38px] sm:min-h-[50px] flex items-center justify-center">
             <TypewriterText
               text={[
-                'APPLICATIONS CLOSED.',
-                'ALL ENTRIES UNDER REVIEW.',
+                'WL OPEN FOR HOLDERS.',
+                'MIN $1 $APEBROKERS OR NFT.',
+                'CLAIM YOUR ALLOCATION.',
                 'ROBINHOOD CHAIN.',
-                'BECOME A BROKER.',
               ]}
               speed={60}
               delay={350}
@@ -61,7 +61,7 @@ export const Hero = ({ onApplyClick }) => {
         <div className="bg-black/90 backdrop-blur-md p-4 sm:p-5 border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] max-w-xl mx-auto min-h-[75px] sm:min-h-[85px] flex items-center justify-center">
           <p className="font-mono text-sm sm:text-base text-gray-100 font-semibold leading-relaxed">
             <TypewriterText
-              text="5,555 unique pixel apes launching on Robinhood Chain. Whitelist applications are officially closed. All submissions are under review."
+              text="5,555 unique pixel apes on Robinhood Chain. Whitelist application is open exclusively for $APEBROKERS token holders (min $1 balance) and ApeSyndicate NFT holders."
               speed={20}
               delay={800}
               playSound={false}
@@ -75,9 +75,9 @@ export const Hero = ({ onApplyClick }) => {
           <button
             type="button"
             onClick={handleApply}
-            className="w-full sm:w-auto min-h-[52px] pixel-btn pixel-btn-black border-2 border-[#FF2247] px-8 py-3.5 font-pixel text-xs sm:text-sm font-extrabold text-[#FF2247] hover:bg-[#FF2247] hover:text-black transition-colors"
+            className="w-full sm:w-auto min-h-[52px] pixel-btn pixel-btn-lime px-8 py-3.5 font-pixel text-xs sm:text-sm font-extrabold text-black hover:opacity-95 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
           >
-            [ APPLICATIONS CLOSED ]
+            [ APPLY FOR WL (HOLDERS) ]
           </button>
 
           <button
