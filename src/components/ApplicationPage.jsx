@@ -52,7 +52,12 @@ export const ApplicationPage = ({ onBackHome }) => {
       .then(({ count, error }) => {
         if (!error && typeof count === 'number') {
           setClaimedCount(count);
+        } else {
+          setClaimedCount(0);
         }
+      })
+      .catch(() => {
+        setClaimedCount(0);
       });
   }, []);
 
