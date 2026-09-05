@@ -130,6 +130,42 @@ describe("ApeBrokerDesk - Full Production Test Suite", function () {
       await expect(desk.connect(poorUser).activateDesk(99))
         .to.be.reverted;
     });
+
+    it("Should enforce maximum 5 active Desks per wallet limit", async function () {
+      const deskAddress = await desk.getAddress();
+      // Mint 4 more NFTs to Alice (so Alice has NFTs 1, 2, 5, 6, 7, 8)
+      await nft.mint(alice.address, 5);
+      await nft.mint(alice.address, 6);
+      await nft.mint(alice.address, 7);
+      await nft.mint(alice.address, 8);
+
+      await token.connect(alice).approve(deskAddress, ACTIVATION_FEE * 10n);
+
+      // Alice activates 5 Desks: 1, 2, 5, 6, 7
+      await desk.connect(alice).activateDesk(1);
+      await desk.connect(alice).activateDesk(2);
+      await desk.connect(alice).activateDesk(5);
+      await desk.connect(alice).activateDesk(6);
+      await desk.connect(alice).activateDesk(7);
+
+      expect(await desk.getActiveDeskCount(alice.address)).to.equal(5n);
+
+      // Alice attempts to activate a 6th Desk -> reverts with MaxDesksPerWalletReached
+      await expect(desk.connect(alice).activateDesk(8))
+        .to.be.revertedWithCustomError(desk, "MaxDesksPerWalletReached");
+
+      // Alice transfers Desk 1 to Bob
+      await nft.connect(alice).transferFrom(alice.address, bob.address, 1);
+      await desk.checkpointDesk(1);
+
+      // Alice active desk count reduces to 4, Bob becomes 1
+      expect(await desk.getActiveDeskCount(alice.address)).to.equal(4n);
+      expect(await desk.getActiveDeskCount(bob.address)).to.equal(1n);
+
+      // Alice can now activate her 5th desk (Desk 8)
+      await desk.connect(alice).activateDesk(8);
+      expect(await desk.getActiveDeskCount(alice.address)).to.equal(5n);
+    });
   });
 
   describe("3. Boost System (Costs, Weights, 5 Max Cap)", function () {

@@ -8,7 +8,7 @@
   "treasuryAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
   "baseBoostCost": "10000000000000000000000",
   "baseDeskWeight": "100",
-  "deployedAt": "2026-09-05T17:11:25.708Z",
+  "deployedAt": "2026-09-05T17:18:26.858Z",
   "abi": [
     {
       "inputs": [
@@ -79,6 +79,11 @@
     {
       "inputs": [],
       "name": "MaxBoostsReached",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "MaxDesksPerWalletReached",
       "type": "error"
     },
     {
@@ -427,6 +432,19 @@
     },
     {
       "inputs": [],
+      "name": "MAX_DESKS_PER_WALLET",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "REWARD_PRECISION",
       "outputs": [
         {
@@ -461,6 +479,25 @@
     {
       "inputs": [],
       "name": "activationFee",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "activeDeskCount",
       "outputs": [
         {
           "internalType": "uint256",
@@ -675,6 +712,25 @@
         {
           "internalType": "uint256",
           "name": "rewardDebt",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getActiveDeskCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
           "type": "uint256"
         }
       ],

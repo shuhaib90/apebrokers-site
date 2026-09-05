@@ -10,6 +10,7 @@ Production-grade, deterministic, gas-efficient Web3 smart contract suite for the
 | :--- | :--- |
 | **Identity Relationship** | `1 NFT = 1 Desk` (Ape Broker NFT `tokenId == deskId`) |
 | **Activation Fee** | Exactly **`349,693 $APEBROKE`** (ERC-20) |
+| **Max Desks Per Wallet** | **5 Desks** hard cap per wallet address |
 | **Base Desk Weight** | `100` (Configurable) |
 | **Maximum Boosts** | **5 boosts** hard cap per Desk |
 | **Boost Cost Progression** | Exponential doubling: `1× → 2× → 4× → 8× → 16×` |

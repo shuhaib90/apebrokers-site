@@ -35,6 +35,7 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
 
     // Protocol Constants
     uint8 public constant MAX_BOOSTS = 5;
+    uint256 public constant MAX_DESKS_PER_WALLET = 5;
     uint256 public constant EPOCH_DURATION = 5 hours; // 18,000 seconds
     uint256 public constant REWARD_PRECISION = 1e18;
 
@@ -56,6 +57,7 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
     mapping(uint256 => Desk) public desks;
     mapping(uint256 => address) public deskOwner; // Last checkpointed owner of tokenId
     mapping(address => uint256) public userClaimableRewards; // ETH claimable by user address
+    mapping(address => uint256) public activeDeskCount; // Active desks count per wallet
 
     // Global Reward Accounting
     uint256 public totalEligibleWeight;
@@ -121,6 +123,10 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
             revert NotTokenOwner();
         }
 
+        if (activeDeskCount[msg.sender] >= MAX_DESKS_PER_WALLET) {
+            revert MaxDesksPerWalletReached();
+        }
+
         Desk storage desk = desks[tokenId];
         if (desk.active) {
             revert DeskAlreadyActive();
@@ -137,6 +143,7 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
         desk.rewardDebt = (baseDeskWeight * globalRewardPerWeight) / REWARD_PRECISION;
 
         deskOwner[tokenId] = msg.sender;
+        activeDeskCount[msg.sender] += 1;
         totalEligibleWeight += baseDeskWeight;
 
         emit DeskActivated(tokenId, msg.sender, activationFee, baseDeskWeight);
@@ -419,13 +426,25 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
             userClaimableRewards[recordedOwner] += pending;
         }
 
-        // Update ownership if transferred
+        // Update ownership and active desk counts if transferred
         if (currentNftOwner != recordedOwner) {
+            if (activeDeskCount[recordedOwner] > 0) {
+                activeDeskCount[recordedOwner] -= 1;
+            }
+            activeDeskCount[currentNftOwner] += 1;
             deskOwner[tokenId] = currentNftOwner;
         }
 
         // Update reward debt to current checkpoint
         desk.rewardDebt = accumulated;
+    }
+
+    /**
+     * @notice Returns the number of currently active Desks owned by a user.
+     * @param user The wallet address.
+     */
+    function getActiveDeskCount(address user) external view returns (uint256) {
+        return activeDeskCount[user];
     }
 
     // ==========================================

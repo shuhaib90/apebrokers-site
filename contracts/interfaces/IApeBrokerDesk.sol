@@ -15,6 +15,7 @@ interface IApeBrokerDesk {
     error DirectEthNotAllowed();
     error TransferFailed();
     error ExceedsCollectedFees();
+    error MaxDesksPerWalletReached();
 
     // Events
     event DeskActivated(
@@ -83,4 +84,5 @@ interface IApeBrokerDesk {
     function getProtocolFeeBalance() external view returns (uint256);
     function currentEpoch() external view returns (uint256);
     function timeUntilNextEpoch() external view returns (uint256);
+    function getActiveDeskCount(address user) external view returns (uint256);
 }
