@@ -3,7 +3,6 @@ import confetti from 'canvas-confetti';
 import { sound } from '../utils/audio';
 import { verifyHolderStatus, fetchLiveTokenPrice, TOKEN_CONTRACT, NFT_CONTRACT, DEFAULT_TOKEN_PRICE, TOTAL_SPOTS } from '../utils/holderVerification';
 import { supabase, saveApplicationToSupabase } from '../utils/supabase';
-import { generateBrokerCardDataUrl } from '../utils/generateBrokerCard';
 
 export const ApplicationPage = ({ onBackHome }) => {
   const [tokenPrice, setTokenPrice] = useState(DEFAULT_TOKEN_PRICE);
@@ -27,7 +26,6 @@ export const ApplicationPage = ({ onBackHome }) => {
   const [submitError, setSubmitError] = useState('');
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
   const [submittedData, setSubmittedData] = useState(null);
-  const [cardDataUrl, setCardDataUrl] = useState(null);
 
   // Fetch token price and active count on mount
   useEffect(() => {
@@ -181,25 +179,6 @@ export const ApplicationPage = ({ onBackHome }) => {
 
       setSubmittedData(submissionPayload);
       setClaimedCount((prev) => prev + 1);
-
-      // ONLY generate downloadable card if user is GTD!
-      // (For non-holders / low holders: no card to download, only application received message)
-      if (isGtd) {
-        try {
-          const cardUrl = await generateBrokerCardDataUrl({
-            brokerId,
-            xUsername: submissionPayload.xUsername,
-            walletAddress: submissionPayload.walletAddress,
-            isGtd: true,
-          });
-          setCardDataUrl(cardUrl);
-        } catch (cardErr) {
-          console.warn('Card render note:', cardErr);
-        }
-      } else {
-        setCardDataUrl(null);
-      }
-
       setSubmissionSuccess(true);
       if (isGtd) {
         sound?.playFanfare?.();
@@ -602,35 +581,26 @@ export const ApplicationPage = ({ onBackHome }) => {
                 </div>
               </div>
 
-              {/* GTD HOLDERS ONLY: Show Official Broker Card + Download */}
-              {submittedData?.isGtd && cardDataUrl && (
-                <div className="space-y-2">
-                  <img
-                    src={cardDataUrl}
-                    alt="Broker Identification Card"
-                    className="w-full max-w-md mx-auto rounded-lg border-2 border-[#00FF66] shadow-[4px_4px_0px_0px_rgba(0,255,102,0.3)]"
-                  />
-                  <div>
-                    <a
-                      href={cardDataUrl}
-                      download={`${submittedData?.brokerId || 'apebroker'}-card.png`}
-                      className="inline-block pixel-btn pixel-btn-black px-4 py-2 text-[10px] font-bold text-[#00FF66] border border-[#00FF66]"
-                    >
-                      [ 💾 DOWNLOAD BROKER CARD ]
-                    </a>
+              {/* GTD HOLDERS: Confirmation notice (No card to download) */}
+              {submittedData?.isGtd ? (
+                <div className="bg-[#051c0d] border-2 border-[#00FF66] p-4 rounded-lg text-left font-mono text-xs space-y-2 text-[#00FF66]">
+                  <div className="font-pixel text-xs text-[#00FF66] font-extrabold flex items-center gap-1.5">
+                    <span>🌟</span>
+                    <span>GUARANTEED (GTD) SPOT SECURED</span>
                   </div>
+                  <p className="text-[11px] leading-relaxed text-gray-300">
+                    Your allocation has been verified and registered on Robinhood Chain. Your wallet is <strong className="text-white">directly eligible for the upcoming Guaranteed (GTD) mint</strong>!
+                  </p>
                 </div>
-              )}
-
-              {/* NON-HOLDERS / LOW HOLDERS: Clean message only, NO card */}
-              {!submittedData?.isGtd && (
+              ) : (
+                /* NON-HOLDERS / LOW HOLDERS: Standard WL notice (No card to download) */
                 <div className="bg-[#111] border border-[#333] p-4 rounded-lg text-left font-mono text-xs space-y-2 text-gray-300">
-                  <div className="text-white font-bold flex items-center gap-1.5">
-                    <span>✓</span>
-                    <span>Your application is in the review queue.</span>
+                  <div className="text-white font-bold flex items-center gap-1.5 font-pixel text-[11px]">
+                    <span>📋</span>
+                    <span>APPLICATION IN REVIEW QUEUE</span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-gray-400">
-                    Wallets holding at least <strong>$1.00 USD in $APEBROKERS tokens</strong> or <strong>1 ApeSyndicate NFT</strong> on Robinhood Chain receive <strong>Guaranteed (GTD) mint eligibility</strong>.
+                    Your application has been received for the Standard Whitelist. Wallets holding at least <strong>$1.00 USD in $APEBROKERS tokens</strong> or <strong>1 ApeSyndicate NFT</strong> on Robinhood Chain receive <strong>Guaranteed (GTD) mint eligibility directly</strong>.
                   </p>
                   <div className="pt-1">
                     <a
