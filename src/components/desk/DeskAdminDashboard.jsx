@@ -23,8 +23,11 @@ export function DeskAdminDashboard({
   onClaimFees,
   onDepositRewards,
   onDistributeEpochRewards,
+  onDistributeImmediateRewards,
   onSetEpochEmissionBps,
   onSetBenchmarkWeightFloor,
+  onSetBaseBoostCost,
+  onSetActivationFee,
   onBackToTerminal,
   refetchGlobalStats,
 }) {
@@ -33,8 +36,12 @@ export function DeskAdminDashboard({
   const [feeClaimInput, setFeeClaimInput] = useState('');
   const [emissionInput, setEmissionInput] = useState('');
   const [benchmarkInput, setBenchmarkInput] = useState('');
+  const [immediateEthInput, setImmediateEthInput] = useState('');
+  const [boostCostInput, setBoostCostInput] = useState('');
+  const [activationFeeInput, setActivationFeeInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDistributingEpoch, setIsDistributingEpoch] = useState(false);
+  const [isDistributingImmediate, setIsDistributingImmediate] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
 
@@ -211,6 +218,79 @@ export function DeskAdminDashboard({
     } catch (err) {
       setErrorMessage(err.shortMessage || err.message || 'Update failed.');
       sound?.playError?.();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle Immediate Marketing Distribution
+  const handleDistributeImmediate = async (amountEth) => {
+    if (!onDistributeImmediateRewards) return;
+    sound?.playClick?.();
+    setIsDistributingImmediate(true);
+    setStatusMessage(null);
+    setErrorMessage(null);
+    try {
+      await onDistributeImmediateRewards({ amountEth });
+      const label = amountEth && parseFloat(amountEth) > 0 ? `${amountEth} ETH` : 'all available pool';
+      setStatusMessage(`Successfully executed marketing instant distribution of ${label} to active desks!`);
+      setImmediateEthInput('');
+      sound?.playSuccess?.();
+      try {
+        confetti({ particleCount: 80, spread: 80, origin: { y: 0.5 } });
+      } catch (e) {}
+      await loadDashboardData();
+      if (refetchGlobalStats) await refetchGlobalStats();
+    } catch (err) {
+      console.error('Immediate distribution failed:', err);
+      sound?.playError?.();
+      setErrorMessage(err.shortMessage || err.message || 'Immediate distribution failed.');
+    } finally {
+      setIsDistributingImmediate(false);
+    }
+  };
+
+  // Handle Base Boost Cost Update
+  const handleUpdateBaseBoostCost = async (e) => {
+    e?.preventDefault?.();
+    if (!boostCostInput || isNaN(Number(boostCostInput)) || Number(boostCostInput) <= 0) return;
+    sound?.playClick?.();
+    setIsSubmitting(true);
+    setStatusMessage(null);
+    setErrorMessage(null);
+    try {
+      await onSetBaseBoostCost(boostCostInput);
+      setStatusMessage(`Successfully updated base boost fee to ${Number(boostCostInput).toLocaleString()} $APEBROKE.`);
+      setBoostCostInput('');
+      sound?.playSuccess?.();
+      if (refetchGlobalStats) await refetchGlobalStats();
+    } catch (err) {
+      console.error('Update base boost cost failed:', err);
+      sound?.playError?.();
+      setErrorMessage(err.shortMessage || err.message || 'Update base boost cost failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle Activation Fee Update
+  const handleUpdateActivationFee = async (e) => {
+    e?.preventDefault?.();
+    if (!activationFeeInput || isNaN(Number(activationFeeInput)) || Number(activationFeeInput) <= 0) return;
+    sound?.playClick?.();
+    setIsSubmitting(true);
+    setStatusMessage(null);
+    setErrorMessage(null);
+    try {
+      await onSetActivationFee(activationFeeInput);
+      setStatusMessage(`Successfully updated desk activation fee to ${Number(activationFeeInput).toLocaleString()} $APEBROKE.`);
+      setActivationFeeInput('');
+      sound?.playSuccess?.();
+      if (refetchGlobalStats) await refetchGlobalStats();
+    } catch (err) {
+      console.error('Update activation fee failed:', err);
+      sound?.playError?.();
+      setErrorMessage(err.shortMessage || err.message || 'Update activation fee failed.');
     } finally {
       setIsSubmitting(false);
     }
@@ -813,6 +893,96 @@ export function DeskAdminDashboard({
             </button>
           </div>
 
+          {/* MARKETING / STARTING STAGE: INSTANT REWARD DISTRIBUTION */}
+          <div className="bg-gradient-to-r from-[#1c0b38] to-[#12072e] p-5 rounded-xl border-2 border-[#FF007F]/70 space-y-4 shadow-[4px_4px_0px_#000]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#FF007F]/30 pb-3">
+              <div>
+                <div className="flex items-center gap-2 font-extrabold text-[#FF007F] text-xs sm:text-sm tracking-wider uppercase">
+                  <span>🚀 MARKETING & LAUNCH STAGE: INSTANT DISTRIBUTION</span>
+                  <span className="px-2 py-0.5 bg-[#FF007F]/20 border border-[#FF007F] text-[9px] rounded text-white font-bold">
+                    100% WEIGHT SPLIT
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-300 mt-1">
+                  Distribute the entire pool or an adjusted custom ETH amount directly to active desks in this epoch (bypasses 5% drip / benchmark floor for launch promos).
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="text-[9px] text-gray-400 block uppercase">Available Unallocated Pool</span>
+                <span className="text-sm font-extrabold text-[#FFD700]">
+                  {Number(formatEther(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 0n)).toFixed(4)} ETH
+                </span>
+              </div>
+            </div>
+
+            {/* Live Simulation Preview */}
+            <div className="bg-black/60 border border-purple-900/60 p-3 rounded-lg text-xs space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                <span className="text-gray-400">
+                  Active Desks: <strong className="text-white">{allDesks.filter((d) => d.active).length} desks</strong>
+                </span>
+                <span className="text-gray-400">
+                  Total Active Weight: <strong className="text-[#00FF66]">{Number(globalStats.totalEligibleWeight || 0)} WGT</strong>
+                </span>
+                <span className="text-gray-400">
+                  Base Desk (100 WGT) Share:{' '}
+                  <strong className="text-[#00F0FF]">
+                    {Number(globalStats.totalEligibleWeight || 0n) > 0
+                      ? `${((100 / Number(globalStats.totalEligibleWeight)) * 100).toFixed(1)}%`
+                      : '0%'}
+                  </strong>
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons & Custom Amount Input */}
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <button
+                type="button"
+                disabled={isDistributingImmediate || (globalStats.availableRewardPool || 0n) === 0n || (globalStats.totalEligibleWeight || 0n) === 0n}
+                onClick={() => handleDistributeImmediate('0')}
+                className="w-full sm:w-auto pixel-btn pixel-btn-vibrant-crimson px-5 py-2.5 text-xs font-extrabold rounded-lg shadow-[3px_3px_0px_#000] whitespace-nowrap disabled:opacity-40"
+              >
+                {isDistributingImmediate ? '[ EXECUTING... ]' : '[ ⚡ DISTRIBUTE 100% OF POOL NOW ]'}
+              </button>
+              <button
+                type="button"
+                disabled={isDistributingImmediate || (globalStats.availableRewardPool || 0n) === 0n || (globalStats.totalEligibleWeight || 0n) === 0n}
+                onClick={() => {
+                  const poolEth = Number(formatEther(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 0n));
+                  const half = (poolEth / 2).toFixed(4);
+                  handleDistributeImmediate(half);
+                }}
+                className="w-full sm:w-auto pixel-btn pixel-btn-vibrant-gold px-4 py-2.5 text-xs font-bold rounded-lg shadow-[2px_2px_0px_#000] whitespace-nowrap disabled:opacity-40"
+              >
+                [ DISTRIBUTE 50% ]
+              </button>
+
+              <div className="flex-1 w-full flex items-center gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    placeholder="Adjusted ETH amount"
+                    value={immediateEthInput}
+                    onChange={(e) => setImmediateEthInput(e.target.value)}
+                    className="w-full bg-black/80 border-2 border-purple-800 focus:border-[#FF007F] px-3 py-2 text-xs text-white rounded-lg outline-none"
+                  />
+                  <span className="absolute right-3 top-2 text-xs text-[#FF007F] font-bold">ETH</span>
+                </div>
+                <button
+                  type="button"
+                  disabled={isDistributingImmediate || !immediateEthInput || parseFloat(immediateEthInput) <= 0 || (globalStats.totalEligibleWeight || 0n) === 0n}
+                  onClick={() => handleDistributeImmediate(immediateEthInput)}
+                  className="pixel-btn pixel-btn-vibrant-cyan px-4 py-2 text-xs font-bold rounded-lg shadow-[2px_2px_0px_#000] whitespace-nowrap disabled:opacity-40"
+                >
+                  [ DISTRIBUTE ]
+                </button>
+              </div>
+            </div>
+          </div>
+
           {rewardDeposits.length === 0 ? (
             <div className="p-8 text-center text-gray-400 text-xs bg-[#130832]/60 rounded-lg border border-purple-900/40">
               No ETH distribution events recorded yet. When the admin deposits native ETH into the reward pool, each deposit is permanently logged here.
@@ -1035,7 +1205,15 @@ export function DeskAdminDashboard({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
               <div className="bg-black/50 p-3 rounded-lg border border-purple-900/50">
                 <span className="text-gray-400 text-[10px]">Activation Fee:</span>
-                <div className="text-sm font-bold text-[#00FF66] mt-0.5">349,693 $APEBROKE</div>
+                <div className="text-sm font-bold text-[#00FF66] mt-0.5">
+                  {Number(formatEther(globalStats?.activationFee || 349693n * 10n ** 18n)).toLocaleString()} $APEBROKE
+                </div>
+              </div>
+              <div className="bg-black/50 p-3 rounded-lg border border-purple-900/50">
+                <span className="text-gray-400 text-[10px]">Base Boost Cost:</span>
+                <div className="text-sm font-bold text-[#FFD700] mt-0.5">
+                  {Number(formatEther(globalStats?.baseBoostCost || 349693n * 10n ** 18n)).toLocaleString()} $APEBROKE
+                </div>
               </div>
               <div className="bg-black/50 p-3 rounded-lg border border-purple-900/50">
                 <span className="text-gray-400 text-[10px]">Base Desk Weight:</span>
@@ -1153,6 +1331,102 @@ export function DeskAdminDashboard({
                   </button>
                 </div>
                 <p className="text-[10px] text-gray-400">Prevents few active desks from draining the pool (e.g. 2,000 WGT = 20 base desks).</p>
+              </form>
+            </div>
+          </div>
+
+          {/* TOKEN PRICE SCALING: DYNAMIC BOOST & ACTIVATION FEE CONTROLS */}
+          <div className="bg-[#0f0729]/95 border-2 border-purple-800 rounded-xl p-5 shadow-[4px_4px_0px_#000] space-y-4">
+            <div className="border-b border-purple-900/60 pb-3">
+              <h3 className="text-xs sm:text-sm font-extrabold text-[#FFD700] uppercase tracking-wider">
+                TOKEN PRICE SCALING: BOOST & ACTIVATION FEE QUANTITY CONTROLS
+              </h3>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                Adjust required $APEBROKE token amounts for activation and boosting. When the token price increases, lower these quantities so participating remains affordable for all brokers.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+              {/* Adjust Base Boost Cost Form */}
+              <form onSubmit={handleUpdateBaseBoostCost} className="bg-black/50 border border-purple-900/60 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-300 font-bold">Base Boost Cost:</span>
+                  <span className="text-[#FFD700]">
+                    Current: {Number(formatEther(globalStats?.baseBoostCost || 349693n * 10n ** 18n)).toLocaleString()} $APE
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 50000"
+                    value={boostCostInput}
+                    onChange={(e) => setBoostCostInput(e.target.value)}
+                    className="flex-1 bg-black/80 border border-purple-700/80 rounded px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !boostCostInput}
+                    className="pixel-btn pixel-btn-vibrant-gold px-3 py-2 text-xs font-bold whitespace-nowrap disabled:opacity-40"
+                  >
+                    [ SET BOOST ]
+                  </button>
+                </div>
+                {/* Quick Presets */}
+                <div className="flex items-center gap-1.5 pt-1">
+                  <span className="text-[10px] text-gray-500">Quick chips:</span>
+                  {['35000', '70000', '150000', '349693'].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setBoostCostInput(preset)}
+                      className="px-2 py-0.5 bg-purple-950/60 hover:bg-purple-900 text-[9px] text-[#FFD700] rounded border border-purple-800/80"
+                    >
+                      {Number(preset).toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+              </form>
+
+              {/* Adjust Activation Fee Form */}
+              <form onSubmit={handleUpdateActivationFee} className="bg-black/50 border border-purple-900/60 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-300 font-bold">Desk Activation Fee:</span>
+                  <span className="text-[#00FF66]">
+                    Current: {Number(formatEther(globalStats?.activationFee || 349693n * 10n ** 18n)).toLocaleString()} $APE
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 35000"
+                    value={activationFeeInput}
+                    onChange={(e) => setActivationFeeInput(e.target.value)}
+                    className="flex-1 bg-black/80 border border-purple-700/80 rounded px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#00FF66]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !activationFeeInput}
+                    className="pixel-btn pixel-btn-vibrant-green px-3 py-2 text-xs font-bold whitespace-nowrap disabled:opacity-40"
+                  >
+                    [ SET ACTIVATE ]
+                  </button>
+                </div>
+                {/* Quick Presets */}
+                <div className="flex items-center gap-1.5 pt-1">
+                  <span className="text-[10px] text-gray-500">Quick chips:</span>
+                  {['25000', '50000', '100000', '349693'].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setActivationFeeInput(preset)}
+                      className="px-2 py-0.5 bg-purple-950/60 hover:bg-purple-900 text-[9px] text-[#00FF66] rounded border border-purple-800/80"
+                    >
+                      {Number(preset).toLocaleString()}
+                    </button>
+                  ))}
+                </div>
               </form>
             </div>
           </div>

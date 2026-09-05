@@ -484,4 +484,144 @@ describe("ApeBrokerDesk - Full Production Test Suite", function () {
       expect(await desk.currentEpoch()).to.equal(1n);
     });
   });
+
+  describe("8. Marketing Instant Rewards & Dynamic Fee Adjustments", function () {
+    const ONE_TOKEN = ethers.parseEther("1");
+
+    it("Should allow admin to distribute 100% of available pool immediately for marketing/launch", async function () {
+      const deskAddress = await desk.getAddress();
+      await token.connect(alice).approve(deskAddress, ethers.MaxUint256);
+      await token.connect(bob).approve(deskAddress, ethers.MaxUint256);
+
+      // Alice: Desk 1 (100 WGT)
+      await desk.connect(alice).activateDesk(1);
+      // Bob: Desk 3 with Boost 1 (200 WGT)
+      await desk.connect(bob).activateDesk(3);
+      await desk.connect(bob).boostDesk(3);
+
+      expect(await desk.totalEligibleWeight()).to.equal(300n);
+
+      // Admin deposits 1.0 ETH into the pool
+      await desk.connect(admin).depositRewards({ value: ethers.parseEther("1.0") });
+
+      // Admin triggers immediate marketing distribution for all remaining pool (amount = 0 distributes 100%)
+      const availableBefore = await desk.getAvailableRewardPool();
+      expect(availableBefore).to.be.gt(0n);
+
+      await expect(desk.connect(admin).distributeImmediateRewards(0))
+        .to.emit(desk, "ImmediateRewardsDistributed");
+
+      // Verify pending rewards: Bob (200 WGT) gets 2x Alice (100 WGT)
+      const alicePending = await desk.getPendingRewards(1);
+      const bobPending = await desk.getPendingRewards(3);
+
+      expect(bobPending).to.be.closeTo(alicePending * 2n, ethers.parseEther("0.0001"));
+
+      // Alice claims
+      const aliceEthBefore = await ethers.provider.getBalance(alice.address);
+      const tx = await desk.connect(alice).claimRewards(1);
+      const receipt = await tx.wait();
+      const gasSpent = receipt.gasUsed * receipt.gasPrice;
+      const aliceEthAfter = await ethers.provider.getBalance(alice.address);
+
+      expect(aliceEthAfter + gasSpent - aliceEthBefore).to.be.closeTo(alicePending, ethers.parseEther("0.0001"));
+    });
+
+    it("Should allow admin to distribute an adjusted custom ETH amount immediately", async function () {
+      const deskAddress = await desk.getAddress();
+      await token.connect(alice).approve(deskAddress, ethers.MaxUint256);
+      await desk.connect(alice).activateDesk(1);
+
+      // Deposit 1.0 ETH
+      await desk.connect(admin).depositRewards({ value: ethers.parseEther("1.0") });
+
+      // Distribute exactly 0.25 ETH as a marketing bonus
+      const bonusAmount = ethers.parseEther("0.25");
+      await expect(desk.connect(admin).distributeImmediateRewards(bonusAmount))
+        .to.emit(desk, "ImmediateRewardsDistributed")
+        .withArgs(0n, bonusAmount, 100n, admin.address);
+
+      // Alice gets at least 0.25 ETH
+      const alicePending = await desk.getPendingRewards(1);
+      expect(alicePending).to.be.gte(bonusAmount);
+    });
+
+    it("Should allow admin to deposit extra ETH and distribute immediately in one transaction", async function () {
+      const deskAddress = await desk.getAddress();
+      await token.connect(alice).approve(deskAddress, ethers.MaxUint256);
+      await desk.connect(alice).activateDesk(1);
+
+      // Distribute 0.5 ETH with msg.value = 0.5 ETH
+      const instantAmount = ethers.parseEther("0.5");
+      await expect(
+        desk.connect(admin).distributeImmediateRewards(instantAmount, { value: instantAmount })
+      )
+        .to.emit(desk, "ImmediateRewardsDistributed")
+        .withArgs(0n, instantAmount, 100n, admin.address);
+
+      expect(await desk.getPendingRewards(1)).to.equal(instantAmount);
+    });
+
+    it("Should allow admin to adjust baseBoostCost to protect users when token price increases", async function () {
+      // Default base boost cost: 349,693 APEBROKE -> Boost 1 = 699,386 APEBROKE
+      expect(await desk.getBoostCost(1)).to.equal(699_386n * ONE_TOKEN);
+
+      // Token price increases 7x -> Admin lowers baseBoostCost to 50,000 APEBROKE
+      const newBaseCost = 50_000n * ONE_TOKEN;
+      await expect(desk.connect(admin).setBaseBoostCost(newBaseCost))
+        .to.emit(desk, "BaseBoostCostUpdated")
+        .withArgs(349_693n * ONE_TOKEN, newBaseCost);
+
+      expect(await desk.baseBoostCost()).to.equal(newBaseCost);
+
+      // Now Boost 1 is 100,000 APEBROKE and Boost 5 is 500,000 APEBROKE
+      expect(await desk.getBoostCost(1)).to.equal(100_000n * ONE_TOKEN);
+      expect(await desk.getBoostCost(5)).to.equal(500_000n * ONE_TOKEN);
+
+      // Alice can now boost with the lower cost
+      const deskAddress = await desk.getAddress();
+      await token.connect(alice).approve(deskAddress, ethers.MaxUint256);
+      await desk.connect(alice).activateDesk(1);
+
+      const balBefore = await token.balanceOf(alice.address);
+      await desk.connect(alice).boostDesk(1);
+      const balAfter = await token.balanceOf(alice.address);
+
+      expect(balBefore - balAfter).to.equal(100_000n * ONE_TOKEN);
+    });
+
+    it("Should allow admin to adjust activationFee when token price surges", async function () {
+      const oldFee = await desk.activationFee();
+      const newFee = 25_000n * ONE_TOKEN;
+
+      await expect(desk.connect(admin).setActivationFee(newFee))
+        .to.emit(desk, "ActivationFeeUpdated")
+        .withArgs(oldFee, newFee);
+
+      expect(await desk.activationFee()).to.equal(newFee);
+
+      // Alice activates Desk 1 with the lowered fee
+      const deskAddress = await desk.getAddress();
+      await token.connect(alice).approve(deskAddress, ethers.MaxUint256);
+      const balBefore = await token.balanceOf(alice.address);
+      await desk.connect(alice).activateDesk(1);
+      const balAfter = await token.balanceOf(alice.address);
+
+      expect(balBefore - balAfter).to.equal(newFee);
+    });
+
+    it("Should revert if non-admin attempts marketing distribution or fee adjustments", async function () {
+      await expect(
+        desk.connect(alice).distributeImmediateRewards(ethers.parseEther("0.1"))
+      ).to.be.revertedWithCustomError(desk, "OwnableUnauthorizedAccount");
+
+      await expect(
+        desk.connect(alice).setBaseBoostCost(1000n)
+      ).to.be.revertedWithCustomError(desk, "OwnableUnauthorizedAccount");
+
+      await expect(
+        desk.connect(alice).setActivationFee(1000n)
+      ).to.be.revertedWithCustomError(desk, "OwnableUnauthorizedAccount");
+    });
+  });
 });

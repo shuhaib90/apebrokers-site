@@ -375,6 +375,51 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
     }
 
     /**
+     * @notice Admin distributes immediate rewards to current active desks for marketing, launch campaigns, or epoch bonus.
+     * @dev Bypasses benchmark floor and epoch emission limits. Distributes specified amount (or all available pool if amount == 0 or >= pool)
+     *      directly across active desks proportionally to their weights.
+     * @param amount Amount of native ETH from pool to distribute immediately. If 0 or greater than available pool, distributes the entire available pool.
+     */
+    function distributeImmediateRewards(uint256 amount) external payable onlyOwner nonReentrant {
+        if (msg.value > 0) {
+            totalEthRewardsDeposited += msg.value;
+        }
+
+        if (totalEligibleWeight == 0) {
+            revert ZeroAmount();
+        }
+
+        // Settle any pending elapsed epochs first to ensure clean accounting
+        _distributePendingEpochs();
+
+        uint256 availablePool = getAvailableRewardPool();
+        if (amount == 0 || amount > availablePool) {
+            amount = availablePool;
+        }
+
+        if (amount == 0) {
+            revert ZeroAmount();
+        }
+
+        // Calculate added reward per weight directly based on active desk weight
+        uint256 addedRewardPerWeight = (amount * REWARD_PRECISION) / totalEligibleWeight;
+        if (addedRewardPerWeight == 0) {
+            revert ZeroAmount();
+        }
+
+        globalRewardPerWeight += addedRewardPerWeight;
+
+        uint256 actualDistributed = (addedRewardPerWeight * totalEligibleWeight) / REWARD_PRECISION;
+        totalEthDistributedAcrossEpochs += actualDistributed;
+
+        if (currentEpoch() > lastDistributedEpoch) {
+            lastDistributedEpoch = currentEpoch();
+        }
+
+        emit ImmediateRewardsDistributed(currentEpoch(), actualDistributed, totalEligibleWeight, msg.sender);
+    }
+
+    /**
      * @notice Checks for any elapsed 5-hour epochs and settles their dynamic reward distribution.
      * @dev Publicly callable by anyone or triggered during desk interactions.
      */
@@ -452,6 +497,20 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
         uint256 oldCost = baseBoostCost;
         baseBoostCost = _newCost;
         emit BaseBoostCostUpdated(oldCost, _newCost);
+    }
+
+    /**
+     * @notice Updates the desk activation fee in token units.
+     * @dev Allows admin to lower or increase the fee to adjust for token price fluctuations.
+     * @param _newFee New activation fee in raw token units.
+     */
+    function setActivationFee(uint256 _newFee) external onlyOwner {
+        if (_newFee == 0) {
+            revert ZeroAmount();
+        }
+        uint256 oldFee = activationFee;
+        activationFee = _newFee;
+        emit ActivationFeeUpdated(oldFee, _newFee);
     }
 
     /**

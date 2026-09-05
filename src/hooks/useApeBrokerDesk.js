@@ -379,6 +379,13 @@ export function useApeBrokerDesk() {
           .readContract({
             address: DESK_CONTRACT_ADDRESS,
             abi: deskDeployConfig.abi,
+            functionName: 'activationFee',
+          })
+          .catch(() => 349693n * 10n ** 18n),
+        publicClient
+          .readContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
             functionName: 'owner',
           })
           .catch(() => null),
@@ -427,7 +434,8 @@ export function useApeBrokerDesk() {
         totalEthClaimed,
         totalBoostFeesCollected,
         baseDeskWeight,
-        baseBoostCost,
+        baseBoostCost: baseBoostCost || 349693n * 10n ** 18n,
+        activationFee: activationFee || 349693n * 10n ** 18n,
         contractOwner: contractOwner || ADMIN_ADDRESS,
         treasuryAddress: treasuryAddressOnChain || TREASURY_ADDRESS,
         isAdmin,
@@ -1030,6 +1038,81 @@ export function useApeBrokerDesk() {
     [walletClient, publicClient, refetchGlobalStats]
   );
 
+  /**
+   * Admin: Distribute Immediate Rewards to Active Desks (Marketing / Stunts / Launch)
+   * amountEth: specific ETH amount from pool (if '0' or empty, distributes 100% of available pool)
+   * valueEth: optional new ETH to deposit with the call
+   */
+  const adminDistributeImmediateRewards = useCallback(
+    async ({ amountEth = '0', valueEth = '0' } = {}) => {
+      if (!walletClient) throw new Error('Wallet not connected.');
+      const amountRaw = amountEth && parseFloat(amountEth) > 0 ? parseEther(amountEth) : 0n;
+      const valueRaw = valueEth && parseFloat(valueEth) > 0 ? parseEther(valueEth) : 0n;
+
+      const tx = await walletClient.writeContract({
+        address: DESK_CONTRACT_ADDRESS,
+        abi: deskDeployConfig.abi,
+        functionName: 'distributeImmediateRewards',
+        args: [amountRaw],
+        value: valueRaw,
+      });
+      let receipt = { blockNumber: 0 };
+      if (publicClient) {
+        receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      }
+      await refetchGlobalStats();
+      await refetchUserData();
+      return { hash: tx, receipt };
+    },
+    [walletClient, publicClient, refetchGlobalStats, refetchUserData]
+  );
+
+  /**
+   * Admin: Set Base Boost Cost in $APEBROKE tokens (scales future boost costs)
+   */
+  const adminSetBaseBoostCost = useCallback(
+    async (tokenAmount) => {
+      if (!walletClient) throw new Error('Wallet not connected.');
+      const costRaw = typeof tokenAmount === 'bigint' ? tokenAmount : parseEther(String(tokenAmount));
+      const tx = await walletClient.writeContract({
+        address: DESK_CONTRACT_ADDRESS,
+        abi: deskDeployConfig.abi,
+        functionName: 'setBaseBoostCost',
+        args: [costRaw],
+      });
+      let receipt = { blockNumber: 0 };
+      if (publicClient) {
+        receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      }
+      await refetchGlobalStats();
+      return { hash: tx, receipt };
+    },
+    [walletClient, publicClient, refetchGlobalStats]
+  );
+
+  /**
+   * Admin: Set Desk Activation Fee in $APEBROKE tokens
+   */
+  const adminSetActivationFee = useCallback(
+    async (tokenAmount) => {
+      if (!walletClient) throw new Error('Wallet not connected.');
+      const feeRaw = typeof tokenAmount === 'bigint' ? tokenAmount : parseEther(String(tokenAmount));
+      const tx = await walletClient.writeContract({
+        address: DESK_CONTRACT_ADDRESS,
+        abi: deskDeployConfig.abi,
+        functionName: 'setActivationFee',
+        args: [feeRaw],
+      });
+      let receipt = { blockNumber: 0 };
+      if (publicClient) {
+        receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      }
+      await refetchGlobalStats();
+      return { hash: tx, receipt };
+    },
+    [walletClient, publicClient, refetchGlobalStats]
+  );
+
   return {
     address,
     isConnected,
@@ -1057,5 +1140,8 @@ export function useApeBrokerDesk() {
     distributeEpochRewards,
     adminSetEpochEmissionBps,
     adminSetBenchmarkWeightFloor,
+    adminDistributeImmediateRewards,
+    adminSetBaseBoostCost,
+    adminSetActivationFee,
   };
 }

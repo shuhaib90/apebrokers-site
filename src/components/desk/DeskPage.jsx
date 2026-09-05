@@ -38,6 +38,9 @@ export function DeskPage({ onBackHome }) {
     distributeEpochRewards,
     adminSetEpochEmissionBps,
     adminSetBenchmarkWeightFloor,
+    adminDistributeImmediateRewards,
+    adminSetBaseBoostCost,
+    adminSetActivationFee,
   } = useApeBrokerDesk();
 
   // Modals state
@@ -318,8 +321,11 @@ export function DeskPage({ onBackHome }) {
             onClaimFees={adminClaimFees}
             onDepositRewards={adminDepositRewards}
             onDistributeEpochRewards={distributeEpochRewards}
+            onDistributeImmediateRewards={adminDistributeImmediateRewards}
             onSetEpochEmissionBps={adminSetEpochEmissionBps}
             onSetBenchmarkWeightFloor={adminSetBenchmarkWeightFloor}
+            onSetBaseBoostCost={adminSetBaseBoostCost}
+            onSetActivationFee={adminSetActivationFee}
             onBackToTerminal={() => setActiveView('terminal')}
             refetchGlobalStats={refetchGlobalStats}
           />
@@ -681,7 +687,7 @@ export function DeskPage({ onBackHome }) {
                           onClick={() => openActionModal(desk, 'activate')}
                           className="w-full min-h-[44px] pixel-btn pixel-btn-vibrant-lime py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000]"
                         >
-                          [ ACTIVATE (349,693 $APE) ]
+                          [ ACTIVATE ({Number(formatEther(globalStats.activationFee || 349693n * 10n ** 18n)).toLocaleString()} $APE) ]
                         </button>
                       ) : (
                         <div className="flex items-center gap-2">
@@ -775,6 +781,7 @@ export function DeskPage({ onBackHome }) {
         desk={actionModal.desk}
         apeBrokeBalance={userBalances.apeBrokeBalance}
         allowance={userBalances.allowance}
+        activationFee={globalStats.activationFee}
         onApprove={approveApebroke}
         onExecute={actionModal.actionType === 'activate' ? activateDesk : boostDesk}
       />

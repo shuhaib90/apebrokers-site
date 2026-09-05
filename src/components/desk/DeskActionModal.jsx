@@ -10,6 +10,7 @@ export function DeskActionModal({
   desk,
   apeBrokeBalance,
   allowance,
+  activationFee,
   onApprove,
   onExecute,
 }) {
@@ -22,9 +23,10 @@ export function DeskActionModal({
   const tokenId = desk.tokenId;
   const isActivate = actionType === 'activate';
 
-  // Cost calculation
-  const costRaw = isActivate ? 349693n * 10n ** 18n : desk.nextBoostCost;
-  const costTokens = isActivate ? '349,693' : Number(formatEther(costRaw)).toLocaleString();
+  // Dynamic cost calculation based on on-chain activationFee or desk.nextBoostCost
+  const activationCostRaw = activationFee || 349693n * 10n ** 18n;
+  const costRaw = isActivate ? activationCostRaw : (desk.nextBoostCost || 0n);
+  const costTokens = Number(formatEther(costRaw)).toLocaleString();
   const hasEnoughAllowance = allowance >= costRaw;
   const hasEnoughBalance = apeBrokeBalance >= costRaw;
 

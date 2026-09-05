@@ -64,10 +64,17 @@ interface IApeBrokerDesk {
     );
 
     event BaseBoostCostUpdated(uint256 oldCost, uint256 newCost);
+    event ActivationFeeUpdated(uint256 oldFee, uint256 newFee);
     event BaseDeskWeightUpdated(uint256 oldWeight, uint256 newWeight);
     event TreasuryUpdated(address oldTreasury, address newTreasury);
     event EpochEmissionUpdated(uint256 oldBps, uint256 newBps);
     event BenchmarkWeightUpdated(uint256 oldFloor, uint256 newFloor);
+    event ImmediateRewardsDistributed(
+        uint256 indexed epoch,
+        uint256 amountDistributed,
+        uint256 totalWeight,
+        address indexed admin
+    );
 
     // User Operations
     function activateDesk(uint256 tokenId) external;
@@ -81,9 +88,14 @@ interface IApeBrokerDesk {
 
     // Admin Operations
     function depositRewards() external payable;
+    function distributeImmediateRewards(uint256 amount) external payable;
     function claimProtocolFees(uint256 amount) external;
     function setEpochEmissionBps(uint256 bps) external;
     function setBenchmarkWeightFloor(uint256 floorWeight) external;
+    function setBaseBoostCost(uint256 newCost) external;
+    function setActivationFee(uint256 newFee) external;
+    function setBaseDeskWeight(uint256 newWeight) external;
+    function setTreasury(address newTreasury) external;
 
     // View Functions
     function isDeskActive(uint256 tokenId) external view returns (bool);
