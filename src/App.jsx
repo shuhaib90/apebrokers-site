@@ -88,12 +88,12 @@ function App() {
 
       {/* Top Header */}
       <div className="relative z-50">
-        <Header onApplyClick={handleApply} onDeskClick={handleDesk} />
+        <Header onApplyClick={handleApply} onAdminClick={handleAdmin} />
       </div>
 
       {/* Hero Content with Stats */}
       <main className="flex-grow flex flex-col items-center justify-center w-full relative z-10">
-        <Hero onApplyClick={handleApply} onDeskClick={handleDesk} />
+        <Hero onApplyClick={handleApply} />
       </main>
 
       {/* Vercel Analytics */}
