@@ -23,14 +23,6 @@ export const SiteHeader = ({ onOpenWhitelist }) => {
         {/* Navigation & Socials */}
         <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-gray-300">
           <a href="#about" className="hover:text-[#00FF66] transition-colors">About</a>
-          <a href="/holders" className="text-[#FFD700] font-bold hover:underline flex items-center gap-1">
-            <span>🏛️</span>
-            <span>Holders</span>
-          </a>
-          <a href="/code" className="text-[#b388ff] font-bold hover:underline flex items-center gap-1">
-            <span>🔑</span>
-            <span>Secret Code</span>
-          </a>
           <a href="#faq" className="hover:text-[#00FF66] transition-colors">FAQ</a>
         </nav>
 

@@ -8,11 +8,6 @@ export const ApplicationPage = ({ onBackHome }) => {
     window.open('https://x.com/Apesyndicates', '_blank', 'noopener,noreferrer');
   };
 
-  const handleHolders = () => {
-    sound?.playClick?.();
-    window.location.href = '/holders';
-  };
-
   const handleHome = () => {
     sound?.playClick?.();
     if (onBackHome) {
@@ -50,14 +45,6 @@ export const ApplicationPage = ({ onBackHome }) => {
             >
               <span>🏠</span>
               <span>[ HOME ]</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleHolders}
-              className="pixel-btn pixel-btn-gold px-3 py-1.5 text-[9px] sm:text-xs font-extrabold text-black flex items-center gap-1.5 rounded-lg"
-            >
-              <span>🏛️</span>
-              <span>[ HOLDERS ]</span>
             </button>
           </div>
         </div>
@@ -126,7 +113,7 @@ export const ApplicationPage = ({ onBackHome }) => {
               <button
                 type="button"
                 onClick={handleFollowX}
-                className="w-full pixel-btn pixel-btn-black py-3 px-4 text-xs font-bold text-white border-2 border-black flex items-center justify-center gap-2 hover:text-[#00FF66]"
+                className="w-full pixel-btn pixel-btn-black py-3 px-4 text-xs font-bold text-white border-2 border-[#333] hover:border-[#00FF66] flex items-center justify-center gap-2 hover:text-[#00FF66]"
               >
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -136,17 +123,8 @@ export const ApplicationPage = ({ onBackHome }) => {
 
               <button
                 type="button"
-                onClick={handleHolders}
-                className="w-full pixel-btn pixel-btn-gold py-3 px-4 text-xs font-extrabold text-black flex items-center justify-center gap-2"
-              >
-                <span>🏛️</span>
-                <span>[ HOLDERS CLAIM ]</span>
-              </button>
-
-              <button
-                type="button"
                 onClick={handleHome}
-                className="w-full sm:col-span-2 pixel-btn pixel-btn-lime py-3 px-4 text-xs font-extrabold text-black flex items-center justify-center gap-2 mt-1"
+                className="w-full pixel-btn pixel-btn-lime py-3 px-4 text-xs font-extrabold text-black flex items-center justify-center gap-2"
               >
                 <span>🏠</span>
                 <span>[ RETURN TO HOME ]</span>
