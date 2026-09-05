@@ -302,29 +302,24 @@ export const ApplicationPage = ({ onBackHome }) => {
       <PixelFluidBackground />
 
       {/* Top Header */}
-      <header className="sticky top-0 z-50 w-full bg-[#0c061e]/95 backdrop-blur-md border-b-4 border-black px-4 sm:px-8 py-3 select-none relative shadow-[0_4px_20px_rgba(0,0,0,0.8)]">
-        {/* Neon Ceiling Light Accent Line */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#FF007F] via-[#00F0FF] to-[#00FF66] opacity-90" />
-
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
-          <a href="/" onClick={(e) => { e.preventDefault(); handleHome(); }} className="flex items-center gap-2 sm:gap-3 shrink-0 group">
-            <div className="p-0.5 bg-[#00FF66]/20 border border-[#00FF66] rounded-md shadow-[0_0_10px_rgba(0,255,102,0.4)]">
-              <img
-                src="/logo.png"
-                alt="ApeSyndicate Logo"
-                className="w-8 h-8 sm:w-10 sm:h-10 object-contain pixelated shrink-0"
-              />
-            </div>
-            <span className="font-pixel text-xs sm:text-base pixel-text-3d-lime tracking-wider font-extrabold whitespace-nowrap">
+      <header className="sticky top-0 z-50 w-full bg-[#00FF66] border-b-4 border-black px-4 sm:px-8 py-3 select-none shadow-[0_4px_12px_rgba(0,0,0,0.15)]">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+          <a href="/" onClick={(e) => { e.preventDefault(); handleHome(); }} className="flex items-center gap-2.5 sm:gap-3 shrink-0 hover:opacity-90 transition-opacity">
+            <img
+              src="/logo.png"
+              alt="ApeSyndicate Logo"
+              className="w-8 h-8 sm:w-10 sm:h-10 object-contain pixelated shrink-0"
+            />
+            <span className="font-pixel text-xs sm:text-base text-black tracking-wider font-extrabold whitespace-nowrap">
               APESYNDICATE
             </span>
           </a>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             <button
               type="button"
               onClick={handleOpenSea}
-              className="pixel-btn pixel-btn-vibrant-cyan px-2 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold rounded-lg"
+              className="pixel-btn pixel-btn-black px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[9px] sm:text-xs font-bold text-white hover:text-[#00FF66] border-2 border-black rounded-lg shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
             >
               <span>[ OPENSEA ]</span>
             </button>
@@ -332,7 +327,7 @@ export const ApplicationPage = ({ onBackHome }) => {
             <button
               type="button"
               onClick={handleApebroke}
-              className="pixel-btn pixel-btn-vibrant-gold px-2 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold rounded-lg"
+              className="pixel-btn pixel-btn-black px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[9px] sm:text-xs font-bold text-[#FFD700] hover:bg-[#FFD700] hover:text-black border-2 border-black rounded-lg shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
             >
               <span>[ $APEBROKE ]</span>
             </button>
@@ -340,7 +335,7 @@ export const ApplicationPage = ({ onBackHome }) => {
             <button
               type="button"
               onClick={handleFollowX}
-              className="pixel-btn pixel-btn-vibrant-magenta px-2 sm:px-3 py-1.5 text-[9px] sm:text-xs font-extrabold rounded-lg flex items-center gap-1"
+              className="pixel-btn pixel-btn-black px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[9px] sm:text-xs font-extrabold text-[#00FF66] border-2 border-black rounded-lg flex items-center gap-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
             >
               <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -352,15 +347,12 @@ export const ApplicationPage = ({ onBackHome }) => {
             <button
               type="button"
               onClick={handleHome}
-              className="pixel-btn pixel-btn-vibrant-lime px-2.5 sm:px-3.5 py-1.5 text-[9px] sm:text-xs font-extrabold rounded-lg"
+              className="pixel-btn pixel-btn-black px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[9px] sm:text-xs font-extrabold text-white hover:bg-white hover:text-black border-2 border-black rounded-lg shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
             >
               <span>[ HOME ]</span>
             </button>
           </div>
         </div>
-
-        {/* Bottom Neon Accent Bar */}
-        <div className="absolute bottom-[-4px] left-0 right-0 h-[2px] bg-gradient-to-r from-[#00FF66] via-[#FF007F] to-[#00F0FF] opacity-80" />
       </header>
 
       {/* Main Container */}
