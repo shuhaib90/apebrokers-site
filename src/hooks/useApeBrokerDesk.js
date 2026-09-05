@@ -187,6 +187,10 @@ export function useApeBrokerDesk() {
   const [globalStats, setGlobalStats] = useState({
     totalEligibleWeight: 0n,
     rewardPoolBalance: 0n,
+    availableRewardPool: 0n,
+    epochEmissionBps: 500n,
+    benchmarkWeightFloor: 2000n,
+    lastDistributedEpoch: 0n,
     protocolFeeBalance: 0n,
     currentEpoch: 0n,
     secondsUntilNextEpoch: 0n,
@@ -298,6 +302,8 @@ export function useApeBrokerDesk() {
         baseBoostCost,
         contractOwner,
         treasuryAddressOnChain,
+        availableRewardPool,
+        distParams,
       ] = await Promise.all([
         publicClient
           .readContract({
@@ -383,7 +389,23 @@ export function useApeBrokerDesk() {
             functionName: 'treasury',
           })
           .catch(() => TREASURY_ADDRESS),
+        publicClient
+          .readContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
+            functionName: 'getAvailableRewardPool',
+          })
+          .catch(() => 0n),
+        publicClient
+          .readContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
+            functionName: 'getDistributionParameters',
+          })
+          .catch(() => [500n, 2000n, 0n]),
       ]);
+
+      const [emissionBps, benchmarkWeight, lastEpoch] = distParams || [500n, 2000n, 0n];
 
       const isAdmin =
         Boolean(address) &&
@@ -394,6 +416,10 @@ export function useApeBrokerDesk() {
       setGlobalStats({
         totalEligibleWeight,
         rewardPoolBalance,
+        availableRewardPool: availableRewardPool || rewardPoolBalance,
+        epochEmissionBps: emissionBps || 500n,
+        benchmarkWeightFloor: benchmarkWeight || 2000n,
+        lastDistributedEpoch: lastEpoch || 0n,
         protocolFeeBalance,
         currentEpoch,
         secondsUntilNextEpoch,
@@ -941,6 +967,69 @@ export function useApeBrokerDesk() {
     [walletClient, publicClient, address, globalStats.currentEpoch, refetchGlobalStats, refetchUserData]
   );
 
+  /**
+   * Action: Settle & Distribute Pending Epoch Rewards
+   */
+  const distributeEpochRewards = useCallback(async () => {
+    if (!walletClient) throw new Error('Wallet not connected.');
+    const tx = await walletClient.writeContract({
+      address: DESK_CONTRACT_ADDRESS,
+      abi: deskDeployConfig.abi,
+      functionName: 'distributeEpochRewards',
+    });
+    let receipt = { blockNumber: 0 };
+    if (publicClient) {
+      receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+    }
+    await refetchGlobalStats();
+    await refetchUserData();
+    return { hash: tx, receipt };
+  }, [walletClient, publicClient, refetchGlobalStats, refetchUserData]);
+
+  /**
+   * Admin: Set Epoch Emission Basis Points (e.g. 500 = 5%)
+   */
+  const adminSetEpochEmissionBps = useCallback(
+    async (bps) => {
+      if (!walletClient) throw new Error('Wallet not connected.');
+      const tx = await walletClient.writeContract({
+        address: DESK_CONTRACT_ADDRESS,
+        abi: deskDeployConfig.abi,
+        functionName: 'setEpochEmissionBps',
+        args: [BigInt(bps)],
+      });
+      let receipt = { blockNumber: 0 };
+      if (publicClient) {
+        receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      }
+      await refetchGlobalStats();
+      return { hash: tx, receipt };
+    },
+    [walletClient, publicClient, refetchGlobalStats]
+  );
+
+  /**
+   * Admin: Set Benchmark Weight Floor (e.g. 2000 for 20 base desks)
+   */
+  const adminSetBenchmarkWeightFloor = useCallback(
+    async (weight) => {
+      if (!walletClient) throw new Error('Wallet not connected.');
+      const tx = await walletClient.writeContract({
+        address: DESK_CONTRACT_ADDRESS,
+        abi: deskDeployConfig.abi,
+        functionName: 'setBenchmarkWeightFloor',
+        args: [BigInt(weight)],
+      });
+      let receipt = { blockNumber: 0 };
+      if (publicClient) {
+        receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      }
+      await refetchGlobalStats();
+      return { hash: tx, receipt };
+    },
+    [walletClient, publicClient, refetchGlobalStats]
+  );
+
   return {
     address,
     isConnected,
@@ -965,5 +1054,8 @@ export function useApeBrokerDesk() {
     claimHistoricalRewards,
     adminClaimFees,
     adminDepositRewards,
+    distributeEpochRewards,
+    adminSetEpochEmissionBps,
+    adminSetBenchmarkWeightFloor,
   };
 }

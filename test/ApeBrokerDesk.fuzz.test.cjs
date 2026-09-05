@@ -116,9 +116,9 @@ describe("ApeBrokerDesk - Invariant & Property-Based Fuzz Tests", function () {
 
     // Period 1: Deposit 2 ETH
     await desk.connect(admin).depositRewards({ value: ethers.parseEther("2.0") });
-    // Both users have 1.0 ETH pending
+    // User 0 has 0.005 ETH pending (5% of 2 ETH = 0.1 ETH / 2000 benchmark * 100 WGT)
     const user0P1 = await desk.getPendingRewards(1);
-    expect(user0P1).to.equal(ethers.parseEther("1.0"));
+    expect(user0P1).to.equal(ethers.parseEther("0.0050"));
 
     // User 0 now max-boosts to 5 (weight 600)
     for (let b = 0; b < 5; b++) {
@@ -126,9 +126,9 @@ describe("ApeBrokerDesk - Invariant & Property-Based Fuzz Tests", function () {
     }
     expect(await desk.getDeskWeight(1)).to.equal(600n);
 
-    // INVARIANT: User 0's pending rewards from Period 1 MUST remain exactly 1.0 ETH
+    // INVARIANT: User 0's pending rewards from Period 1 MUST remain exactly 0.0050 ETH
     const user0PostBoost = await desk.getPendingRewards(1);
-    expect(user0PostBoost).to.equal(ethers.parseEther("1.0"));
+    expect(user0PostBoost).to.equal(ethers.parseEther("0.0050"));
   });
 
   it("Invariant 4: Protocol fees ($APEBROKE) cannot be withdrawn as reward ETH", async function () {

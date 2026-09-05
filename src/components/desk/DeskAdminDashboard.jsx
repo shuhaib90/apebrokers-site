@@ -22,13 +22,19 @@ export function DeskAdminDashboard({
   globalStats,
   onClaimFees,
   onDepositRewards,
+  onDistributeEpochRewards,
+  onSetEpochEmissionBps,
+  onSetBenchmarkWeightFloor,
   onBackToTerminal,
   refetchGlobalStats,
 }) {
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'desks' | 'distributions' | 'logs' | 'actions'
   const [ethDepositInput, setEthDepositInput] = useState('');
   const [feeClaimInput, setFeeClaimInput] = useState('');
+  const [emissionInput, setEmissionInput] = useState('');
+  const [benchmarkInput, setBenchmarkInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDistributingEpoch, setIsDistributingEpoch] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
 
@@ -131,6 +137,80 @@ export function DeskAdminDashboard({
       console.error('Fee claim failed:', err);
       sound?.playError?.();
       setErrorMessage(err.shortMessage || err.message || 'Fee claim failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Trigger Epoch Distribution
+  const handleTriggerEpochDistribution = async () => {
+    if (!onDistributeEpochRewards) return;
+    sound?.playClick?.();
+    setIsDistributingEpoch(true);
+    setStatusMessage(null);
+    setErrorMessage(null);
+    try {
+      await onDistributeEpochRewards();
+      setStatusMessage('Successfully settled and distributed pending epoch rewards!');
+      sound?.playSuccess?.();
+      try {
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.5 } });
+      } catch (e) {}
+      if (refetchGlobalStats) await refetchGlobalStats();
+    } catch (err) {
+      console.error('Trigger epoch failed:', err);
+      sound?.playError?.();
+      setErrorMessage(err.shortMessage || err.message || 'Epoch distribution failed.');
+    } finally {
+      setIsDistributingEpoch(false);
+    }
+  };
+
+  // Update Emission Rate
+  const handleUpdateEmission = async (e) => {
+    e.preventDefault();
+    if (!emissionInput || isNaN(Number(emissionInput))) return;
+    const bps = Math.round(Number(emissionInput) * 100);
+    if (bps <= 0 || bps > 2000) {
+      setErrorMessage('Emission rate must be between 0.1% and 20.0%.');
+      return;
+    }
+    sound?.playClick?.();
+    setIsSubmitting(true);
+    try {
+      await onSetEpochEmissionBps(bps);
+      setStatusMessage(`Updated epoch emission to ${emissionInput}% (${bps} bps).`);
+      setEmissionInput('');
+      sound?.playSuccess?.();
+      if (refetchGlobalStats) await refetchGlobalStats();
+    } catch (err) {
+      setErrorMessage(err.shortMessage || err.message || 'Update failed.');
+      sound?.playError?.();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Update Benchmark Weight
+  const handleUpdateBenchmark = async (e) => {
+    e.preventDefault();
+    if (!benchmarkInput || isNaN(Number(benchmarkInput))) return;
+    const weight = Math.round(Number(benchmarkInput));
+    if (weight <= 0) {
+      setErrorMessage('Benchmark weight must be greater than 0.');
+      return;
+    }
+    sound?.playClick?.();
+    setIsSubmitting(true);
+    try {
+      await onSetBenchmarkWeightFloor(weight);
+      setStatusMessage(`Updated benchmark weight floor to ${weight} WGT.`);
+      setBenchmarkInput('');
+      sound?.playSuccess?.();
+      if (refetchGlobalStats) await refetchGlobalStats();
+    } catch (err) {
+      setErrorMessage(err.shortMessage || err.message || 'Update failed.');
+      sound?.playError?.();
     } finally {
       setIsSubmitting(false);
     }
@@ -708,6 +788,31 @@ export function DeskAdminDashboard({
             </div>
           </form>
 
+          {/* Dynamic Drip Status & Manual Trigger */}
+          <div className="bg-[#10072b] p-4 rounded-xl border-2 border-[#00F0FF]/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-[3px_3px_0px_#000]">
+            <div>
+              <div className="font-extrabold text-[#00F0FF] flex items-center gap-2">
+                <span>⚡ SAFE & FAIR DYNAMIC 3-FACTOR DRIP ENGINE</span>
+                <span className="px-2 py-0.5 bg-[#00F0FF]/20 border border-[#00F0FF] text-[9px] rounded text-[#00F0FF] font-bold">
+                  {(Number(globalStats.epochEmissionBps || 500) / 100).toFixed(1)}% / 5h
+                </span>
+              </div>
+              <div className="text-[10px] text-gray-300 mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                <span>Benchmark Floor: <strong className="text-white">{Number(globalStats.benchmarkWeightFloor || 2000)} WGT</strong></span>
+                <span>Active Weight: <strong className="text-[#00FF66]">{Number(globalStats.totalEligibleWeight || 0)} WGT</strong></span>
+                <span>Available Pool: <strong className="text-[#FFD700]">{Number(formatEther(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 0n)).toFixed(4)} ETH</strong></span>
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={isDistributingEpoch}
+              onClick={handleTriggerEpochDistribution}
+              className="pixel-btn pixel-btn-vibrant-cyan px-4 py-2.5 text-xs font-extrabold rounded-lg shadow-[2px_2px_0px_#000] disabled:opacity-40 whitespace-nowrap"
+            >
+              {isDistributingEpoch ? '[ SETTLING EPOCH... ]' : '[ ⚡ TRIGGER EPOCH DISTRIBUTION ]'}
+            </button>
+          </div>
+
           {rewardDeposits.length === 0 ? (
             <div className="p-8 text-center text-gray-400 text-xs bg-[#130832]/60 rounded-lg border border-purple-900/40">
               No ETH distribution events recorded yet. When the admin deposits native ETH into the reward pool, each deposit is permanently logged here.
@@ -952,6 +1057,103 @@ export function DeskAdminDashboard({
                 <span className="text-gray-400 text-[10px]">Reward Epoch Duration:</span>
                 <div className="text-sm font-bold text-[#FFD700] mt-0.5">5 Hours (18,000s)</div>
               </div>
+              <div className="bg-black/50 p-3 rounded-lg border border-purple-900/50">
+                <span className="text-gray-400 text-[10px]">Safe Epoch Emission:</span>
+                <div className="text-sm font-bold text-[#00FF66] mt-0.5">
+                  {((Number(globalStats?.epochEmissionBps || 500)) / 100).toFixed(2)}% / Epoch ({Number(globalStats?.epochEmissionBps || 500)} bps)
+                </div>
+              </div>
+              <div className="bg-black/50 p-3 rounded-lg border border-purple-900/50">
+                <span className="text-gray-400 text-[10px]">Benchmark Weight Floor:</span>
+                <div className="text-sm font-bold text-[#00F0FF] mt-0.5">
+                  {Number(globalStats?.benchmarkWeightFloor || 2000).toLocaleString()} WGT (20 base desks)
+                </div>
+              </div>
+              <div className="bg-black/50 p-3 rounded-lg border border-purple-900/50">
+                <span className="text-gray-400 text-[10px]">Available Drip Pool:</span>
+                <div className="text-sm font-bold text-[#FFD700] mt-0.5">
+                  {formatEther(globalStats?.availableRewardPool !== undefined ? globalStats.availableRewardPool : (globalStats?.rewardPoolBalance || 0n))} ETH
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* DYNAMIC REWARD CONFIGURATION & SETTLEMENT */}
+          <div className="bg-[#0f0729]/95 border-2 border-purple-800 rounded-xl p-5 shadow-[4px_4px_0px_#000] space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-900/60 pb-3">
+              <div>
+                <h3 className="text-xs sm:text-sm font-extrabold text-[#00F0FF] uppercase tracking-wider">
+                  3-FACTOR DYNAMIC DISTRIBUTION CONTROLS
+                </h3>
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  Controls safe emission drip and benchmark weight floor. Ensures pool is never wiped out in low-participation epochs.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleTriggerEpochDistribution}
+                disabled={isDistributingEpoch}
+                className="pixel-btn pixel-btn-vibrant-cyan px-4 py-2 text-xs font-bold whitespace-nowrap self-start sm:self-auto disabled:opacity-40"
+              >
+                {isDistributingEpoch ? '[ SETTLING... ]' : '[ ⚡ MANUAL SETTLE EPOCH ]'}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+              {/* Update Emission Rate Form */}
+              <form onSubmit={handleUpdateEmission} className="bg-black/50 border border-purple-900/60 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-300 font-bold">Epoch Emission Rate (%):</span>
+                  <span className="text-[#00FF66]">Current: {((Number(globalStats?.epochEmissionBps || 500)) / 100).toFixed(2)}%</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.1"
+                    max="20.0"
+                    placeholder="e.g. 5.00"
+                    value={emissionInput}
+                    onChange={(e) => setEmissionInput(e.target.value)}
+                    className="flex-1 bg-black/80 border border-purple-700/80 rounded px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#00FF66]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !emissionInput}
+                    className="pixel-btn pixel-btn-vibrant-green px-3 py-2 text-xs font-bold whitespace-nowrap disabled:opacity-40"
+                  >
+                    [ SET % ]
+                  </button>
+                </div>
+                <p className="text-[10px] text-gray-400">Range: 0.10% (10 bps) to 20.00% (2000 bps) per 5h epoch.</p>
+              </form>
+
+              {/* Update Benchmark Weight Floor Form */}
+              <form onSubmit={handleUpdateBenchmark} className="bg-black/50 border border-purple-900/60 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-300 font-bold">Benchmark Weight Floor:</span>
+                  <span className="text-[#00F0FF]">Current: {Number(globalStats?.benchmarkWeightFloor || 2000).toLocaleString()} WGT</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    step="100"
+                    min="100"
+                    placeholder="e.g. 2000"
+                    value={benchmarkInput}
+                    onChange={(e) => setBenchmarkInput(e.target.value)}
+                    className="flex-1 bg-black/80 border border-purple-700/80 rounded px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#00F0FF]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !benchmarkInput}
+                    className="pixel-btn pixel-btn-vibrant-cyan px-3 py-2 text-xs font-bold whitespace-nowrap disabled:opacity-40"
+                  >
+                    [ SET FLOOR ]
+                  </button>
+                </div>
+                <p className="text-[10px] text-gray-400">Prevents few active desks from draining the pool (e.g. 2,000 WGT = 20 base desks).</p>
+              </form>
             </div>
           </div>
         </section>

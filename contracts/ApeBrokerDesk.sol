@@ -38,12 +38,21 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
     uint256 public constant MAX_DESKS_PER_WALLET = 5;
     uint256 public constant EPOCH_DURATION = 5 hours; // 18,000 seconds
     uint256 public constant REWARD_PRECISION = 1e18;
+    uint256 public constant DEFAULT_EPOCH_EMISSION_BPS = 500; // 5.00%
+    uint256 public constant DEFAULT_BENCHMARK_WEIGHT = 2000; // 20 base desks
+    uint256 public constant MAX_EPOCH_EMISSION_BPS = 2000; // 20% hard max safety cap
 
     // Protocol Configuration
     uint256 public activationFee;
     uint256 public baseBoostCost;
     uint256 public baseDeskWeight;
     uint256 public immutable startTimestamp;
+
+    // Dynamic 3-Factor Distribution Engine
+    uint256 public epochEmissionBps = DEFAULT_EPOCH_EMISSION_BPS;
+    uint256 public benchmarkWeightFloor = DEFAULT_BENCHMARK_WEIGHT;
+    uint256 public lastDistributedEpoch;
+    uint256 public totalEthDistributedAcrossEpochs;
 
     // Desk Accounting Structure
     struct Desk {
@@ -131,6 +140,9 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
         if (desk.active) {
             revert DeskAlreadyActive();
         }
+
+        // Settle any pending elapsed epochs before modifying active weight
+        _distributePendingEpochs();
 
         // Pull exact activation fee in $APEBROKE
         apeBrokeToken.safeTransferFrom(msg.sender, address(this), activationFee);
@@ -340,8 +352,8 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
     // ==========================================
 
     /**
-     * @notice Admin deposits native ETH rewards into the reward pool.
-     * @dev Distributes proportionally to eligible Desk Weight via O(1) accumulator.
+     * @notice Admin deposits native ETH rewards into the available reward pool.
+     * @dev Funds are credited to the pool and distributed dynamically over 5-hour epochs.
      */
     function depositRewards() external payable onlyOwner nonReentrant {
         if (msg.value == 0) {
@@ -350,18 +362,50 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
 
         totalEthRewardsDeposited += msg.value;
 
-        if (totalEligibleWeight == 0) {
-            // If no active Desks exist yet, roll remainder into future deposits
-            undistributedRewardRemainder += msg.value;
-        } else {
-            uint256 totalDistributable = msg.value + undistributedRewardRemainder;
-            uint256 addedRewardPerWeight = (totalDistributable * REWARD_PRECISION) / totalEligibleWeight;
+        // Distribute any pending elapsed epochs
+        _distributePendingEpochs();
 
-            globalRewardPerWeight += addedRewardPerWeight;
-            undistributedRewardRemainder = totalDistributable - ((addedRewardPerWeight * totalEligibleWeight) / REWARD_PRECISION);
+        // If this is the initial distribution and active desks exist, distribute current epoch immediately
+        if (totalEthDistributedAcrossEpochs == 0 && totalEligibleWeight > 0) {
+            _distributeSingleEpoch(currentEpoch());
+            lastDistributedEpoch = currentEpoch();
         }
 
         emit RewardsDeposited(msg.sender, msg.value, currentEpoch());
+    }
+
+    /**
+     * @notice Checks for any elapsed 5-hour epochs and settles their dynamic reward distribution.
+     * @dev Publicly callable by anyone or triggered during desk interactions.
+     */
+    function distributeEpochRewards() public nonReentrant {
+        _distributePendingEpochs();
+    }
+
+    /**
+     * @notice Updates the epoch emission rate in basis points (e.g. 500 = 5.00%).
+     * @param bps New emission basis points (max 2000 = 20%).
+     */
+    function setEpochEmissionBps(uint256 bps) external onlyOwner {
+        if (bps > MAX_EPOCH_EMISSION_BPS) {
+            revert ExceedsMaxEmissionBps();
+        }
+        uint256 oldBps = epochEmissionBps;
+        epochEmissionBps = bps;
+        emit EpochEmissionUpdated(oldBps, bps);
+    }
+
+    /**
+     * @notice Updates the benchmark weight floor (e.g. 2000 for 20 base desks).
+     * @param floorWeight New floor weight.
+     */
+    function setBenchmarkWeightFloor(uint256 floorWeight) external onlyOwner {
+        if (floorWeight == 0) {
+            revert ZeroAmount();
+        }
+        uint256 oldFloor = benchmarkWeightFloor;
+        benchmarkWeightFloor = floorWeight;
+        emit BenchmarkWeightUpdated(oldFloor, floorWeight);
     }
 
     /**
@@ -428,10 +472,81 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
     // ==========================================
 
     /**
+     * @notice Returns the amount of native ETH currently available in the reward pool for future epoch distributions.
+     * @dev Excludes ETH reserved for already-distributed but unclaimed user rewards.
+     */
+    function getAvailableRewardPool() public view returns (uint256) {
+        uint256 contractBalance = address(this).balance;
+        uint256 reservedRewards = totalEthDistributedAcrossEpochs > totalEthRewardsClaimed
+            ? totalEthDistributedAcrossEpochs - totalEthRewardsClaimed
+            : 0;
+        return contractBalance > reservedRewards ? contractBalance - reservedRewards : 0;
+    }
+
+    /**
+     * @dev Internal helper to settle distribution for a single epoch.
+     */
+    function _distributeSingleEpoch(uint256 epochNum) internal {
+        uint256 availablePool = getAvailableRewardPool();
+        if (availablePool == 0 || totalEligibleWeight == 0) {
+            return;
+        }
+
+        // Percentage of available pool (e.g. 5% = 500 bps)
+        uint256 epochDistributable = (availablePool * epochEmissionBps) / 10000;
+        if (epochDistributable == 0) {
+            return;
+        }
+
+        // Effective divisor is max(totalEligibleWeight, benchmarkWeightFloor)
+        uint256 effectiveDivisor = totalEligibleWeight < benchmarkWeightFloor
+            ? benchmarkWeightFloor
+            : totalEligibleWeight;
+
+        // Calculate added reward per weight unit
+        uint256 addedRewardPerWeight = (epochDistributable * REWARD_PRECISION) / effectiveDivisor;
+        if (addedRewardPerWeight == 0) {
+            return;
+        }
+
+        globalRewardPerWeight += addedRewardPerWeight;
+
+        uint256 actualEpochDistributed = (addedRewardPerWeight * totalEligibleWeight) / REWARD_PRECISION;
+        totalEthDistributedAcrossEpochs += actualEpochDistributed;
+
+        emit EpochRewardsDistributed(epochNum, actualEpochDistributed, availablePool, totalEligibleWeight);
+    }
+
+    /**
+     * @dev Internal helper to check and distribute any pending elapsed epochs.
+     */
+    function _distributePendingEpochs() internal {
+        uint256 current = currentEpoch();
+        if (current <= lastDistributedEpoch) {
+            return;
+        }
+
+        uint256 epochsToDistribute = current - lastDistributedEpoch;
+        if (epochsToDistribute > 20) {
+            epochsToDistribute = 20;
+        }
+
+        for (uint256 i = 0; i < epochsToDistribute; ) {
+            _distributeSingleEpoch(lastDistributedEpoch + 1 + i);
+            unchecked {
+                ++i;
+            }
+        }
+        lastDistributedEpoch = current;
+    }
+
+    /**
      * @dev Internal helper to checkpoint rewards for a Desk.
      * Accrues pending rewards to the historical earner if the NFT has been transferred.
      */
     function _checkpointDesk(uint256 tokenId) internal {
+        _distributePendingEpochs();
+
         Desk storage desk = desks[tokenId];
         if (!desk.active) return;
 
@@ -519,6 +634,37 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
     }
 
     /**
+     * @dev Internal view helper to calculate globalRewardPerWeight including any elapsed uncheckpointed epochs.
+     */
+    function _getSimulatedGlobalRewardPerWeight() internal view returns (uint256) {
+        uint256 simulated = globalRewardPerWeight;
+        uint256 current = currentEpoch();
+        if (current > lastDistributedEpoch && totalEligibleWeight > 0) {
+            uint256 availablePool = getAvailableRewardPool();
+            uint256 epochsToSimulate = current - lastDistributedEpoch;
+            if (epochsToSimulate > 20) epochsToSimulate = 20;
+
+            uint256 effectiveDivisor = totalEligibleWeight < benchmarkWeightFloor
+                ? benchmarkWeightFloor
+                : totalEligibleWeight;
+
+            for (uint256 i = 0; i < epochsToSimulate; i++) {
+                uint256 epochDistributable = (availablePool * epochEmissionBps) / 10000;
+                if (epochDistributable == 0) break;
+                uint256 added = (epochDistributable * REWARD_PRECISION) / effectiveDivisor;
+                simulated += added;
+                uint256 actualPaid = (added * totalEligibleWeight) / REWARD_PRECISION;
+                if (availablePool > actualPaid) {
+                    availablePool -= actualPaid;
+                } else {
+                    break;
+                }
+            }
+        }
+        return simulated;
+    }
+
+    /**
      * @notice Calculates pending unclaimed rewards for a Desk.
      * @param tokenId The NFT token ID.
      */
@@ -529,7 +675,8 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
         address currentNftOwner = apeBrokerNft.ownerOf(tokenId);
         address recordedOwner = deskOwner[tokenId];
 
-        uint256 accumulated = (desk.currentWeight * globalRewardPerWeight) / REWARD_PRECISION;
+        uint256 simulatedIndex = _getSimulatedGlobalRewardPerWeight();
+        uint256 accumulated = (desk.currentWeight * simulatedIndex) / REWARD_PRECISION;
         uint256 pending = accumulated > desk.rewardDebt ? accumulated - desk.rewardDebt : 0;
 
         if (currentNftOwner == recordedOwner) {
@@ -538,6 +685,35 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
             // If transferred, pending belongs to recordedOwner, and currentNftOwner has only their existing balance
             return userClaimableRewards[currentNftOwner];
         }
+    }
+
+    /**
+     * @notice Returns estimated reward for a Desk in the upcoming epoch based on current pool balance and active volume.
+     */
+    function getEstimatedEpochReward(uint256 tokenId) external view returns (uint256) {
+        Desk storage desk = desks[tokenId];
+        if (!desk.active || totalEligibleWeight == 0) return 0;
+
+        uint256 availablePool = getAvailableRewardPool();
+        if (availablePool == 0) return 0;
+
+        uint256 epochDistributable = (availablePool * epochEmissionBps) / 10000;
+        uint256 effectiveDivisor = totalEligibleWeight < benchmarkWeightFloor
+            ? benchmarkWeightFloor
+            : totalEligibleWeight;
+
+        return (epochDistributable * desk.currentWeight) / effectiveDivisor;
+    }
+
+    /**
+     * @notice Returns distribution parameters.
+     */
+    function getDistributionParameters() external view returns (
+        uint256 emissionBps,
+        uint256 benchmarkWeight,
+        uint256 lastEpoch
+    ) {
+        return (epochEmissionBps, benchmarkWeightFloor, lastDistributedEpoch);
     }
 
     /**
@@ -594,7 +770,8 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
 
         if (active) {
             owner = apeBrokerNft.ownerOf(tokenId);
-            uint256 accumulated = (desk.currentWeight * globalRewardPerWeight) / REWARD_PRECISION;
+            uint256 simulatedIndex = _getSimulatedGlobalRewardPerWeight();
+            uint256 accumulated = (desk.currentWeight * simulatedIndex) / REWARD_PRECISION;
             uint256 pending = accumulated > desk.rewardDebt ? accumulated - desk.rewardDebt : 0;
 
             if (owner == deskOwner[tokenId]) {

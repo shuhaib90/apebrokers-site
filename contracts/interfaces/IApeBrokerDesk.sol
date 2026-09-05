@@ -16,6 +16,7 @@ interface IApeBrokerDesk {
     error TransferFailed();
     error ExceedsCollectedFees();
     error MaxDesksPerWalletReached();
+    error ExceedsMaxEmissionBps();
 
     // Events
     event DeskActivated(
@@ -44,6 +45,13 @@ interface IApeBrokerDesk {
         uint256 epoch
     );
 
+    event EpochRewardsDistributed(
+        uint256 indexed epoch,
+        uint256 amountDistributed,
+        uint256 availablePool,
+        uint256 totalWeight
+    );
+
     event RewardsClaimed(
         uint256 indexed tokenId,
         address indexed owner,
@@ -58,6 +66,8 @@ interface IApeBrokerDesk {
     event BaseBoostCostUpdated(uint256 oldCost, uint256 newCost);
     event BaseDeskWeightUpdated(uint256 oldWeight, uint256 newWeight);
     event TreasuryUpdated(address oldTreasury, address newTreasury);
+    event EpochEmissionUpdated(uint256 oldBps, uint256 newBps);
+    event BenchmarkWeightUpdated(uint256 oldFloor, uint256 newFloor);
 
     // User Operations
     function activateDesk(uint256 tokenId) external;
@@ -67,10 +77,13 @@ interface IApeBrokerDesk {
     function claimHistoricalRewards() external;
     function claimHistoricalRewardsForDesks(uint256[] calldata tokenIds) external;
     function checkpointDesk(uint256 tokenId) external;
+    function distributeEpochRewards() external;
 
     // Admin Operations
     function depositRewards() external payable;
     function claimProtocolFees(uint256 amount) external;
+    function setEpochEmissionBps(uint256 bps) external;
+    function setBenchmarkWeightFloor(uint256 floorWeight) external;
 
     // View Functions
     function isDeskActive(uint256 tokenId) external view returns (bool);
@@ -81,6 +94,9 @@ interface IApeBrokerDesk {
     function getPendingRewards(uint256 tokenId) external view returns (uint256);
     function getTotalEligibleWeight() external view returns (uint256);
     function getRewardPoolBalance() external view returns (uint256);
+    function getAvailableRewardPool() external view returns (uint256);
+    function getEstimatedEpochReward(uint256 tokenId) external view returns (uint256);
+    function getDistributionParameters() external view returns (uint256 emissionBps, uint256 benchmarkWeight, uint256 lastEpoch);
     function getProtocolFeeBalance() external view returns (uint256);
     function currentEpoch() external view returns (uint256);
     function timeUntilNextEpoch() external view returns (uint256);

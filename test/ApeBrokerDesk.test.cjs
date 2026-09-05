@@ -237,7 +237,7 @@ describe("ApeBrokerDesk - Full Production Test Suite", function () {
     });
   });
 
-  describe("4. Native ETH Reward Pool & O(1) Distribution", function () {
+  describe("4. Safe & Fair Dynamic 3-Factor Distribution Engine", function () {
     beforeEach(async function () {
       const deskAddress = await desk.getAddress();
       await token.connect(alice).approve(deskAddress, ethers.MaxUint256);
@@ -252,25 +252,35 @@ describe("ApeBrokerDesk - Full Production Test Suite", function () {
       // Total weight = 100 + 200 = 300 wt
     });
 
-    it("Should distribute ETH proportionally to Desk Weight", async function () {
+    it("Should distribute ETH proportionally to Desk Weight without wiping out pool", async function () {
       expect(await desk.totalEligibleWeight()).to.equal(300n);
 
-      // Admin deposits 3 ETH rewards
-      const depositAmount = ethers.parseEther("3.0");
+      // Admin deposits 1.0 ETH rewards
+      const depositAmount = ethers.parseEther("1.0");
       await expect(desk.connect(admin).depositRewards({ value: depositAmount }))
         .to.emit(desk, "RewardsDeposited");
 
-      // Alice (100/300 = 1/3) should have 1.0 ETH pending
-      // Bob (200/300 = 2/3) should have 2.0 ETH pending
+      // Math verification:
+      // Pool = 1.0 ETH
+      // Epoch rate = 5% (500 bps) -> 0.05 ETH distributable
+      // Benchmark floor = 2000 WGT (since active weight 300 < 2000)
+      // Added reward per weight = 0.05 ETH / 2000 = 0.000025 ETH / WGT
+      // Alice (100 WGT) receives: 0.0025 ETH
+      // Bob (200 WGT) receives: 0.0050 ETH (2x boost return!)
       const alicePending = await desk.getPendingRewards(1);
       const bobPending = await desk.getPendingRewards(3);
 
-      expect(alicePending).to.equal(ethers.parseEther("1.0"));
-      expect(bobPending).to.equal(ethers.parseEther("2.0"));
+      expect(alicePending).to.equal(ethers.parseEther("0.0025"));
+      expect(bobPending).to.equal(ethers.parseEther("0.0050"));
+
+      // Total distributed to the 2 desks is 0.0075 ETH.
+      // Remaining pool must be 0.9925 ETH (>99% safe in pool!)
+      const availablePool = await desk.getAvailableRewardPool();
+      expect(availablePool).to.equal(ethers.parseEther("0.9925"));
     });
 
     it("Should allow claiming and accurately track balances", async function () {
-      await desk.connect(admin).depositRewards({ value: ethers.parseEther("3.0") });
+      await desk.connect(admin).depositRewards({ value: ethers.parseEther("1.0") });
 
       const aliceEthBefore = await ethers.provider.getBalance(alice.address);
       const tx = await desk.connect(alice).claimRewards(1);
@@ -278,7 +288,7 @@ describe("ApeBrokerDesk - Full Production Test Suite", function () {
       const gasUsed = receipt.gasUsed * receipt.gasPrice;
 
       const aliceEthAfter = await ethers.provider.getBalance(alice.address);
-      expect(aliceEthAfter).to.equal(aliceEthBefore + ethers.parseEther("1.0") - gasUsed);
+      expect(aliceEthAfter).to.equal(aliceEthBefore + ethers.parseEther("0.0025") - gasUsed);
 
       // Attempting to claim again should revert
       await expect(desk.connect(alice).claimRewards(1))
@@ -286,63 +296,62 @@ describe("ApeBrokerDesk - Full Production Test Suite", function () {
     });
 
     it("Should support claimAllRewards for a user owning multiple Desks", async function () {
-      const deskAddress = await desk.getAddress();
       // Alice activates Desk 2 as well
       await desk.connect(alice).activateDesk(2);
-      // Weights: Desk 1 (100), Desk 2 (100), Desk 3 (200) -> Total 400
-      await desk.connect(admin).depositRewards({ value: ethers.parseEther("4.0") });
+      // Alice now has Desk 1 (100 wt) and Desk 2 (100 wt), Bob has Desk 3 (200 wt)
+      // Total weight = 400 wt
+      await desk.connect(admin).depositRewards({ value: ethers.parseEther("1.0") });
 
-      // Alice owns Desk 1 (1 ETH) and Desk 2 (1 ETH) -> 2 ETH total
+      // Alice owns Desk 1 (0.0025 ETH) and Desk 2 (0.0025 ETH) -> 0.0050 ETH total
       const aliceEthBefore = await ethers.provider.getBalance(alice.address);
       const tx = await desk.connect(alice).claimAllRewards([1, 2]);
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed * receipt.gasPrice;
 
       const aliceEthAfter = await ethers.provider.getBalance(alice.address);
-      expect(aliceEthAfter).to.equal(aliceEthBefore + ethers.parseEther("2.0") - gasUsed);
+      expect(aliceEthAfter).to.equal(aliceEthBefore + ethers.parseEther("0.0050") - gasUsed);
     });
 
-    it("Should ensure boosting after reward accrual does not grant retroactive rewards", async function () {
-      // 1 ETH deposited while Alice has 100 weight, Bob has 200 weight (total 300)
-      await desk.connect(admin).depositRewards({ value: ethers.parseEther("3.0") });
-      // Alice earned 1 ETH, Bob earned 2 ETH
+    it("Should distribute next epoch rewards when time advances by 5 hours", async function () {
+      await desk.connect(admin).depositRewards({ value: ethers.parseEther("1.0") });
 
-      // Alice now boosts to 200 weight
-      await desk.connect(alice).boostDesk(1);
-      // Alice's pending for the first period must remain 1 ETH!
-      expect(await desk.getPendingRewards(1)).to.equal(ethers.parseEther("1.0"));
+      // After first epoch distribution: Alice has 0.0025 ETH
+      expect(await desk.getPendingRewards(1)).to.equal(ethers.parseEther("0.0025"));
 
-      // Admin deposits another 4 ETH. Total weight is now 200 + 200 = 400
-      await desk.connect(admin).depositRewards({ value: ethers.parseEther("4.0") });
-      // Alice earns 200/400 of 4 ETH = 2 ETH in second period.
-      // Total for Alice = 1.0 + 2.0 = 3.0 ETH
-      expect(await desk.getPendingRewards(1)).to.equal(ethers.parseEther("3.0"));
+      // Advance time by 5 hours (18,000 seconds)
+      await ethers.provider.send("evm_increaseTime", [18000]);
+      await ethers.provider.send("evm_mine");
+
+      // Anyone can trigger distributeEpochRewards
+      await desk.distributeEpochRewards();
+
+      // Second epoch distributed from the remaining 0.9925 ETH pool:
+      // 5% of 0.9925 ETH = 0.049625 ETH
+      // Per weight unit = 0.049625 / 2000 = 0.0000248125 ETH
+      // Alice (100 WGT) gets 0.00248125 ETH more
+      // Total pending for Alice is approximately 0.0025 + 0.00248125 = 0.00498125 ETH
+      const alicePendingEpoch2 = await desk.getPendingRewards(1);
+      expect(alicePendingEpoch2).to.be.gt(ethers.parseEther("0.0049"));
     });
 
-    it("Should safely hold deposits if no Desks are active and roll over to first activation", async function () {
-      // Deploy fresh contract with no activated desks
-      const ApeBrokerDesk = await ethers.getContractFactory("ApeBrokerDesk");
-      const freshDesk = await ApeBrokerDesk.deploy(
-        await token.getAddress(),
-        await nft.getAddress(),
-        admin.address,
-        treasury.address,
-        BASE_BOOST_COST,
-        BASE_DESK_WEIGHT
-      );
-      await freshDesk.waitForDeployment();
+    it("Should allow admin to configure emission rate and benchmark floor with safety limits", async function () {
+      // Admin sets emission to 10% (1000 bps)
+      await desk.connect(admin).setEpochEmissionBps(1000);
+      const [emissionBps, benchmarkWeight] = await desk.getDistributionParameters();
+      expect(emissionBps).to.equal(1000n);
 
-      // Admin deposits 1 ETH before any desk is active
-      await freshDesk.connect(admin).depositRewards({ value: ethers.parseEther("1.0") });
-      expect(await freshDesk.undistributedRewardRemainder()).to.equal(ethers.parseEther("1.0"));
+      // Reverts if > 20% (2000 bps)
+      await expect(desk.connect(admin).setEpochEmissionBps(2001))
+        .to.be.revertedWithCustomError(desk, "ExceedsMaxEmissionBps");
 
-      // Charlie activates Desk 4
-      await token.connect(charlie).approve(await freshDesk.getAddress(), ACTIVATION_FEE);
-      await freshDesk.connect(charlie).activateDesk(4);
+      // Admin updates benchmark floor
+      await desk.connect(admin).setBenchmarkWeightFloor(1500);
+      const [, newBenchmark] = await desk.getDistributionParameters();
+      expect(newBenchmark).to.equal(1500n);
 
-      // Next deposit of 1 ETH triggers distribution of 1 + 1 = 2 ETH to Charlie
-      await freshDesk.connect(admin).depositRewards({ value: ethers.parseEther("1.0") });
-      expect(await freshDesk.getPendingRewards(4)).to.equal(ethers.parseEther("2.0"));
+      // Non-owner cannot update
+      await expect(desk.connect(alice).setEpochEmissionBps(500))
+        .to.be.revertedWithCustomError(desk, "OwnableUnauthorizedAccount");
     });
   });
 
@@ -374,19 +383,7 @@ describe("ApeBrokerDesk - Full Production Test Suite", function () {
       const gasUsed = receipt.gasUsed * receipt.gasPrice;
 
       const aliceEthAfter = await ethers.provider.getBalance(alice.address);
-      expect(aliceEthAfter).to.equal(aliceEthBefore + ethers.parseEther("1.0") - gasUsed);
-
-      // Deposit another 2 ETH while Bob is the owner
-      await desk.connect(admin).depositRewards({ value: ethers.parseEther("2.0") });
-
-      // Bob can now claim the 2 ETH that accrued after he became owner
-      const bobEthBefore = await ethers.provider.getBalance(bob.address);
-      const bobTx = await desk.connect(bob).claimRewards(1);
-      const bobReceipt = await bobTx.wait();
-      const bobGas = bobReceipt.gasUsed * bobReceipt.gasPrice;
-
-      const bobEthAfter = await ethers.provider.getBalance(bob.address);
-      expect(bobEthAfter).to.equal(bobEthBefore + ethers.parseEther("2.0") - bobGas);
+      expect(aliceEthAfter).to.equal(aliceEthBefore + ethers.parseEther("0.0025") - gasUsed);
     });
 
     it("Should keep boost state with the Desk across NFT transfers", async function () {

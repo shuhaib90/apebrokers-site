@@ -35,6 +35,9 @@ export function DeskPage({ onBackHome }) {
     claimHistoricalRewards,
     adminClaimFees,
     adminDepositRewards,
+    distributeEpochRewards,
+    adminSetEpochEmissionBps,
+    adminSetBenchmarkWeightFloor,
   } = useApeBrokerDesk();
 
   // Modals state
@@ -314,6 +317,9 @@ export function DeskPage({ onBackHome }) {
             globalStats={globalStats}
             onClaimFees={adminClaimFees}
             onDepositRewards={adminDepositRewards}
+            onDistributeEpochRewards={distributeEpochRewards}
+            onSetEpochEmissionBps={adminSetEpochEmissionBps}
+            onSetBenchmarkWeightFloor={adminSetBenchmarkWeightFloor}
             onBackToTerminal={() => setActiveView('terminal')}
             refetchGlobalStats={refetchGlobalStats}
           />
@@ -328,12 +334,17 @@ export function DeskPage({ onBackHome }) {
                 LIVE PROTOCOL METRICS
               </span>
             </div>
-            {/* 5-Hour Epoch Countdown */}
-            <div className="flex items-center gap-2 bg-[#1b0a40] px-3 py-1.5 border border-[#00F0FF] rounded-lg text-xs">
-              <span className="text-gray-400 text-[10px]">EPOCH #{globalStats.currentEpoch.toString()} ENDS IN:</span>
-              <span className="text-[#00F0FF] font-mono font-bold tracking-wider">
-                {formatCountdown(timeLeft)}
+            {/* 5-Hour Epoch Countdown & Safe 5% Drip */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="hidden sm:inline-block px-2 py-1 bg-[#0f233a] border border-[#00F0FF]/60 text-[10px] text-[#00F0FF] rounded font-bold">
+                ⚡ 5% / 5h SAFE DRIP
               </span>
+              <div className="flex items-center gap-2 bg-[#1b0a40] px-3 py-1.5 border border-[#00F0FF] rounded-lg text-xs">
+                <span className="text-gray-400 text-[10px]">EPOCH #{globalStats.currentEpoch.toString()} ENDS IN:</span>
+                <span className="text-[#00F0FF] font-mono font-bold tracking-wider">
+                  {formatCountdown(timeLeft)}
+                </span>
+              </div>
             </div>
           </div>
 

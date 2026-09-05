@@ -68,6 +68,11 @@
     },
     {
       "inputs": [],
+      "name": "ExceedsMaxEmissionBps",
+      "type": "error"
+    },
+    {
+      "inputs": [],
       "name": "InsufficientAllowance",
       "type": "error"
     },
@@ -191,6 +196,25 @@
       "anonymous": false,
       "inputs": [
         {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldFloor",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newFloor",
+          "type": "uint256"
+        }
+      ],
+      "name": "BenchmarkWeightUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
           "indexed": true,
           "internalType": "uint256",
           "name": "tokenId",
@@ -253,6 +277,56 @@
         }
       ],
       "name": "DeskBoosted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldBps",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newBps",
+          "type": "uint256"
+        }
+      ],
+      "name": "EpochEmissionUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "epoch",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amountDistributed",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "availablePool",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "totalWeight",
+          "type": "uint256"
+        }
+      ],
+      "name": "EpochRewardsDistributed",
       "type": "event"
     },
     {
@@ -406,6 +480,32 @@
     },
     {
       "inputs": [],
+      "name": "DEFAULT_BENCHMARK_WEIGHT",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "DEFAULT_EPOCH_EMISSION_BPS",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "EPOCH_DURATION",
       "outputs": [
         {
@@ -433,6 +533,19 @@
     {
       "inputs": [],
       "name": "MAX_DESKS_PER_WALLET",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "MAX_EPOCH_EMISSION_BPS",
       "outputs": [
         {
           "internalType": "uint256",
@@ -550,6 +663,19 @@
     {
       "inputs": [],
       "name": "baseDeskWeight",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "benchmarkWeightFloor",
       "outputs": [
         {
           "internalType": "uint256",
@@ -719,6 +845,26 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "distributeEpochRewards",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "epochEmissionBps",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",
@@ -727,6 +873,19 @@
         }
       ],
       "name": "getActiveDeskCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getAvailableRewardPool",
       "outputs": [
         {
           "internalType": "uint256",
@@ -823,6 +982,48 @@
         }
       ],
       "name": "getDeskWeight",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getDistributionParameters",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "emissionBps",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "benchmarkWeight",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "lastEpoch",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getEstimatedEpochReward",
       "outputs": [
         {
           "internalType": "uint256",
@@ -944,6 +1145,19 @@
     },
     {
       "inputs": [],
+      "name": "lastDistributedEpoch",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "owner",
       "outputs": [
         {
@@ -997,6 +1211,32 @@
         }
       ],
       "name": "setBaseDeskWeight",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "floorWeight",
+          "type": "uint256"
+        }
+      ],
+      "name": "setBenchmarkWeightFloor",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "bps",
+          "type": "uint256"
+        }
+      ],
+      "name": "setEpochEmissionBps",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -1069,6 +1309,19 @@
     {
       "inputs": [],
       "name": "totalEligibleWeight",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalEthDistributedAcrossEpochs",
       "outputs": [
         {
           "internalType": "uint256",
