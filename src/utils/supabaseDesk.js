@@ -300,3 +300,117 @@ export async function fetchRecentProtocolActivity(limit = 15) {
     return [];
   }
 }
+
+/**
+ * Admin: Fetch all desks in the database with optional active filter
+ */
+export async function fetchAllDesksFromDb({ activeOnly = false } = {}) {
+  try {
+    let query = supabase
+      .from('apebroker_desks')
+      .select('*')
+      .order('token_id', { ascending: true });
+
+    if (activeOnly) {
+      query = query.eq('active', true);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.warn('Supabase fetchAllDesks error:', error.message);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.error('Error fetching all desks from DB:', err);
+    return [];
+  }
+}
+
+/**
+ * Admin: Fetch all ETH reward distributions / deposits
+ */
+export async function fetchAllRewardDepositsFromDb(limit = 100) {
+  try {
+    const { data, error } = await supabase
+      .from('apebroker_reward_deposits')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.warn('Supabase fetchAllRewardDeposits error:', error.message);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.error('Error fetching reward deposits from DB:', err);
+    return [];
+  }
+}
+
+/**
+ * Admin: Fetch all user reward claims
+ */
+export async function fetchAllRewardClaimsFromDb(limit = 100) {
+  try {
+    const { data, error } = await supabase
+      .from('apebroker_reward_claims')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.warn('Supabase fetchAllRewardClaims error:', error.message);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.error('Error fetching reward claims from DB:', err);
+    return [];
+  }
+}
+
+/**
+ * Admin: Fetch all desk boost events
+ */
+export async function fetchAllDeskBoostsFromDb(limit = 100) {
+  try {
+    const { data, error } = await supabase
+      .from('apebroker_desk_boosts')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.warn('Supabase fetchAllDeskBoosts error:', error.message);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.error('Error fetching desk boosts from DB:', err);
+    return [];
+  }
+}
+
+/**
+ * Admin: Fetch all protocol fee claims to treasury
+ */
+export async function fetchAllProtocolFeeClaimsFromDb(limit = 100) {
+  try {
+    const { data, error } = await supabase
+      .from('apebroker_protocol_fee_claims')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.warn('Supabase fetchAllProtocolFeeClaims error:', error.message);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.error('Error fetching protocol fee claims from DB:', err);
+    return [];
+  }
+}

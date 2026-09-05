@@ -5,6 +5,7 @@ import { formatEther } from 'viem';
 import { useApeBrokerDesk } from '../../hooks/useApeBrokerDesk';
 import { DeskActionModal } from './DeskActionModal';
 import { DeskAdminModal } from './DeskAdminModal';
+import { DeskAdminDashboard } from './DeskAdminDashboard';
 import { fetchRecentProtocolActivity } from '../../utils/supabaseDesk';
 import { sound } from '../../utils/audio';
 
@@ -43,6 +44,7 @@ export function DeskPage({ onBackHome }) {
     desk: null,
   });
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [activeView, setActiveView] = useState('terminal'); // 'terminal' | 'admin'
 
   // Search / Track Token ID input
   const [manualTokenId, setManualTokenId] = useState('');
@@ -208,16 +210,36 @@ export function DeskPage({ onBackHome }) {
           {/* Right Actions & Wallet */}
           <div className="flex items-center gap-2 sm:gap-3">
             {globalStats.isAdmin && (
-              <button
-                type="button"
-                onClick={() => {
-                  sound?.playClick?.();
-                  setIsAdminModalOpen(true);
-                }}
-                className="pixel-btn pixel-btn-vibrant-gold px-3 py-1.5 text-[9px] sm:text-xs font-bold rounded shadow-[2px_2px_0px_#000]"
-              >
-                [ ADMIN CONSOLE ]
-              </button>
+              <div className="flex items-center gap-1 bg-[#13072b] p-1 rounded-lg border border-purple-700 shadow-[2px_2px_0px_#000]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound?.playClick?.();
+                    setActiveView('terminal');
+                  }}
+                  className={`px-2.5 py-1 text-[9px] sm:text-xs font-bold rounded transition-colors ${
+                    activeView === 'terminal'
+                      ? 'bg-[#00FF66] text-black shadow-[1px_1px_0px_#000]'
+                      : 'text-gray-300 hover:text-white'
+                  }`}
+                >
+                  🦍 DESKS
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound?.playClick?.();
+                    setActiveView('admin');
+                  }}
+                  className={`px-2.5 py-1 text-[9px] sm:text-xs font-bold rounded transition-colors ${
+                    activeView === 'admin'
+                      ? 'bg-[#FFD700] text-black shadow-[1px_1px_0px_#000]'
+                      : 'text-[#FFD700] hover:bg-[#FFD700]/20'
+                  }`}
+                >
+                  ⚙️ ADMIN DASHBOARD
+                </button>
+              </div>
             )}
 
             <button
@@ -286,8 +308,19 @@ export function DeskPage({ onBackHome }) {
           </div>
         )}
 
-        {/* Global Protocol Ticker / Metrics */}
-        <section className="bg-[#0f0729]/95 border-2 border-purple-800/80 rounded-xl p-4 sm:p-5 shadow-[6px_6px_0px_#000]">
+        {/* ADMIN DASHBOARD VIEW OR DESK TERMINAL VIEW */}
+        {activeView === 'admin' && globalStats.isAdmin ? (
+          <DeskAdminDashboard
+            globalStats={globalStats}
+            onClaimFees={adminClaimFees}
+            onDepositRewards={adminDepositRewards}
+            onBackToTerminal={() => setActiveView('terminal')}
+            refetchGlobalStats={refetchGlobalStats}
+          />
+        ) : (
+          <>
+            {/* Global Protocol Ticker / Metrics */}
+            <section className="bg-[#0f0729]/95 border-2 border-purple-800/80 rounded-xl p-4 sm:p-5 shadow-[6px_6px_0px_#000]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-900/60">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse" />
@@ -719,6 +752,8 @@ export function DeskPage({ onBackHome }) {
             </div>
           )}
         </section>
+          </>
+        )}
       </main>
 
       {/* Action Modal (2-Step Approval & Execution) */}
