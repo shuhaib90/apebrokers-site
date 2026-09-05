@@ -105,7 +105,7 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
         }
 
         activationFee = 349_693 * (10 ** decimals);
-        baseBoostCost = _baseBoostCost > 0 ? _baseBoostCost : 699_386 * (10 ** decimals);
+        baseBoostCost = _baseBoostCost > 0 ? _baseBoostCost : activationFee;
         baseDeskWeight = _baseDeskWeight > 0 ? _baseDeskWeight : 100;
         startTimestamp = block.timestamp;
     }
@@ -218,6 +218,11 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
             revert NoRewardsToClaim();
         }
 
+        uint256 contractBalance = address(this).balance;
+        if (claimable > contractBalance) {
+            claimable = contractBalance;
+        }
+
         userClaimableRewards[msg.sender] = 0;
         totalEthRewardsClaimed += claimable;
 
@@ -255,6 +260,11 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
             revert NoRewardsToClaim();
         }
 
+        uint256 contractBalance = address(this).balance;
+        if (claimable > contractBalance) {
+            claimable = contractBalance;
+        }
+
         userClaimableRewards[msg.sender] = 0;
         totalEthRewardsClaimed += claimable;
 
@@ -273,6 +283,11 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
         uint256 claimable = userClaimableRewards[msg.sender];
         if (claimable == 0) {
             revert NoRewardsToClaim();
+        }
+
+        uint256 contractBalance = address(this).balance;
+        if (claimable > contractBalance) {
+            claimable = contractBalance;
         }
 
         userClaimableRewards[msg.sender] = 0;
@@ -302,6 +317,11 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
         uint256 claimable = userClaimableRewards[msg.sender];
         if (claimable == 0) {
             revert NoRewardsToClaim();
+        }
+
+        uint256 contractBalance = address(this).balance;
+        if (claimable > contractBalance) {
+            claimable = contractBalance;
         }
 
         userClaimableRewards[msg.sender] = 0;
@@ -474,13 +494,14 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
 
     /**
      * @notice Calculates the cost for a given boost number (1..5).
+     * @dev Linear progression: 2x, 4x, 6x, 8x, 10x max multiplier.
      * @param boostNumber The boost number (1 to 5).
      */
     function getBoostCost(uint8 boostNumber) public view returns (uint256) {
         if (boostNumber == 0 || boostNumber > MAX_BOOSTS) {
             revert MaxBoostsReached();
         }
-        return baseBoostCost * (1 << (boostNumber - 1));
+        return baseBoostCost * (2 * uint256(boostNumber));
     }
 
     /**

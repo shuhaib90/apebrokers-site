@@ -14,7 +14,7 @@ Production-grade, deterministic, gas-efficient Web3 smart contract suite for the
 | **Base Boost Cost (Boost 1)** | Exactly **`699,386 $APEBROKE`** |
 | **Base Desk Weight** | `100` (Configurable) |
 | **Maximum Boosts** | **5 boosts** hard cap per Desk |
-| **Boost Cost Progression** | Exponential doubling: `1× → 2× → 4× → 8× → 16×` |
+| **Boost Cost Progression** | Linear progression: `2× → 4× → 6× → 8× → 10×` (Max 10×) |
 | **Desk Weight Multipliers**| `Base × (boostCount + 1)` (`100 → 200 → 300 → 400 → 500 → 600`) |
 | **Reward Asset** | **Native ETH** |
 | **Reward Distribution** | Proportional to **Desk Weight** |
@@ -89,14 +89,14 @@ Production-grade, deterministic, gas-efficient Web3 smart contract suite for the
 ### 3.3 Boost System
 * Each active Desk can be boosted up to 5 times.
 * A 6th boost attempt reverts with `MaxBoostsReached()`.
-* Boost pricing (Base Boost Cost = `699,386 $APEBROKE`):
-  * **Boost 1**: `699,386 $APEBROKE` ($1\times$)
-  * **Boost 2**: `1,398,772 $APEBROKE` ($2\times$)
-  * **Boost 3**: `2,797,544 $APEBROKE` ($4\times$)
-  * **Boost 4**: `5,595,088 $APEBROKE` ($8\times$)
-  * **Boost 5**: `11,190,176 $APEBROKE` ($16\times$)
-  * Total for 5 Boosts: **`21,680,966 $APEBROKE`**
-  * Formula: $\text{cost}(n) = \text{baseBoostCost} \times 2^{n-1}$ (calculated via integer bitshift `1 << (n - 1)`).
+* Boost pricing (Linear $+2\times$ per boost up to $10\times$ max):
+  * **Boost 1**: `699,386 $APEBROKE` ($2\times$)
+  * **Boost 2**: `1,398,772 $APEBROKE` ($4\times$)
+  * **Boost 3**: `2,098,158 $APEBROKE` ($6\times$)
+  * **Boost 4**: `2,797,544 $APEBROKE` ($8\times$)
+  * **Boost 5**: `3,496,930 $APEBROKE` ($10\times$ max)
+  * Total for 5 Boosts: **`10,490,790 $APEBROKE`**
+  * Formula: $\text{cost}(n) = \text{baseBoostCost} \times (2 \times n)$ where $\text{baseBoostCost} = 349,693\text{ \$APEBROKE}$.
 * Weight scaling:
   * 0 boosts: `100` ($1\times$)
   * 1 boost: `200` ($2\times$)

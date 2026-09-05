@@ -8,7 +8,7 @@ describe("ApeBrokerDesk - Invariant & Property-Based Fuzz Tests", function () {
   const DECIMALS = 18n;
   const ONE_TOKEN = 10n ** DECIMALS;
   const ACTIVATION_FEE = 349_693n * ONE_TOKEN;
-  const BASE_BOOST_COST = 699_386n * ONE_TOKEN;
+  const BASE_BOOST_COST = 349_693n * ONE_TOKEN;
   const BASE_DESK_WEIGHT = 100n;
 
   beforeEach(async function () {

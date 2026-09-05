@@ -21,7 +21,7 @@ async function main() {
   const TREASURY_ADDRESS = process.env.TREASURY_ADDRESS || deployer.address;
   const BASE_BOOST_COST = process.env.BASE_BOOST_COST
     ? BigInt(process.env.BASE_BOOST_COST)
-    : 699_386n * 10n ** 18n;
+    : 349_693n * 10n ** 18n;
   const BASE_DESK_WEIGHT = process.env.BASE_DESK_WEIGHT
     ? BigInt(process.env.BASE_DESK_WEIGHT)
     : 100n;

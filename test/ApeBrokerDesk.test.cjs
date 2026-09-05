@@ -10,7 +10,7 @@ describe("ApeBrokerDesk - Full Production Test Suite", function () {
   const DECIMALS = 18n;
   const ONE_TOKEN = 10n ** DECIMALS;
   const ACTIVATION_FEE = 349_693n * ONE_TOKEN;
-  const BASE_BOOST_COST = 699_386n * ONE_TOKEN;
+  const BASE_BOOST_COST = 349_693n * ONE_TOKEN;
   const BASE_DESK_WEIGHT = 100n;
 
   beforeEach(async function () {
@@ -175,46 +175,46 @@ describe("ApeBrokerDesk - Full Production Test Suite", function () {
       await desk.connect(alice).activateDesk(1);
     });
 
-    it("Should calculate exponential boost costs correctly: 1x, 2x, 4x, 8x, 16x", async function () {
-      expect(await desk.getBoostCost(1)).to.equal(BASE_BOOST_COST * 1n);
-      expect(await desk.getBoostCost(2)).to.equal(BASE_BOOST_COST * 2n);
-      expect(await desk.getBoostCost(3)).to.equal(BASE_BOOST_COST * 4n);
+    it("Should calculate linear boost costs correctly: 2x, 4x, 6x, 8x, 10x", async function () {
+      expect(await desk.getBoostCost(1)).to.equal(BASE_BOOST_COST * 2n);
+      expect(await desk.getBoostCost(2)).to.equal(BASE_BOOST_COST * 4n);
+      expect(await desk.getBoostCost(3)).to.equal(BASE_BOOST_COST * 6n);
       expect(await desk.getBoostCost(4)).to.equal(BASE_BOOST_COST * 8n);
-      expect(await desk.getBoostCost(5)).to.equal(BASE_BOOST_COST * 16n);
+      expect(await desk.getBoostCost(5)).to.equal(BASE_BOOST_COST * 10n);
     });
 
     it("Should apply boosts 1 through 5, scaling weights deterministically", async function () {
-      // Boost 1: cost 1x (10k), weight becomes 200 (Base x 2)
+      // Boost 1: cost 2x (699,386), weight becomes 200 (Base x 2)
       await expect(desk.connect(alice).boostDesk(1))
         .to.emit(desk, "DeskBoosted")
-        .withArgs(1, alice.address, 1, BASE_BOOST_COST * 1n, 200n);
+        .withArgs(1, alice.address, 1, BASE_BOOST_COST * 2n, 200n);
       expect(await desk.getBoostCount(1)).to.equal(1);
       expect(await desk.getDeskWeight(1)).to.equal(200n);
       expect(await desk.totalEligibleWeight()).to.equal(200n);
 
-      // Boost 2: cost 2x (20k), weight becomes 300 (Base x 3)
+      // Boost 2: cost 4x (1,398,772), weight becomes 300 (Base x 3)
       await desk.connect(alice).boostDesk(1);
       expect(await desk.getBoostCount(1)).to.equal(2);
       expect(await desk.getDeskWeight(1)).to.equal(300n);
 
-      // Boost 3: cost 4x (40k), weight becomes 400 (Base x 4)
+      // Boost 3: cost 6x (2,098,158), weight becomes 400 (Base x 4)
       await desk.connect(alice).boostDesk(1);
       expect(await desk.getBoostCount(1)).to.equal(3);
       expect(await desk.getDeskWeight(1)).to.equal(400n);
 
-      // Boost 4: cost 8x (80k), weight becomes 500 (Base x 5)
+      // Boost 4: cost 8x (2,797,544), weight becomes 500 (Base x 5)
       await desk.connect(alice).boostDesk(1);
       expect(await desk.getBoostCount(1)).to.equal(4);
       expect(await desk.getDeskWeight(1)).to.equal(500n);
 
-      // Boost 5: cost 16x (160k), weight becomes 600 (Base x 6)
+      // Boost 5: cost 10x (3,496,930), weight becomes 600 (Base x 6)
       await desk.connect(alice).boostDesk(1);
       expect(await desk.getBoostCount(1)).to.equal(5);
       expect(await desk.getDeskWeight(1)).to.equal(600n);
       expect(await desk.totalEligibleWeight()).to.equal(600n);
 
-      // Verify total boost fees collected = 699,386 * (1 + 2 + 4 + 8 + 16) = 21,680,966 tokens
-      const expectedTotalBoost = 21_680_966n * ONE_TOKEN;
+      // Verify total boost fees collected = 349,693 * (2 + 4 + 6 + 8 + 10) = 10,490,790 tokens
+      const expectedTotalBoost = 10_490_790n * ONE_TOKEN;
       expect(await desk.totalBoostFeesCollected()).to.equal(expectedTotalBoost);
     });
 
