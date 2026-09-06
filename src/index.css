@@ -248,3 +248,126 @@
   box-shadow: 4px 4px 0px 0px #FF007F;
 }
 
+/* ==========================================================================
+   DESK RUNNING WORKSTATION ANIMATIONS
+   ========================================================================== */
+
+/* CRT Monitor Scanline Effect */
+@keyframes deskCrtScan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(350%); }
+}
+.animate-desk-crt {
+  animation: deskCrtScan 2.4s linear infinite;
+}
+
+/* Laser Grid Sweep */
+@keyframes deskLaserSweep {
+  0% { top: 0%; opacity: 0.8; }
+  50% { top: 100%; opacity: 0.4; }
+  100% { top: 0%; opacity: 0.8; }
+}
+.animate-desk-laser {
+  animation: deskLaserSweep 3s ease-in-out infinite;
+}
+
+/* 8-Bit Equalizer Computation Bars */
+@keyframes eqBar1 {
+  0%, 100% { height: 25%; }
+  50% { height: 95%; }
+}
+@keyframes eqBar2 {
+  0%, 100% { height: 80%; }
+  50% { height: 30%; }
+}
+@keyframes eqBar3 {
+  0%, 100% { height: 40%; }
+  50% { height: 100%; }
+}
+@keyframes eqBar4 {
+  0%, 100% { height: 90%; }
+  50% { height: 20%; }
+}
+@keyframes eqBar5 {
+  0%, 100% { height: 50%; }
+  50% { height: 85%; }
+}
+.animate-eq-1 { animation: eqBar1 0.7s ease-in-out infinite; }
+.animate-eq-2 { animation: eqBar2 0.55s ease-in-out infinite; }
+.animate-eq-3 { animation: eqBar3 0.85s ease-in-out infinite; }
+.animate-eq-4 { animation: eqBar4 0.65s ease-in-out infinite; }
+.animate-eq-5 { animation: eqBar5 0.75s ease-in-out infinite; }
+
+/* Status LED Pulse */
+@keyframes ledBlinkFast {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.9); }
+}
+.animate-led-fast {
+  animation: ledBlinkFast 0.8s ease-in-out infinite;
+}
+
+@keyframes ledBlinkSlow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+.animate-led-slow {
+  animation: ledBlinkSlow 1.5s ease-in-out infinite;
+}
+
+/* Multi-Tier Boost Auras */
+@keyframes auraPulseGreen {
+  0%, 100% { box-shadow: 0 0 12px rgba(0, 255, 102, 0.4), inset 0 0 8px rgba(0, 255, 102, 0.2); }
+  50% { box-shadow: 0 0 24px rgba(0, 255, 102, 0.8), inset 0 0 16px rgba(0, 255, 102, 0.4); }
+}
+.animate-aura-green {
+  animation: auraPulseGreen 2s ease-in-out infinite;
+}
+
+@keyframes auraPulseCyan {
+  0%, 100% { box-shadow: 0 0 14px rgba(0, 240, 255, 0.4), inset 0 0 8px rgba(0, 240, 255, 0.2); }
+  50% { box-shadow: 0 0 26px rgba(0, 240, 255, 0.85), inset 0 0 16px rgba(0, 240, 255, 0.45); }
+}
+.animate-aura-cyan {
+  animation: auraPulseCyan 2s ease-in-out infinite;
+}
+
+@keyframes auraPulseViolet {
+  0%, 100% { box-shadow: 0 0 16px rgba(168, 85, 247, 0.4), inset 0 0 10px rgba(168, 85, 247, 0.2); }
+  50% { box-shadow: 0 0 28px rgba(168, 85, 247, 0.9), inset 0 0 18px rgba(168, 85, 247, 0.5); }
+}
+.animate-aura-violet {
+  animation: auraPulseViolet 2s ease-in-out infinite;
+}
+
+@keyframes auraPulsePink {
+  0%, 100% { box-shadow: 0 0 18px rgba(255, 0, 127, 0.4), inset 0 0 10px rgba(255, 0, 127, 0.2); }
+  50% { box-shadow: 0 0 32px rgba(255, 0, 127, 0.95), inset 0 0 20px rgba(255, 0, 127, 0.55); }
+}
+.animate-aura-pink {
+  animation: auraPulsePink 1.8s ease-in-out infinite;
+}
+
+@keyframes auraPulseGold {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.5), inset 0 0 12px rgba(255, 215, 0, 0.3); }
+  50% { box-shadow: 0 0 38px rgba(255, 215, 0, 1), inset 0 0 24px rgba(255, 215, 0, 0.6); }
+}
+.animate-aura-gold {
+  animation: auraPulseGold 1.6s ease-in-out infinite;
+}
+
+@keyframes rainbowShift {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+.animate-rainbow-shift {
+  animation: rainbowShift 6s linear infinite;
+}
+
+/* Micro CRT lines */
+.crt-grid-bg {
+  background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+  background-size: 100% 4px, 6px 100%;
+}
+
+

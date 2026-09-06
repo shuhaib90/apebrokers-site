@@ -688,10 +688,11 @@ export function useApeBrokerDesk() {
         let currentWeight = 100n;
         let pendingEth = 0n;
         let nftOwner = null;
+        let onChainEst = 0n;
 
         if (publicClient) {
           try {
-            const [dData, bCount, cWeight, pEth, nOwner] = await Promise.all([
+            const [dData, bCount, cWeight, pEth, nOwner, estReward] = await Promise.all([
               publicClient
                 .readContract({
                   address: DESK_CONTRACT_ADDRESS,
@@ -732,6 +733,14 @@ export function useApeBrokerDesk() {
                   args: [BigInt(tid)],
                 })
                 .catch(() => null),
+              publicClient
+                .readContract({
+                  address: DESK_CONTRACT_ADDRESS,
+                  abi: deskDeployConfig.abi,
+                  functionName: 'getEstimatedEpochReward',
+                  args: [BigInt(tid)],
+                })
+                .catch(() => 0n),
             ]);
 
             deskData = dData;
@@ -739,6 +748,7 @@ export function useApeBrokerDesk() {
             currentWeight = cWeight;
             pendingEth = pEth;
             nftOwner = nOwner;
+            onChainEst = estReward;
           } catch (e) {
             // Keep default
           }
@@ -754,6 +764,23 @@ export function useApeBrokerDesk() {
           currentBoosts < 5
             ? baseBoost * (2n * BigInt(nextBoostNumber))
             : 0n;
+
+        // Dynamic 3-Factor Distribution Engine calculations (ApeBrokerDesk.sol exact math)
+        const pool =
+          (globalStats.availableRewardPool > 0n
+            ? globalStats.availableRewardPool
+            : globalStats.rewardPoolBalance) || 1000000000000000n; // Default to 0.001 ETH if initial state
+        const emissionBps = globalStats.epochEmissionBps > 0n ? globalStats.epochEmissionBps : 500n;
+        const floor = globalStats.benchmarkWeightFloor > 0n ? globalStats.benchmarkWeightFloor : 2000n;
+        const deskWgt = BigInt(currentWeight > 0n ? currentWeight : 100n);
+        const totalWgt = globalStats.totalEligibleWeight > 0n ? globalStats.totalEligibleWeight : deskWgt;
+        const effectiveDivisor = totalWgt < floor ? floor : totalWgt;
+
+        const epochDistributable = (pool * emissionBps) / 10000n;
+        const computedEstReward = effectiveDivisor > 0n ? (epochDistributable * deskWgt) / effectiveDivisor : 0n;
+        const estimatedEpochRewardEth = onChainEst > 0n ? onChainEst : computedEstReward;
+        const estimatedDailyRewardEth = (estimatedEpochRewardEth * 24n) / 5n;
+        const poolSharePct = effectiveDivisor > 0n ? (Number(deskWgt) / Number(effectiveDivisor)) * 100 : 0;
 
         // Check if caller is verified on-chain owner
         const isOwnerInAlchemy = alchemyNfts.some((n) => Number(n.tokenId) === tid);
@@ -784,6 +811,10 @@ export function useApeBrokerDesk() {
           currentWeight: Number(currentWeight),
           baseWeight: Number(deskData?.baseWeight || 100n),
           pendingRewardsEth: pendingEth,
+          estimatedEpochRewardEth,
+          estimatedDailyRewardEth,
+          poolSharePct,
+          effectiveDivisor: Number(effectiveDivisor),
           nextBoostCost,
           nextBoostNumber,
           nftOwner: nftOwner || (isOwnerOfNft ? address : null),
@@ -810,7 +841,17 @@ export function useApeBrokerDesk() {
     } finally {
       setIsScanningNfts(false);
     }
-  }, [publicClient, address, trackedTokenIds, globalStats.baseBoostCost]);
+  }, [
+    publicClient,
+    address,
+    trackedTokenIds,
+    globalStats.baseBoostCost,
+    globalStats.availableRewardPool,
+    globalStats.rewardPoolBalance,
+    globalStats.epochEmissionBps,
+    globalStats.benchmarkWeightFloor,
+    globalStats.totalEligibleWeight,
+  ]);
 
   // Initial Load & Polling
   useEffect(() => {

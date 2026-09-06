@@ -172,6 +172,16 @@ export function DeskActionModal({
                     {currentBoosts} / 5 <span className="text-[#00FF66]">➔ {newBoosts} / 5</span>
                   </span>
                 </div>
+                {desk?.estimatedEpochRewardEth !== undefined && (
+                  <div className="flex justify-between items-center text-gray-400 border-t border-purple-900/40 pt-2">
+                    <span>Est. Next Epoch Reward:</span>
+                    <span className="text-[#00F0FF] font-bold">
+                      {isActivate
+                        ? `~${Number(formatEther(desk.estimatedEpochRewardEth)).toFixed(6)} ETH`
+                        : `~${Number(formatEther((desk.estimatedEpochRewardEth * BigInt(newWeight)) / BigInt(Math.max(1, currentWeight)))).toFixed(6)} ETH`}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center text-gray-400 border-t border-purple-900/40 pt-2">
                   <span>Your $APE Balance:</span>
                   <span

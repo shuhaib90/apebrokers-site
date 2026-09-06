@@ -889,12 +889,21 @@ export function DeskAdminDashboard({
                     <th className="py-2.5 px-3">Status</th>
                     <th className="py-2.5 px-3">Boost Level</th>
                     <th className="py-2.5 px-3">Desk Weight</th>
+                    <th className="py-2.5 px-3">Est. Next 5H</th>
                     <th className="py-2.5 px-3">Updated</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-purple-900/30">
                   {paginatedDesks.map((d) => {
                     const boosts = d.boost_count || 0;
+                    const pool = globalStats?.availableRewardPool || globalStats?.rewardPoolBalance || 1000000000000000n;
+                    const emissionBps = globalStats?.epochEmissionBps || 500n;
+                    const floor = globalStats?.benchmarkWeightFloor || 2000n;
+                    const totalWgt = globalStats?.totalEligibleWeight > 0n ? globalStats.totalEligibleWeight : 100n;
+                    const divisor = totalWgt < floor ? floor : totalWgt;
+                    const dist = (pool * emissionBps) / 10000n;
+                    const estEth = divisor > 0n ? (dist * BigInt(d.current_weight || 100)) / divisor : 0n;
+
                     return (
                       <tr key={d.token_id} className="hover:bg-purple-950/30 transition-colors">
                         <td className="py-2.5 px-3 font-bold text-white flex items-center gap-2">
@@ -940,6 +949,9 @@ export function DeskAdminDashboard({
                         </td>
                         <td className="py-2.5 px-3 font-extrabold text-white">
                           <span className="text-[#00FF66]">{d.current_weight || 100}</span> WGT
+                        </td>
+                        <td className="py-2.5 px-3 font-mono font-bold text-[#00F0FF]">
+                          ~{Number(formatEther(estEth)).toFixed(6)} ETH
                         </td>
                         <td className="py-2.5 px-3 text-[10px] text-gray-500">
                           {d.updated_at ? new Date(d.updated_at).toLocaleDateString() : 'N/A'}

@@ -3,6 +3,7 @@ import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useDisconnect } from 'wagmi';
 import { formatEther } from 'viem';
 import { useApeBrokerDesk } from '../../hooks/useApeBrokerDesk';
+import { DeskRunningVisual } from './DeskRunningVisual';
 import { DeskActionModal } from './DeskActionModal';
 import { DeskAdminModal } from './DeskAdminModal';
 import { DeskAdminDashboard } from './DeskAdminDashboard';
@@ -65,9 +66,19 @@ export function DeskPage({ onBackHome }) {
   // Search / Track Token ID input
   const [manualTokenId, setManualTokenId] = useState('');
   const [searchError, setSearchError] = useState('');
+  const [expandedCalcTokenId, setExpandedCalcTokenId] = useState(null);
 
   // Live countdown timer for 5-hour epoch
   const [timeLeft, setTimeLeft] = useState(Number(globalStats.secondsUntilNextEpoch || 0));
+
+  // Helper to format small ETH reward amounts cleanly (6-7 decimals)
+  const formatEthReward = (weiAmount) => {
+    if (!weiAmount || weiAmount === 0n) return '0.000000';
+    const num = Number(formatEther(weiAmount));
+    if (num < 0.000001) return num.toFixed(7);
+    if (num < 0.001) return num.toFixed(6);
+    return num.toFixed(5);
+  };
 
   // Activity feed
   const [activityFeed, setActivityFeed] = useState([]);
@@ -191,6 +202,10 @@ export function DeskPage({ onBackHome }) {
   const totalUserPendingEth = userDesks
     .filter((d) => d.active && d.isOwnerOfNft)
     .reduce((acc, d) => acc + d.pendingRewardsEth, 0n);
+
+  const totalUserEstNextEth = userDesks
+    .filter((d) => d.active && d.isOwnerOfNft)
+    .reduce((acc, d) => acc + (d.estimatedEpochRewardEth || 0n), 0n);
 
   // Desk page is locked for public users; only authorized admin can access the live terminal for now
   if (!isAdmin) {
@@ -478,24 +493,31 @@ export function DeskPage({ onBackHome }) {
             </div>
 
             {/* Quick Actions & Stats Bar */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 font-mono">
-              <div className="bg-black/40 p-3 rounded-lg border border-purple-900/50 flex items-center justify-between">
-                <span className="text-xs text-gray-400">Active Desks:</span>
-                <span className="text-sm font-bold text-[#00FF66]">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2 font-mono">
+              <div className="bg-black/40 p-3 rounded-lg border border-purple-900/50 flex flex-col justify-between">
+                <span className="text-[10px] text-gray-400">Active Desks:</span>
+                <span className="text-sm font-bold text-[#00FF66] mt-1">
                   {userBalances.activeDeskCount.toString()} / 5 Active
                 </span>
               </div>
 
-              <div className="bg-black/40 p-3 rounded-lg border border-purple-900/50 flex items-center justify-between">
-                <span className="text-xs text-gray-400">Total Desk Weight:</span>
-                <span className="text-sm font-bold text-white">
+              <div className="bg-black/40 p-3 rounded-lg border border-purple-900/50 flex flex-col justify-between">
+                <span className="text-[10px] text-gray-400">Total Desk Weight:</span>
+                <span className="text-sm font-bold text-white mt-1">
                   {totalUserWeight} WGT
                 </span>
               </div>
 
-              <div className="bg-black/40 p-3 rounded-lg border border-purple-900/50 flex items-center justify-between">
-                <span className="text-xs text-gray-400">Total Pending ETH:</span>
-                <span className="text-sm font-bold text-[#00F0FF]">
+              <div className="bg-black/40 p-3 rounded-lg border border-[#00F0FF]/40 flex flex-col justify-between bg-cyan-950/20">
+                <span className="text-[10px] text-cyan-300">Est. Next 5H Epoch:</span>
+                <span className="text-sm font-bold text-[#00F0FF] mt-1">
+                  ~{formatEthReward(totalUserEstNextEth)} ETH
+                </span>
+              </div>
+
+              <div className="bg-black/40 p-3 rounded-lg border border-purple-900/50 flex flex-col justify-between">
+                <span className="text-[10px] text-gray-400">Total Pending ETH:</span>
+                <span className="text-sm font-bold text-[#00FF66] mt-1">
                   {Number(formatEther(totalUserPendingEth)).toFixed(6)} ETH
                 </span>
               </div>
@@ -641,96 +663,125 @@ export function DeskPage({ onBackHome }) {
                   return (
                     <div
                       key={desk.tokenId}
-                      className={`relative bg-[#100729]/95 border-3 rounded-xl p-4 sm:p-5 flex flex-col justify-between space-y-4 shadow-[5px_5px_0px_#000] transition-all ${
+                      className={`relative bg-[#100729]/95 border-3 rounded-xl p-3 sm:p-4 flex flex-col justify-between space-y-3.5 shadow-[5px_5px_0px_#000] transition-all ${
                         isActive
-                          ? 'border-[#00FF66] shadow-[0_0_15px_rgba(0,255,102,0.15)]'
+                          ? 'border-[#00FF66] shadow-[0_0_18px_rgba(0,255,102,0.2)]'
                           : 'border-purple-800/70 hover:border-purple-600'
                       }`}
                     >
-                    {/* Card Header */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`w-2.5 h-2.5 rounded-full ${
-                            isActive ? 'bg-[#00FF66] shadow-[0_0_8px_#00FF66]' : 'bg-gray-500'
-                          }`}
-                        />
-                        <span className="font-extrabold text-sm text-white">
-                          DESK #{desk.tokenId}
-                        </span>
-                      </div>
-                      <span
-                        className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
-                          isActive
-                            ? 'bg-[#052b16] text-[#00FF66] border border-[#00FF66]'
-                            : 'bg-gray-800 text-gray-400 border border-gray-700'
-                        }`}
-                      >
-                        {isActive ? 'ACTIVE' : 'INACTIVE'}
-                      </span>
-                    </div>
+                      {/* Interactive Workstation Screen with Running Animations */}
+                      <DeskRunningVisual desk={desk} globalStats={globalStats} timeLeft={timeLeft} />
 
-                    {/* Desk Visual Avatar / Graphic */}
-                    <div className="w-full h-32 bg-black/50 border border-purple-900/50 rounded-lg flex items-center justify-center relative overflow-hidden">
-                      <img
-                        src={desk.image || `/gifs/${(desk.tokenId % 100) + 1}.gif`}
-                        alt={desk.name || `Broker Desk #${desk.tokenId}`}
-                        onError={(e) => {
-                          e.target.src = '/logo.png';
-                        }}
-                        className="h-28 w-28 object-contain pixelated"
-                      />
-                      <div className="absolute bottom-1 right-2 text-[9px] font-mono text-gray-400 bg-black/80 px-1.5 py-0.5 rounded">
-                        NFT #{desk.tokenId}
-                      </div>
-                    </div>
-
-                    {/* Stats Specs */}
-                    <div className="space-y-2 text-xs font-mono bg-[#160a36]/60 p-3 rounded-lg border border-purple-900/40">
-                      <div className="flex justify-between items-center text-gray-400">
-                        <span>Desk Weight:</span>
-                        <span className="text-white font-bold">
-                          {isActive ? `${weight} WGT` : '0 WGT (100 Base)'}
-                        </span>
-                      </div>
-
-                      {/* 5-slot Boost Indicator */}
-                      <div className="flex justify-between items-center text-gray-400">
-                        <span>Boosts (Max 5):</span>
-                        <div className="flex items-center gap-1 font-pixel text-[10px]">
-                          {[1, 2, 3, 4, 5].map((slot) => (
-                            <span
-                              key={slot}
-                              className={`w-3.5 h-3.5 flex items-center justify-center rounded-sm text-[8px] font-bold ${
-                                slot <= boostCount
-                                  ? 'bg-[#00FF66] text-black shadow-[0_0_6px_#00FF66]'
-                                  : 'bg-black/60 text-gray-600 border border-gray-800'
-                              }`}
-                            >
-                              {slot <= boostCount ? '■' : '·'}
+                      {/* ================= NEXT ESTIMATED REWARD (FROM CALCULATIONS) ================= */}
+                      <div className="bg-[#0b1b26]/90 border-2 border-[#00F0FF]/70 rounded-xl p-3 space-y-2 shadow-[0_0_12px_rgba(0,240,255,0.15)] font-mono">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-[#00FF66] animate-ping' : 'bg-cyan-400'}`} />
+                            <span className="text-[10px] font-pixel text-[#00F0FF] font-bold tracking-wider">
+                              NEXT EST. REWARD
                             </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Next Boost Cost Preview */}
-                      {isActive && boostCount < 5 && (
-                        <div className="flex justify-between items-center text-gray-400">
-                          <span>Next Boost ({desk.nextBoostNumber * 2}x):</span>
-                          <span className="text-[#FFD700] font-bold">
-                            {nextCostFormatted} $APE
+                          </div>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-800 text-cyan-300 font-bold">
+                            5H EPOCH
                           </span>
                         </div>
-                      )}
 
-                      {/* Pending Rewards */}
-                      <div className="flex justify-between items-center text-gray-400 border-t border-purple-900/40 pt-1.5">
-                        <span>Pending ETH:</span>
-                        <span className="text-[#00F0FF] font-bold">
-                          {pendingEthFormatted} ETH
-                        </span>
+                        <div className="flex items-baseline justify-between pt-0.5">
+                          <div>
+                            <div className="text-base sm:text-lg font-extrabold text-[#00FF66] tracking-tight">
+                              ~{formatEthReward(desk.estimatedEpochRewardEth)} ETH
+                            </div>
+                            <div className="text-[9px] text-gray-400 mt-0.5">
+                              Projected: <span className="text-gray-200">~{formatEthReward(desk.estimatedDailyRewardEth)} ETH</span> / 24H
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <div className="text-xs font-bold text-white">
+                              {desk.poolSharePct ? `${desk.poolSharePct.toFixed(2)}%` : '5.00%'}
+                            </div>
+                            <div className="text-[9px] text-gray-400">
+                              Pool Share
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Calculation Formula Transparency Accordion */}
+                        <div className="border-t border-cyan-900/60 pt-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              sound?.playClick?.();
+                              setExpandedCalcTokenId(
+                                expandedCalcTokenId === desk.tokenId ? null : desk.tokenId
+                              );
+                            }}
+                            className="w-full flex items-center justify-between text-[9px] text-cyan-400 hover:text-white transition-colors"
+                          >
+                            <span>[ ⚙ HOW IS THIS CALCULATED? ]</span>
+                            <span className="text-[8px]">{expandedCalcTokenId === desk.tokenId ? '▲ HIDE' : '▼ VIEW FORMULA'}</span>
+                          </button>
+
+                          {expandedCalcTokenId === desk.tokenId && (
+                            <div className="mt-2 p-2 rounded bg-black/90 border border-cyan-900/80 text-[9px] text-gray-300 space-y-1 animate-fadeIn">
+                              <div className="text-[#00FF66] font-bold">Smart Contract Math (ApeBrokerDesk.sol):</div>
+                              <div className="text-[8px] text-gray-400">• Pool Balance: <span className="text-white">{Number(formatEther(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 1000000000000000n)).toFixed(4)} ETH</span></div>
+                              <div className="text-[8px] text-gray-400">• 5H Emission: <span className="text-white">{Number(globalStats.epochEmissionBps || 500n) / 100}%</span> (~{Number(formatEther(((globalStats.availableRewardPool || globalStats.rewardPoolBalance || 1000000000000000n) * (globalStats.epochEmissionBps || 500n)) / 10000n)).toFixed(6)} ETH)</div>
+                              <div className="text-[8px] text-gray-400">• Desk Weight: <span className="text-white">{weight} WGT</span> ÷ Divisor: <span className="text-white">{desk.effectiveDivisor || 2000}</span></div>
+                              <div className="text-[8px] text-[#FFD700] pt-1 border-t border-gray-800 font-bold">
+                                = {formatEthReward(desk.estimatedEpochRewardEth)} ETH per 5-Hour Epoch
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
+
+                      {/* Desk Specs & Boost Status */}
+                      <div className="space-y-2 text-xs font-mono bg-[#160a36]/60 p-3 rounded-lg border border-purple-900/40">
+                        <div className="flex justify-between items-center text-gray-400">
+                          <span>Desk Weight:</span>
+                          <span className="text-white font-bold">
+                            {isActive ? `${weight} WGT` : '0 WGT (100 Base)'}
+                          </span>
+                        </div>
+
+                        {/* 5-slot Boost Indicator */}
+                        <div className="flex justify-between items-center text-gray-400">
+                          <span>Boosts (Max 5):</span>
+                          <div className="flex items-center gap-1 font-pixel text-[10px]">
+                            {[1, 2, 3, 4, 5].map((slot) => (
+                              <span
+                                key={slot}
+                                className={`w-3.5 h-3.5 flex items-center justify-center rounded-sm text-[8px] font-bold ${
+                                  slot <= boostCount
+                                    ? 'bg-[#00FF66] text-black shadow-[0_0_6px_#00FF66]'
+                                    : 'bg-black/60 text-gray-600 border border-gray-800'
+                                }`}
+                              >
+                                {slot <= boostCount ? '■' : '·'}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Next Boost Cost Preview */}
+                        {isActive && boostCount < 5 && (
+                          <div className="flex justify-between items-center text-gray-400">
+                            <span>Next Boost ({desk.nextBoostNumber * 2}x):</span>
+                            <span className="text-[#FFD700] font-bold">
+                              {nextCostFormatted} $APE
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Pending Rewards */}
+                        <div className="flex justify-between items-center text-gray-400 border-t border-purple-900/40 pt-1.5">
+                          <span>Claimable Pending ETH:</span>
+                          <span className="text-[#00FF66] font-bold">
+                            {pendingEthFormatted} ETH
+                          </span>
+                        </div>
+                      </div>
 
                     {/* Card Actions */}
                     <div className="space-y-2 pt-1">
