@@ -22,18 +22,24 @@ export function DeskActionModal({
 
   const tokenId = desk.tokenId;
   const isActivate = actionType === 'activate';
-
-  // Dynamic cost calculation based on on-chain activationFee or desk.nextBoostCost
-  const activationCostRaw = activationFee || 349693n * 10n ** 18n;
-  const costRaw = isActivate ? activationCostRaw : (desk.nextBoostCost || 0n);
-  const costTokens = Number(formatEther(costRaw)).toLocaleString();
-  const hasEnoughAllowance = allowance >= costRaw;
-  const hasEnoughBalance = apeBrokeBalance >= costRaw;
+  const isOwner = desk.isOwnerOfNft !== false;
+  const isDeskActiveOnChain = Boolean(desk.active);
 
   const currentWeight = desk.active ? desk.currentWeight : 0;
   const newWeight = desk.active ? desk.currentWeight + 100 : 100;
   const currentBoosts = desk.boostCount || 0;
   const newBoosts = desk.active ? currentBoosts + 1 : 0;
+
+  // Dynamic cost calculation based on on-chain activationFee or desk.nextBoostCost
+  const activationCostRaw = activationFee || 349693n * 10n ** 18n;
+  const fallbackBoostCost = (349693n * 10n ** 18n) * (2n * BigInt(Math.max(1, newBoosts)));
+  const costRaw = isActivate
+    ? activationCostRaw
+    : (desk.nextBoostCost && desk.nextBoostCost > 0n ? desk.nextBoostCost : fallbackBoostCost);
+  const costTokens = Number(formatEther(costRaw)).toLocaleString();
+  const hasEnoughAllowance = allowance >= costRaw && costRaw > 0n;
+  const hasEnoughBalance = apeBrokeBalance >= costRaw;
+  const canExecute = isOwner && (isActivate || isDeskActiveOnChain) && hasEnoughBalance;
 
   const handleApprove = async () => {
     sound?.playClick?.();
@@ -46,7 +52,7 @@ export function DeskActionModal({
     } catch (err) {
       console.error('Approval failed:', err);
       sound?.playError?.();
-      setErrorMessage(err.shortMessage || err.message || 'Approval rejected or failed.');
+      setErrorMessage(err.message || err.shortMessage || 'Approval rejected or failed.');
       setStep('error');
     }
   };
@@ -75,7 +81,7 @@ export function DeskActionModal({
     } catch (err) {
       console.error('Execution failed:', err);
       sound?.playError?.();
-      setErrorMessage(err.shortMessage || err.message || 'Transaction rejected or reverted.');
+      setErrorMessage(err.message || err.shortMessage || 'Transaction rejected or reverted.');
       setStep('error');
     }
   };
@@ -176,6 +182,26 @@ export function DeskActionModal({
                 </div>
               </div>
 
+              {/* Not Verified NFT Owner Alert */}
+              {!isOwner && (
+                <div className="bg-red-950/80 border border-[#FF2247] p-3 rounded text-[10px] text-[#FF2247] flex items-center gap-2">
+                  <span>⚠</span>
+                  <span>
+                    You are not verified as the on-chain owner of NFT #{tokenId}. Only the owner of this NFT can {isActivate ? 'activate' : 'boost'} this Desk.
+                  </span>
+                </div>
+              )}
+
+              {/* Desk Not Active on Chain Alert */}
+              {!isActivate && !isDeskActiveOnChain && (
+                <div className="bg-amber-950/80 border border-[#FFD700] p-3 rounded text-[10px] text-[#FFD700] flex items-center gap-2">
+                  <span>⚠</span>
+                  <span>
+                    Desk #{tokenId} is not active on-chain yet. Please activate the desk before boosting.
+                  </span>
+                </div>
+              )}
+
               {/* Insufficient Balance Alert */}
               {!hasEnoughBalance && (
                 <div className="bg-red-950/80 border border-[#FF2247] p-3 rounded text-[10px] text-[#FF2247] flex items-center gap-2">
@@ -198,7 +224,7 @@ export function DeskActionModal({
                 {!hasEnoughAllowance ? (
                   <button
                     type="button"
-                    disabled={!hasEnoughBalance || step === 'approving'}
+                    disabled={!hasEnoughBalance || step === 'approving' || !isOwner}
                     onClick={handleApprove}
                     className="w-full min-h-[46px] pixel-btn pixel-btn-vibrant-gold px-4 py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000] disabled:opacity-50"
                   >
@@ -207,7 +233,7 @@ export function DeskActionModal({
                 ) : (
                   <button
                     type="button"
-                    disabled={!hasEnoughBalance || step === 'executing'}
+                    disabled={!canExecute || step === 'executing'}
                     onClick={handleExecute}
                     className="w-full min-h-[46px] pixel-btn pixel-btn-vibrant-lime px-4 py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000] disabled:opacity-50"
                   >

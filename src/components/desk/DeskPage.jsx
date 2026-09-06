@@ -720,7 +720,11 @@ export function DeskPage({ onBackHome }) {
 
                     {/* Card Actions */}
                     <div className="space-y-2 pt-1">
-                      {!isActive ? (
+                      {!desk.isOwnerOfNft ? (
+                        <div className="w-full min-h-[44px] bg-[#1a0f38] text-gray-400 py-2.5 px-3 text-[10px] font-mono text-center rounded-lg border border-purple-900/60 flex items-center justify-center">
+                          [ NOT OWNED BY WALLET ]
+                        </div>
+                      ) : !isActive ? (
                         <button
                           type="button"
                           onClick={() => openActionModal(desk, 'activate')}

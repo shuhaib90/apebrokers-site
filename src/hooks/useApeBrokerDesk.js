@@ -118,6 +118,46 @@ export const ERC721_ABI = [
 ];
 
 /**
+ * Decode EVM contract revert errors for ApeBrokerDesk
+ */
+export function decodeDeskError(err) {
+  const msg = String(err?.data || err?.message || err?.shortMessage || '');
+  if (msg.includes('0xdf2d9b42') || msg.includes('OwnerQueryForNonexistentToken')) {
+    return 'This NFT token ID does not exist or has not been minted on-chain.';
+  }
+  if (msg.includes('0x59dc379f') || msg.includes('NotTokenOwner')) {
+    return 'You are not the on-chain owner of this Ape Broker NFT.';
+  }
+  if (msg.includes('0x3d5d2027') || msg.includes('DeskNotActive')) {
+    return 'This Desk is not active on-chain yet. Please activate it first.';
+  }
+  if (msg.includes('0x59728258') || msg.includes('DeskAlreadyActive')) {
+    return 'This Desk is already active on-chain.';
+  }
+  if (msg.includes('0x0e45c25e') || msg.includes('MaxBoostsReached')) {
+    return 'This Desk has already reached the maximum of 5 boosts.';
+  }
+  if (
+    msg.includes('0x13be252b') ||
+    msg.includes('InsufficientAllowance') ||
+    msg.includes('0x20352748') ||
+    msg.includes('ERC20InsufficientAllowance') ||
+    msg.includes('SafeERC20FailedOperation')
+  ) {
+    return 'Insufficient $APEBROKE allowance. Please click Approve first.';
+  }
+  if (
+    msg.includes('0xf4d678b8') ||
+    msg.includes('InsufficientBalance') ||
+    msg.includes('0xe450d38c') ||
+    msg.includes('ERC20InsufficientBalance')
+  ) {
+    return 'Insufficient $APEBROKE balance to cover the required fee.';
+  }
+  return err?.shortMessage || err?.message || 'Transaction reverted on-chain.';
+}
+
+/**
  * Helper to convert ipfs:// URI to HTTP gateway URL
  */
 export function resolveIpfsUrl(url) {
@@ -647,7 +687,7 @@ export function useApeBrokerDesk() {
         let boostCount = 0n;
         let currentWeight = 100n;
         let pendingEth = 0n;
-        let nftOwner = address;
+        let nftOwner = null;
 
         if (publicClient) {
           try {
@@ -691,7 +731,7 @@ export function useApeBrokerDesk() {
                   functionName: 'ownerOf',
                   args: [BigInt(tid)],
                 })
-                .catch(() => address),
+                .catch(() => null),
             ]);
 
             deskData = dData;
@@ -704,27 +744,23 @@ export function useApeBrokerDesk() {
           }
         }
 
-        // Fallback to Supabase state if on-chain returned inactive
-        if (!deskData.active) {
-          const dbDesk = dbDesks.find((d) => Number(d.token_id) === tid);
-          if (dbDesk && dbDesk.active) {
-            deskData = { active: true, baseWeight: BigInt(dbDesk.base_weight || 100) };
-            boostCount = BigInt(dbDesk.boost_count || 0);
-            currentWeight = BigInt(dbDesk.current_weight || 100);
-          }
-        }
-
-        const isActive = Boolean(deskData.active);
+        // On-chain status is the definitive source of truth for contract state
+        const onChainActive = Boolean(deskData && deskData.active);
+        const isActive = onChainActive;
         const currentBoosts = Number(boostCount);
         const nextBoostNumber = currentBoosts < 5 ? currentBoosts + 1 : 5;
+        const baseBoost = globalStats.baseBoostCost || 349693n * 10n ** 18n;
         const nextBoostCost =
           currentBoosts < 5
-            ? globalStats.baseBoostCost * (2n * BigInt(nextBoostNumber))
+            ? baseBoost * (2n * BigInt(nextBoostNumber))
             : 0n;
 
-        const isOwnerOfNft =
-          !nftOwner ||
-          nftOwner.toLowerCase() === address.toLowerCase();
+        // Check if caller is verified on-chain owner
+        const isOwnerInAlchemy = alchemyNfts.some((n) => Number(n.tokenId) === tid);
+        const isOwnerOnChain = Boolean(
+          nftOwner && address && nftOwner.toLowerCase() === address.toLowerCase()
+        );
+        const isOwnerOfNft = isOwnerOnChain || isOwnerInAlchemy;
 
         let meta = nftMetadataMap.get(tid);
         if (!meta) {
@@ -743,24 +779,25 @@ export function useApeBrokerDesk() {
           name: meta?.name || `Broker Desk #${tid}`,
           image: meta?.image || `/gifs/${(tid % 100) + 1}.gif`,
           active: isActive,
+          onChainActive,
           boostCount: currentBoosts,
           currentWeight: Number(currentWeight),
-          baseWeight: Number(deskData.baseWeight || 100n),
+          baseWeight: Number(deskData?.baseWeight || 100n),
           pendingRewardsEth: pendingEth,
           nextBoostCost,
           nextBoostNumber,
-          nftOwner: nftOwner || address,
+          nftOwner: nftOwner || (isOwnerOfNft ? address : null),
           isOwnerOfNft,
         });
 
-        // Sync active desk to Supabase if caller is owner
+        // Sync active desk to Supabase if caller is owner and active on-chain
         if (isActive && isOwnerOfNft) {
           syncDeskToDb({
             tokenId: tid,
             owner: address,
             active: true,
             boostCount: currentBoosts,
-            baseWeight: Number(deskData.baseWeight || 100n),
+            baseWeight: Number(deskData?.baseWeight || 100n),
             currentWeight: Number(currentWeight),
           }).catch(() => {});
         }
@@ -813,7 +850,10 @@ export function useApeBrokerDesk() {
         args: [DESK_CONTRACT_ADDRESS, amountRaw],
       });
       if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: tx });
+        const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+        if (receipt.status === 'reverted' || receipt.status === 0 || receipt.status === '0x0') {
+          throw new Error('Approval transaction was reverted on-chain.');
+        }
       }
       await refetchUserData();
       return tx;
@@ -827,17 +867,41 @@ export function useApeBrokerDesk() {
   const activateDesk = useCallback(
     async (tokenId) => {
       if (!walletClient) throw new Error('Wallet not connected.');
+      if (!address) throw new Error('Account not connected.');
+
+      // 1. Pre-flight simulation
+      if (publicClient) {
+        try {
+          await publicClient.simulateContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
+            functionName: 'activateDesk',
+            args: [BigInt(tokenId)],
+            account: address,
+          });
+        } catch (simErr) {
+          throw new Error(decodeDeskError(simErr));
+        }
+      }
+
+      // 2. Broadcast transaction
       const tx = await walletClient.writeContract({
         address: DESK_CONTRACT_ADDRESS,
         abi: deskDeployConfig.abi,
         functionName: 'activateDesk',
         args: [BigInt(tokenId)],
       });
-      let receipt = { blockNumber: 0 };
+
+      // 3. Wait for receipt and verify success
+      let receipt = { blockNumber: 0, status: 'success' };
       if (publicClient) {
         receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+        if (receipt.status === 'reverted' || receipt.status === 0 || receipt.status === '0x0') {
+          throw new Error('Activation transaction was reverted on-chain. Desk was not activated.');
+        }
       }
 
+      // 4. Update database only after confirmed on-chain success
       syncDeskToDb({
         tokenId,
         owner: address,
@@ -860,17 +924,41 @@ export function useApeBrokerDesk() {
   const boostDesk = useCallback(
     async (tokenId, currentWeight, boostNumber, costRaw) => {
       if (!walletClient) throw new Error('Wallet not connected.');
+      if (!address) throw new Error('Account not connected.');
+
+      // 1. Pre-flight simulation
+      if (publicClient) {
+        try {
+          await publicClient.simulateContract({
+            address: DESK_CONTRACT_ADDRESS,
+            abi: deskDeployConfig.abi,
+            functionName: 'boostDesk',
+            args: [BigInt(tokenId)],
+            account: address,
+          });
+        } catch (simErr) {
+          throw new Error(decodeDeskError(simErr));
+        }
+      }
+
+      // 2. Broadcast transaction
       const tx = await walletClient.writeContract({
         address: DESK_CONTRACT_ADDRESS,
         abi: deskDeployConfig.abi,
         functionName: 'boostDesk',
         args: [BigInt(tokenId)],
       });
-      let receipt = { blockNumber: 0 };
+
+      // 3. Wait for receipt and verify success
+      let receipt = { blockNumber: 0, status: 'success' };
       if (publicClient) {
         receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+        if (receipt.status === 'reverted' || receipt.status === 0 || receipt.status === '0x0') {
+          throw new Error('Boost transaction was reverted on-chain. Boost was not applied.');
+        }
       }
 
+      // 4. Update database only after confirmed on-chain success
       recordDeskBoostInDb({
         tokenId,
         owner: address,
@@ -910,9 +998,12 @@ export function useApeBrokerDesk() {
         functionName: 'claimRewards',
         args: [BigInt(tokenId)],
       });
-      let receipt = { blockNumber: 0 };
+      let receipt = { blockNumber: 0, status: 'success' };
       if (publicClient) {
         receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+        if (receipt.status === 'reverted' || receipt.status === 0 || receipt.status === '0x0') {
+          throw new Error('Reward claim transaction was reverted on-chain.');
+        }
       }
 
       recordRewardClaimInDb({
@@ -943,9 +1034,12 @@ export function useApeBrokerDesk() {
         functionName: 'claimAllRewards',
         args: [tokenIds.map((id) => BigInt(id))],
       });
-      let receipt = { blockNumber: 0 };
+      let receipt = { blockNumber: 0, status: 'success' };
       if (publicClient) {
         receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+        if (receipt.status === 'reverted' || receipt.status === 0 || receipt.status === '0x0') {
+          throw new Error('Claim all rewards transaction was reverted on-chain.');
+        }
       }
 
       recordRewardClaimInDb({
@@ -975,9 +1069,12 @@ export function useApeBrokerDesk() {
         abi: deskDeployConfig.abi,
         functionName: 'claimHistoricalRewards',
       });
-      let receipt = { blockNumber: 0 };
+      let receipt = { blockNumber: 0, status: 'success' };
       if (publicClient) {
         receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+        if (receipt.status === 'reverted' || receipt.status === 0 || receipt.status === '0x0') {
+          throw new Error('Claim historical rewards transaction was reverted on-chain.');
+        }
       }
 
       recordRewardClaimInDb({
@@ -1008,9 +1105,12 @@ export function useApeBrokerDesk() {
         functionName: 'claimProtocolFees',
         args: [amountRaw],
       });
-      let receipt = { blockNumber: 0 };
+      let receipt = { blockNumber: 0, status: 'success' };
       if (publicClient) {
         receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+        if (receipt.status === 'reverted' || receipt.status === 0 || receipt.status === '0x0') {
+          throw new Error('Claim protocol fees transaction reverted on-chain.');
+        }
       }
 
       recordProtocolFeeClaimInDb({
@@ -1038,9 +1138,12 @@ export function useApeBrokerDesk() {
         functionName: 'depositRewards',
         value,
       });
-      let receipt = { blockNumber: 0 };
+      let receipt = { blockNumber: 0, status: 'success' };
       if (publicClient) {
         receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+        if (receipt.status === 'reverted' || receipt.status === 0 || receipt.status === '0x0') {
+          throw new Error('Reward deposit transaction reverted on-chain.');
+        }
       }
 
       recordRewardDepositInDb({
@@ -1068,9 +1171,12 @@ export function useApeBrokerDesk() {
       abi: deskDeployConfig.abi,
       functionName: 'distributeEpochRewards',
     });
-    let receipt = { blockNumber: 0 };
+    let receipt = { blockNumber: 0, status: 'success' };
     if (publicClient) {
       receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+      if (receipt.status === 'reverted' || receipt.status === 0 || receipt.status === '0x0') {
+        throw new Error('Distribute epoch rewards transaction reverted on-chain.');
+      }
     }
     await refetchGlobalStats();
     await refetchUserData();
@@ -1089,9 +1195,12 @@ export function useApeBrokerDesk() {
         functionName: 'setEpochEmissionBps',
         args: [BigInt(bps)],
       });
-      let receipt = { blockNumber: 0 };
+      let receipt = { blockNumber: 0, status: 'success' };
       if (publicClient) {
         receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+        if (receipt.status === 'reverted' || receipt.status === 0 || receipt.status === '0x0') {
+          throw new Error('Set epoch emission bps transaction reverted on-chain.');
+        }
       }
       await refetchGlobalStats();
       return { hash: tx, receipt };
@@ -1111,9 +1220,12 @@ export function useApeBrokerDesk() {
         functionName: 'setBenchmarkWeightFloor',
         args: [BigInt(weight)],
       });
-      let receipt = { blockNumber: 0 };
+      let receipt = { blockNumber: 0, status: 'success' };
       if (publicClient) {
         receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+        if (receipt.status === 'reverted' || receipt.status === 0 || receipt.status === '0x0') {
+          throw new Error('Set benchmark weight floor transaction reverted on-chain.');
+        }
       }
       await refetchGlobalStats();
       return { hash: tx, receipt };
@@ -1139,9 +1251,12 @@ export function useApeBrokerDesk() {
         args: [amountRaw],
         value: valueRaw,
       });
-      let receipt = { blockNumber: 0 };
+      let receipt = { blockNumber: 0, status: 'success' };
       if (publicClient) {
         receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+        if (receipt.status === 'reverted' || receipt.status === 0 || receipt.status === '0x0') {
+          throw new Error('Distribute immediate rewards transaction reverted on-chain.');
+        }
       }
       await refetchGlobalStats();
       await refetchUserData();
@@ -1163,9 +1278,12 @@ export function useApeBrokerDesk() {
         functionName: 'setBaseBoostCost',
         args: [costRaw],
       });
-      let receipt = { blockNumber: 0 };
+      let receipt = { blockNumber: 0, status: 'success' };
       if (publicClient) {
         receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+        if (receipt.status === 'reverted' || receipt.status === 0 || receipt.status === '0x0') {
+          throw new Error('Set base boost cost transaction reverted on-chain.');
+        }
       }
       await refetchGlobalStats();
       return { hash: tx, receipt };
@@ -1186,9 +1304,12 @@ export function useApeBrokerDesk() {
         functionName: 'setActivationFee',
         args: [feeRaw],
       });
-      let receipt = { blockNumber: 0 };
+      let receipt = { blockNumber: 0, status: 'success' };
       if (publicClient) {
         receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+        if (receipt.status === 'reverted' || receipt.status === 0 || receipt.status === '0x0') {
+          throw new Error('Set activation fee transaction reverted on-chain.');
+        }
       }
       await refetchGlobalStats();
       return { hash: tx, receipt };
