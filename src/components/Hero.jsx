@@ -109,7 +109,7 @@ export const Hero = ({ onApplyClick }) => {
           {/* Stat 1: Emerald / Mint Monitor */}
           <div className="bg-[#051c12]/90 backdrop-blur-md p-3 sm:p-4 text-center shadow-[6px_6px_0px_0px_#000] border-2 border-[#00FF66] rounded-lg min-h-[85px] sm:min-h-[95px] flex flex-col justify-center items-center">
             <div className="font-pixel text-lg sm:text-2xl text-[#00FF66] font-extrabold drop-shadow-[0_0_8px_rgba(0,255,102,0.4)]">
-              5,555
+              10,000
             </div>
             <div className="font-pixel text-[8px] sm:text-[9px] text-[#7affaa] mt-1 font-bold">
               TOTAL SUPPLY
