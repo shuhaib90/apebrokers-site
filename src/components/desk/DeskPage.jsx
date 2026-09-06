@@ -207,18 +207,7 @@ export function DeskPage({ onBackHome }) {
     .filter((d) => d.active && d.isOwnerOfNft)
     .reduce((acc, d) => acc + (d.estimatedEpochRewardEth || 0n), 0n);
 
-  // Desk page is locked for public users; only authorized admin can access the live terminal for now
-  if (!isAdmin) {
-    return (
-      <DeskComingSoon
-        onBackHome={onBackHome}
-        address={address}
-        isConnected={isConnected}
-        openConnectModal={openConnectModal}
-        disconnect={disconnect}
-      />
-    );
-  }
+  // Desk terminal is open for all users
 
   return (
     <div className="min-h-screen bg-[#070314] text-white font-pixel selection:bg-[#00FF66] selection:text-black relative pb-20">
