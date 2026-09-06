@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { formatEther, parseEther } from 'viem';
 import { sound } from '../../utils/audio';
 import confetti from 'canvas-confetti';
+import { usePublicClient } from 'wagmi';
+import deskDeployConfig from '../../config/apeBrokerDesk.json';
 import {
   fetchAllDesksFromDb,
   fetchAllRewardDepositsFromDb,
@@ -31,6 +33,7 @@ export function DeskAdminDashboard({
   onBackToTerminal,
   refetchGlobalStats,
 }) {
+  const publicClient = usePublicClient();
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'desks' | 'distributions' | 'logs' | 'actions'
   const [ethDepositInput, setEthDepositInput] = useState('');
   const [feeClaimInput, setFeeClaimInput] = useState('');
@@ -51,11 +54,13 @@ export function DeskAdminDashboard({
   const [rewardClaims, setRewardClaims] = useState([]);
   const [deskBoosts, setDeskBoosts] = useState([]);
   const [feeClaims, setFeeClaims] = useState([]);
+  const [onChainDeskData, setOnChainDeskData] = useState({});
+  const [copiedOwner, setCopiedOwner] = useState(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   // Filter & Search states for Desks table
   const [deskSearch, setDeskSearch] = useState('');
-  const [deskFilter, setDeskFilter] = useState('all'); // 'all' | 'active' | 'max_boost'
+  const [deskFilter, setDeskFilter] = useState('all'); // 'all' | 'active' | 'claimable' | 'max_boost'
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
@@ -67,19 +72,108 @@ export function DeskAdminDashboard({
   const [syncOwner, setSyncOwner] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Load all DB data
+  // Load all DB data and query on-chain desk pending balances
   const loadDashboardData = async () => {
     setIsLoadingData(true);
     try {
       const [desks, deposits, claims, boosts, fees] = await Promise.all([
         fetchAllDesksFromDb({ activeOnly: false }),
-        fetchAllRewardDepositsFromDb(150),
-        fetchAllRewardClaimsFromDb(150),
-        fetchAllDeskBoostsFromDb(150),
-        fetchAllProtocolFeeClaimsFromDb(150),
+        fetchAllRewardDepositsFromDb(300),
+        fetchAllRewardClaimsFromDb(1000),
+        fetchAllDeskBoostsFromDb(300),
+        fetchAllProtocolFeeClaimsFromDb(300),
       ]);
 
-      setAllDesks(desks);
+      // Query on-chain status & pending rewards for all known desks + probe 1..10
+      const tokenIdsToProbe = new Set((desks || []).map((d) => Number(d.token_id)));
+      for (let i = 1; i <= 10; i++) tokenIdsToProbe.add(i);
+
+      const onChainMap = {};
+      if (publicClient) {
+        const probeList = Array.from(tokenIdsToProbe);
+        const deskResults = await Promise.allSettled(
+          probeList.map((tid) =>
+            Promise.all([
+              publicClient.readContract({
+                address: DESK_CONTRACT_ADDRESS,
+                abi: deskDeployConfig.abi,
+                functionName: 'getDesk',
+                args: [BigInt(tid)],
+              }).catch(() => null),
+              publicClient.readContract({
+                address: DESK_CONTRACT_ADDRESS,
+                abi: deskDeployConfig.abi,
+                functionName: 'getPendingRewards',
+                args: [BigInt(tid)],
+              }).catch(() => 0n),
+              publicClient.readContract({
+                address: DESK_CONTRACT_ADDRESS,
+                abi: deskDeployConfig.abi,
+                functionName: 'isDeskActive',
+                args: [BigInt(tid)],
+              }).catch(() => false),
+            ])
+          )
+        );
+
+        probeList.forEach((tid, idx) => {
+          const res = deskResults[idx];
+          if (res.status === 'fulfilled' && res.value) {
+            const [dData, pEth, isActiveDirect] = res.value;
+            let active = Boolean(isActiveDirect);
+            let boostCount = 0n;
+            let currentWeight = 100n;
+            let owner = null;
+            let pendingRewards = pEth || 0n;
+
+            if (Array.isArray(dData) && dData.length >= 5) {
+              if (dData[0] !== undefined) active = Boolean(dData[0]);
+              if (dData[1] !== undefined) boostCount = BigInt(dData[1]);
+              if (dData[2] !== undefined) currentWeight = BigInt(dData[2]);
+              if (dData[3] && dData[3] !== '0x0000000000000000000000000000000000000000') owner = dData[3];
+              if (dData[4] !== undefined && pendingRewards === 0n) pendingRewards = BigInt(dData[4]);
+            } else if (dData && typeof dData === 'object') {
+              if (dData.active !== undefined) active = Boolean(dData.active);
+              if (dData.boostCount !== undefined) boostCount = BigInt(dData.boostCount);
+              if (dData.currentWeight !== undefined) currentWeight = BigInt(dData.currentWeight);
+              if (dData.owner) owner = dData.owner;
+              if (dData.pendingRewards !== undefined && pendingRewards === 0n) pendingRewards = BigInt(dData.pendingRewards);
+            }
+
+            onChainMap[tid] = {
+              active,
+              boostCount: Number(boostCount),
+              currentWeight: Number(currentWeight),
+              owner,
+              pendingRewards,
+            };
+          }
+        });
+        setOnChainDeskData(onChainMap);
+      }
+
+      // Merge on-chain detected active desks that may not be in DB yet
+      const existingIds = new Set((desks || []).map((d) => Number(d.token_id)));
+      const mergedDesks = [...(desks || [])];
+
+      Object.entries(onChainMap).forEach(([tidStr, onChain]) => {
+        const tid = Number(tidStr);
+        if (!existingIds.has(tid) && onChain.active) {
+          mergedDesks.push({
+            token_id: tid,
+            owner: onChain.owner || ADMIN_ADDRESS,
+            active: true,
+            boost_count: onChain.boostCount || 0,
+            base_weight: 100,
+            current_weight: onChain.currentWeight || 100,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+          existingIds.add(tid);
+        }
+      });
+
+      setAllDesks(mergedDesks);
       setRewardDeposits(deposits);
       setRewardClaims(claims);
       setDeskBoosts(boosts);
@@ -321,22 +415,110 @@ export function DeskAdminDashboard({
     }
   };
 
-  // Export Desks to CSV
+  // Group user claims by token_id and by claimer
+  const deskClaimTotals = useMemo(() => {
+    const totals = {};
+    rewardClaims.forEach((c) => {
+      if (c.token_id !== null && c.token_id !== undefined) {
+        const tid = Number(c.token_id);
+        const amt = parseFloat(c.amount_eth || 0);
+        totals[tid] = (totals[tid] || 0) + amt;
+      }
+    });
+    return totals;
+  }, [rewardClaims]);
+
+  const ownerClaimTotals = useMemo(() => {
+    const totals = {};
+    rewardClaims.forEach((c) => {
+      if (c.claimer) {
+        const key = c.claimer.toLowerCase().trim();
+        const amt = parseFloat(c.amount_eth || 0);
+        totals[key] = (totals[key] || 0) + amt;
+      }
+    });
+    return totals;
+  }, [rewardClaims]);
+
+  // Enriched Desks with Live Claimable, User Claimed, and User Total Earned
+  const enrichedDesks = useMemo(() => {
+    const pool =
+      (globalStats?.availableRewardPool > 0n
+        ? globalStats?.availableRewardPool
+        : globalStats?.rewardPoolBalance) || 1000000000000000n;
+    const emissionBps = globalStats?.epochEmissionBps || 500n;
+    const floor = globalStats?.benchmarkWeightFloor || 2000n;
+    const totalWgt = globalStats?.totalEligibleWeight > 0n ? globalStats.totalEligibleWeight : 100n;
+    const divisor = totalWgt < floor ? floor : totalWgt;
+    const dist = (pool * emissionBps) / 10000n;
+
+    return allDesks.map((d) => {
+      const tid = Number(d.token_id);
+      const onChain = onChainDeskData[tid];
+
+      const isActive = onChain?.active !== undefined ? onChain.active : Boolean(d.active);
+      const currentWeight = onChain?.currentWeight || d.current_weight || 100;
+      const boostCount = onChain?.boostCount !== undefined ? onChain.boostCount : (d.boost_count || 0);
+      const owner = onChain?.owner || d.owner || '';
+
+      // Live on-chain claimable pending balance
+      const pendingWei = onChain?.pendingRewards || 0n;
+      const availableToClaimEth = pendingWei > 0n ? parseFloat(formatEther(pendingWei)) : 0;
+
+      // Cumulative user claimed ETH
+      let claimedEth = deskClaimTotals[tid] || 0;
+      if (claimedEth === 0 && owner && ownerClaimTotals[owner.toLowerCase().trim()]) {
+        claimedEth = ownerClaimTotals[owner.toLowerCase().trim()];
+      }
+
+      // Cumulative user total earned = claimed + available pending
+      const totalEarnedEth = claimedEth + availableToClaimEth;
+
+      // Est Next 5H
+      const estEthRaw = divisor > 0n ? (dist * BigInt(currentWeight)) / divisor : 0n;
+      const estEth = parseFloat(formatEther(estEthRaw));
+
+      return {
+        ...d,
+        token_id: tid,
+        active: isActive,
+        current_weight: currentWeight,
+        boost_count: boostCount,
+        owner,
+        availableToClaimEth,
+        claimedEth,
+        totalEarnedEth,
+        estEth,
+      };
+    });
+  }, [allDesks, onChainDeskData, deskClaimTotals, ownerClaimTotals, globalStats]);
+
+  // Copy Owner Address feedback
+  const handleCopyOwner = (address) => {
+    if (!address) return;
+    navigator?.clipboard?.writeText(address);
+    setCopiedOwner(address);
+    sound?.playSuccess?.();
+    setTimeout(() => setCopiedOwner(null), 1800);
+  };
+
+  // Export Desks to CSV with full metrics
   const handleExportCsv = () => {
     sound?.playClick?.();
-    if (allDesks.length === 0) return;
-    const headers = 'Token ID,Owner,Active,Boost Count,Base Weight,Current Weight,Created At,Updated At\n';
-    const rows = allDesks
+    if (enrichedDesks.length === 0) return;
+    const headers =
+      'Token ID,Owner,Active,Boost Count,Current Weight,Available To Claim (ETH),User Claimed (ETH),User Total Earned (ETH),Est Next 5H (ETH),Updated At\n';
+    const rows = enrichedDesks
       .map(
         (d) =>
-          `${d.token_id},"${d.owner}",${d.active},${d.boost_count},${d.base_weight},${d.current_weight},"${d.created_at}","${d.updated_at}"`
+          `${d.token_id},"${d.owner}",${d.active},${d.boost_count},${d.current_weight},${d.availableToClaimEth.toFixed(6)},${d.claimedEth.toFixed(6)},${d.totalEarnedEth.toFixed(6)},${d.estEth.toFixed(6)},"${d.updated_at || ''}"`
       )
       .join('\n');
     const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `apebroker_desks_${Date.now()}.csv`);
+    link.setAttribute('download', `apebroker_desks_full_audit_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -344,7 +526,7 @@ export function DeskAdminDashboard({
 
   // Filtered Desks
   const filteredDesks = useMemo(() => {
-    return allDesks.filter((d) => {
+    return enrichedDesks.filter((d) => {
       const matchesSearch =
         !deskSearch ||
         d.token_id.toString().includes(deskSearch.trim()) ||
@@ -353,10 +535,11 @@ export function DeskAdminDashboard({
       if (!matchesSearch) return false;
 
       if (deskFilter === 'active') return Boolean(d.active);
+      if (deskFilter === 'claimable') return d.availableToClaimEth > 0;
       if (deskFilter === 'max_boost') return (d.boost_count || 0) >= 5;
       return true;
     });
-  }, [allDesks, deskSearch, deskFilter]);
+  }, [enrichedDesks, deskSearch, deskFilter]);
 
   // Paginated Desks
   const paginatedDesks = useMemo(() => {
@@ -367,11 +550,16 @@ export function DeskAdminDashboard({
   const totalPages = Math.ceil(filteredDesks.length / itemsPerPage) || 1;
 
   // Aggregate Calculations
-  const activeDesksCount = allDesks.filter((d) => d.active).length;
-  const totalDbWeight = allDesks
+  const activeDesksCount = enrichedDesks.filter((d) => d.active).length;
+  const totalDbWeight = enrichedDesks
     .filter((d) => d.active)
     .reduce((sum, d) => sum + (d.current_weight || 100), 0);
-  const totalDbBoosts = allDesks.reduce((sum, d) => sum + (d.boost_count || 0), 0);
+  const totalDbBoosts = enrichedDesks.reduce((sum, d) => sum + (d.boost_count || 0), 0);
+  const totalAvailableToClaimAllDesks = enrichedDesks.reduce((sum, d) => sum + d.availableToClaimEth, 0);
+  const totalClaimedAllDesks = enrichedDesks.reduce((sum, d) => sum + d.claimedEth, 0);
+  const totalUserEarnedAllDesks = enrichedDesks.reduce((sum, d) => sum + d.totalEarnedEth, 0);
+  const desksWithClaimableCount = enrichedDesks.filter((d) => d.availableToClaimEth > 0).length;
+  const maxBoostedCount = enrichedDesks.filter((d) => (d.boost_count || 0) >= 5).length;
 
   // Total distributed from DB records + on-chain
   const totalEthDistributedDb = rewardDeposits.reduce(
@@ -497,7 +685,7 @@ export function DeskAdminDashboard({
       {/* TAB 1: PROTOCOL OVERVIEW & STATISTICS */}
       {activeTab === 'overview' && (
         <section className="space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
             <div className="bg-[#140833] border-2 border-[#FFD700] p-4 rounded-xl shadow-[4px_4px_0px_#000]">
               <div className="text-[10px] text-gray-400">TOTAL ETH DISTRIBUTED</div>
               <div className="text-lg sm:text-2xl font-extrabold text-[#FFD700] mt-1 drop-shadow-[0_0_8px_rgba(255,215,0,0.3)]">
@@ -509,9 +697,9 @@ export function DeskAdminDashboard({
             </div>
 
             <div className="bg-[#140833] border-2 border-[#00F0FF] p-4 rounded-xl shadow-[4px_4px_0px_#000]">
-              <div className="text-[10px] text-gray-400">TOTAL ETH CLAIMED</div>
+              <div className="text-[10px] text-gray-400">TOTAL USER CLAIMED</div>
               <div className="text-lg sm:text-2xl font-extrabold text-[#00F0FF] mt-1 drop-shadow-[0_0_8px_rgba(0,240,255,0.3)]">
-                {Number(formatEther(globalStats.totalEthClaimed || 0n)).toFixed(4)} ETH
+                {Math.max(Number(formatEther(globalStats.totalEthClaimed || 0n)), totalClaimedAllDesks).toFixed(4)} ETH
               </div>
               <div className="text-[9px] text-gray-400 mt-1 font-mono">
                 {rewardClaims.length} User Claims Executed
@@ -519,25 +707,45 @@ export function DeskAdminDashboard({
             </div>
 
             <div className="bg-[#140833] border-2 border-[#00FF66] p-4 rounded-xl shadow-[4px_4px_0px_#000]">
-              <div className="text-[10px] text-gray-400">CURRENT REWARD POOL</div>
+              <div className="text-[10px] text-gray-400">AVAILABLE TO CLAIM (PENDING)</div>
               <div className="text-lg sm:text-2xl font-extrabold text-[#00FF66] mt-1 drop-shadow-[0_0_8px_rgba(0,255,102,0.3)]">
-                {Number(formatEther(globalStats.rewardPoolBalance || 0n)).toFixed(4)} ETH
+                {totalAvailableToClaimAllDesks.toFixed(4)} ETH
               </div>
-              <div className="text-[9px] text-gray-400 mt-1 font-mono">Ready for 5-Hour Claims</div>
+              <div className="text-[9px] text-[#00FF66] mt-1 font-mono">
+                {desksWithClaimableCount} Desks Ready To Claim
+              </div>
+            </div>
+
+            <div className="bg-[#140833] border-2 border-[#FF007F] p-4 rounded-xl shadow-[4px_4px_0px_#000]">
+              <div className="text-[10px] text-gray-400">TOTAL USER EARNED</div>
+              <div className="text-lg sm:text-2xl font-extrabold text-[#FF007F] mt-1 drop-shadow-[0_0_8px_rgba(255,0,127,0.3)]">
+                {totalUserEarnedAllDesks.toFixed(4)} ETH
+              </div>
+              <div className="text-[9px] text-pink-400 mt-1 font-mono">
+                Claimed + Unclaimed Balance
+              </div>
             </div>
 
             <div className="bg-[#140833] border-2 border-[#A855F7] p-4 rounded-xl shadow-[4px_4px_0px_#000]">
-              <div className="text-[10px] text-gray-400">COLLECTED PROTOCOL FEES</div>
+              <div className="text-[10px] text-gray-400">CURRENT REWARD POOL</div>
               <div className="text-lg sm:text-2xl font-extrabold text-[#A855F7] mt-1 drop-shadow-[0_0_8px_rgba(168,85,247,0.3)]">
+                {Number(formatEther(globalStats.rewardPoolBalance || 0n)).toFixed(4)} ETH
+              </div>
+              <div className="text-[9px] text-purple-400 mt-1 font-mono">Ready for 5-Hour Claims</div>
+            </div>
+
+            <div className="bg-[#140833] border border-purple-800 p-4 rounded-xl shadow-[4px_4px_0px_#000]">
+              <div className="text-[10px] text-gray-400">COLLECTED PROTOCOL FEES</div>
+              <div className="text-lg sm:text-2xl font-extrabold text-[#FFD700] mt-1">
                 {Number(formatEther(globalStats.protocolFeeBalance || 0n)).toLocaleString()}
               </div>
-              <div className="text-[9px] text-purple-400 mt-1 font-mono">$APEBROKE to Treasury</div>
+              <div className="text-[9px] text-yellow-400 mt-1 font-mono">$APEBROKE to Treasury</div>
             </div>
 
             <div className="bg-[#140833] border border-purple-800 p-4 rounded-xl shadow-[4px_4px_0px_#000]">
               <div className="text-[10px] text-gray-400">TOTAL ACTIVE DESKS</div>
               <div className="text-lg sm:text-2xl font-extrabold text-white mt-1">
-                {activeDesksCount} <span className="text-xs text-gray-400">/ 10,000</span>
+                {activeDesksCount} <span className="text-xs text-gray-400">/ {enrichedDesks.length || 10000}</span>
               </div>
               <div className="text-[9px] text-[#00FF66] mt-1 font-mono">1 NFT = 1 Desk System</div>
             </div>
@@ -795,7 +1003,51 @@ export function DeskAdminDashboard({
 
       {/* TAB 2: ALL ACTIVE DESK DATA */}
       {activeTab === 'desks' && (
-        <section className="bg-[#0f0729]/95 border-2 border-purple-800 rounded-xl p-5 shadow-[6px_6px_0px_#000] space-y-4 font-mono">
+        <section className="bg-[#0f0729]/95 border-2 border-purple-800 rounded-xl p-5 shadow-[6px_6px_0px_#000] space-y-5 font-mono">
+          {/* Desks Aggregated Performance HUD */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-[#140833] border-2 border-[#00FF66] p-3.5 rounded-xl shadow-[3px_3px_0px_#000]">
+              <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">TOTAL ACTIVE DESKS</div>
+              <div className="text-xl sm:text-2xl font-extrabold text-[#00FF66] mt-1">
+                {activeDesksCount} <span className="text-xs text-gray-400">/ {enrichedDesks.length}</span>
+              </div>
+              <div className="text-[9px] text-gray-400 mt-1 font-mono">
+                {((activeDesksCount / Math.max(1, enrichedDesks.length)) * 100).toFixed(1)}% Operational Capacity
+              </div>
+            </div>
+
+            <div className="bg-[#140833] border-2 border-[#00F0FF] p-3.5 rounded-xl shadow-[3px_3px_0px_#000]">
+              <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">AVAILABLE TO CLAIM (PENDING)</div>
+              <div className="text-xl sm:text-2xl font-extrabold text-[#00F0FF] mt-1 drop-shadow-[0_0_8px_rgba(0,240,255,0.4)]">
+                {totalAvailableToClaimAllDesks.toFixed(6)} ETH
+              </div>
+              <div className="text-[9px] text-cyan-300 mt-1 font-mono">
+                {desksWithClaimableCount} Desks Ready To Claim
+              </div>
+            </div>
+
+            <div className="bg-[#140833] border-2 border-[#FFD700] p-3.5 rounded-xl shadow-[3px_3px_0px_#000]">
+              <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">TOTAL USER REWARDS CLAIMED</div>
+              <div className="text-xl sm:text-2xl font-extrabold text-[#FFD700] mt-1 drop-shadow-[0_0_8px_rgba(255,215,0,0.4)]">
+                {totalClaimedAllDesks.toFixed(6)} ETH
+              </div>
+              <div className="text-[9px] text-yellow-300 mt-1 font-mono">
+                {rewardClaims.length} Claims Executed
+              </div>
+            </div>
+
+            <div className="bg-[#140833] border-2 border-[#FF007F] p-3.5 rounded-xl shadow-[3px_3px_0px_#000]">
+              <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">TOTAL USER EARNED (LIFETIME)</div>
+              <div className="text-xl sm:text-2xl font-extrabold text-[#FF007F] mt-1 drop-shadow-[0_0_8px_rgba(255,0,127,0.4)]">
+                {totalUserEarnedAllDesks.toFixed(6)} ETH
+              </div>
+              <div className="text-[9px] text-pink-300 mt-1 font-mono">
+                Cumulative Operator Yield
+              </div>
+            </div>
+          </div>
+
+          {/* Search, Filters, and CSV Export Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-900/60 font-mono">
             <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2">
               <input
@@ -809,11 +1061,12 @@ export function DeskAdminDashboard({
                 className="flex-1 bg-black/70 border-2 border-purple-800 focus:border-[#00FF66] px-3.5 py-2 text-xs text-white rounded-lg outline-none"
               />
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {[
-                  { id: 'all', label: `ALL (${allDesks.length})` },
+                  { id: 'all', label: `ALL (${enrichedDesks.length})` },
                   { id: 'active', label: `ACTIVE (${activeDesksCount})` },
-                  { id: 'max_boost', label: '5/5 MAX BOOSTED' },
+                  { id: 'claimable', label: `WITH CLAIMABLE (${desksWithClaimableCount})` },
+                  { id: 'max_boost', label: `5/5 BOOSTED (${maxBoostedCount})` },
                 ].map((f) => (
                   <button
                     key={f.id}
@@ -838,7 +1091,7 @@ export function DeskAdminDashboard({
             <button
               type="button"
               onClick={handleExportCsv}
-              disabled={allDesks.length === 0}
+              disabled={enrichedDesks.length === 0}
               className="pixel-btn pixel-btn-black px-3.5 py-2 text-[10px] font-bold text-[#00F0FF] hover:text-white border border-cyan-800 rounded shadow-[2px_2px_0px_#000] whitespace-nowrap"
             >
               [ ⤓ EXPORT CSV ]
@@ -848,7 +1101,7 @@ export function DeskAdminDashboard({
           {filteredDesks.length === 0 ? (
             <div className="p-8 text-center space-y-3 bg-[#130832]/60 rounded-lg border border-purple-900/40">
               <div className="text-gray-400 text-xs">
-                {allDesks.length === 0
+                {enrichedDesks.length === 0
                   ? 'No desks indexed in database yet. Desks will be automatically indexed as users connect and activate.'
                   : 'No desks match the current search or filter criteria.'}
               </div>
@@ -887,8 +1140,10 @@ export function DeskAdminDashboard({
                     <th className="py-2.5 px-3">Token</th>
                     <th className="py-2.5 px-3">Owner</th>
                     <th className="py-2.5 px-3">Status</th>
-                    <th className="py-2.5 px-3">Boost Level</th>
-                    <th className="py-2.5 px-3">Desk Weight</th>
+                    <th className="py-2.5 px-3">Weight & Boost</th>
+                    <th className="py-2.5 px-3 text-[#00F0FF]">Available To Claim</th>
+                    <th className="py-2.5 px-3 text-[#FFD700]">User Claimed</th>
+                    <th className="py-2.5 px-3 text-[#FF007F]">User Total Earn</th>
                     <th className="py-2.5 px-3">Est. Next 5H</th>
                     <th className="py-2.5 px-3">Updated</th>
                   </tr>
@@ -896,32 +1151,61 @@ export function DeskAdminDashboard({
                 <tbody className="divide-y divide-purple-900/30">
                   {paginatedDesks.map((d) => {
                     const boosts = d.boost_count || 0;
-                    const pool = globalStats?.availableRewardPool || globalStats?.rewardPoolBalance || 1000000000000000n;
-                    const emissionBps = globalStats?.epochEmissionBps || 500n;
-                    const floor = globalStats?.benchmarkWeightFloor || 2000n;
-                    const totalWgt = globalStats?.totalEligibleWeight > 0n ? globalStats.totalEligibleWeight : 100n;
-                    const divisor = totalWgt < floor ? floor : totalWgt;
-                    const dist = (pool * emissionBps) / 10000n;
-                    const estEth = divisor > 0n ? (dist * BigInt(d.current_weight || 100)) / divisor : 0n;
+                    const hasClaimable = d.availableToClaimEth > 0;
 
                     return (
                       <tr key={d.token_id} className="hover:bg-purple-950/30 transition-colors">
+                        {/* Token / Desk */}
                         <td className="py-2.5 px-3 font-bold text-white flex items-center gap-2">
                           <img
                             src={d.image || '/brokerdesk-art.png'}
                             alt={`#${d.token_id}`}
-                            className="w-7 h-7 rounded border border-purple-700 object-cover bg-black"
+                            className="w-7 h-7 rounded border border-purple-700 object-cover bg-black shrink-0"
                             onError={(e) => {
                               e.currentTarget.src = '/brokerdesk-art.png';
                             }}
                           />
-                          <span>Broker Desk #{d.token_id}</span>
+                          <div className="flex flex-col">
+                            <span className="whitespace-nowrap">Broker Desk #{d.token_id}</span>
+                            <a
+                              href={`https://opensea.io/assets/robinhood/0xd3b030e9281fcd8797af6dc437636b24bdfe7902/${d.token_id}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[9px] text-gray-500 hover:text-cyan-400 transition-colors"
+                            >
+                              OpenSea ↗
+                            </a>
+                          </div>
                         </td>
+
+                        {/* Owner */}
                         <td className="py-2.5 px-3 font-mono text-gray-300">
-                          <span title={d.owner}>
-                            {d.owner ? `${d.owner.slice(0, 6)}...${d.owner.slice(-4)}` : 'Unknown'}
-                          </span>
+                          {d.owner ? (
+                            <div className="flex items-center gap-1.5">
+                              <a
+                                href={`https://explorer.robinhood.com/address/${d.owner}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-gray-300 hover:text-[#00FF66] underline decoration-dotted"
+                                title={d.owner}
+                              >
+                                {d.owner.slice(0, 6)}...{d.owner.slice(-4)}
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyOwner(d.owner)}
+                                className="text-gray-500 hover:text-white px-1 py-0.5 rounded text-[9px] bg-black/40 border border-purple-900"
+                                title="Copy full address"
+                              >
+                                {copiedOwner === d.owner ? '✓' : '⧉'}
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-gray-600">Unassigned</span>
+                          )}
                         </td>
+
+                        {/* Status */}
                         <td className="py-2.5 px-3">
                           {d.active ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-[#052b16] text-[#00FF66] border border-[#00FF66]/40">
@@ -934,26 +1218,76 @@ export function DeskAdminDashboard({
                             </span>
                           )}
                         </td>
-                        <td className="py-2.5 px-3 font-bold">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] ${
-                              boosts >= 5
-                                ? 'bg-pink-950/60 text-[#FF007F] border border-[#FF007F]'
-                                : boosts > 0
-                                ? 'bg-cyan-950/60 text-[#00F0FF] border border-[#00F0FF]'
+
+                        {/* Weight & Boost */}
+                        <td className="py-2.5 px-3 font-mono">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-[#00FF66]">{d.current_weight || 100}</span>
+                            <span className="text-[10px] text-gray-400">WGT</span>
+                            <span className="text-gray-600">•</span>
+                            <span
+                              className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                                boosts >= 5
+                                  ? 'bg-pink-950/60 text-[#FF007F] border border-[#FF007F]/40'
+                                  : boosts > 0
+                                  ? 'bg-cyan-950/60 text-[#00F0FF] border border-[#00F0FF]/40'
+                                  : 'text-gray-500'
+                              }`}
+                            >
+                              {boosts}/5
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Available To Claim (Pending On-Chain) */}
+                        <td className="py-2.5 px-3 font-mono font-bold">
+                          <div
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded ${
+                              hasClaimable
+                                ? 'bg-cyan-950/70 border border-[#00F0FF] text-[#00F0FF] drop-shadow-[0_0_6px_rgba(0,240,255,0.4)]'
                                 : 'text-gray-400'
                             }`}
                           >
-                            {boosts} / 5 BOOSTS
-                          </span>
+                            <span>{d.availableToClaimEth.toFixed(6)}</span>
+                            <span className="text-[9px]">ETH</span>
+                          </div>
                         </td>
-                        <td className="py-2.5 px-3 font-extrabold text-white">
-                          <span className="text-[#00FF66]">{d.current_weight || 100}</span> WGT
+
+                        {/* User Claimed (Cumulative Past Claims) */}
+                        <td className="py-2.5 px-3 font-mono font-bold">
+                          <div
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded ${
+                              d.claimedEth > 0
+                                ? 'bg-yellow-950/60 border border-[#FFD700]/60 text-[#FFD700]'
+                                : 'text-gray-500'
+                            }`}
+                          >
+                            <span>{d.claimedEth.toFixed(6)}</span>
+                            <span className="text-[9px]">ETH</span>
+                          </div>
                         </td>
-                        <td className="py-2.5 px-3 font-mono font-bold text-[#00F0FF]">
-                          ~{Number(formatEther(estEth)).toFixed(6)} ETH
+
+                        {/* User Total Earn (Claimed + Available) */}
+                        <td className="py-2.5 px-3 font-mono font-extrabold">
+                          <div
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded ${
+                              d.totalEarnedEth > 0
+                                ? 'bg-pink-950/70 border border-[#FF007F] text-[#FF80BE] drop-shadow-[0_0_6px_rgba(255,0,127,0.3)]'
+                                : 'text-gray-500'
+                            }`}
+                          >
+                            <span>{d.totalEarnedEth.toFixed(6)}</span>
+                            <span className="text-[9px]">ETH</span>
+                          </div>
                         </td>
-                        <td className="py-2.5 px-3 text-[10px] text-gray-500">
+
+                        {/* Est Next 5H */}
+                        <td className="py-2.5 px-3 font-mono text-[11px] text-gray-300">
+                          ~{d.estEth.toFixed(6)} ETH
+                        </td>
+
+                        {/* Updated */}
+                        <td className="py-2.5 px-3 text-[10px] text-gray-500 whitespace-nowrap">
                           {d.updated_at ? new Date(d.updated_at).toLocaleDateString() : 'N/A'}
                         </td>
                       </tr>
