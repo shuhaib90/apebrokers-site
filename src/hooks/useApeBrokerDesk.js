@@ -372,6 +372,7 @@ export function useApeBrokerDesk() {
         totalBoostFeesCollected,
         baseDeskWeight,
         baseBoostCost,
+        activationFee,
         contractOwner,
         treasuryAddressOnChain,
         availableRewardPool,
@@ -1195,6 +1196,13 @@ export function useApeBrokerDesk() {
     [walletClient, publicClient, refetchGlobalStats]
   );
 
+  const isAdmin =
+    Boolean(address) &&
+    (address.toLowerCase() === ADMIN_ADDRESS.toLowerCase() ||
+     address.toLowerCase() === '0xb8e3dfdd19b6bf35b9fd87f8373f7f82c53bc93c' ||
+     (globalStats.contractOwner && address.toLowerCase() === globalStats.contractOwner.toLowerCase()) ||
+     Boolean(globalStats.isAdmin));
+
   return {
     address,
     isConnected,
@@ -1208,6 +1216,7 @@ export function useApeBrokerDesk() {
     globalStats,
     userBalances,
     userDesks,
+    isAdmin,
     addTokenToTrack,
     refetchGlobalStats,
     refetchUserData,

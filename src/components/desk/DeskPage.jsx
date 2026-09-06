@@ -16,6 +16,7 @@ export function DeskPage({ onBackHome }) {
   const {
     address,
     isConnected,
+    isAdmin: hookIsAdmin,
     isCorrectChain,
     isScanningNfts,
     switchChain,
@@ -42,6 +43,14 @@ export function DeskPage({ onBackHome }) {
     adminSetBaseBoostCost,
     adminSetActivationFee,
   } = useApeBrokerDesk();
+
+  const ADMIN_ADDRESS = '0xb8E3DfDd19b6Bf35b9Fd87F8373F7f82C53bc93C';
+  const isAdmin =
+    Boolean(address) &&
+    (address.toLowerCase() === ADMIN_ADDRESS.toLowerCase() ||
+     address.toLowerCase() === '0xb8e3dfdd19b6bf35b9fd87f8373f7f82c53bc93c' ||
+     Boolean(hookIsAdmin) ||
+     Boolean(globalStats?.isAdmin));
 
   // Modals state
   const [actionModal, setActionModal] = useState({
@@ -215,7 +224,7 @@ export function DeskPage({ onBackHome }) {
 
           {/* Right Actions & Wallet */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {globalStats.isAdmin && (
+            {isAdmin && (
               <div className="flex items-center gap-1 bg-[#13072b] p-1 rounded-lg border border-purple-700 shadow-[2px_2px_0px_#000]">
                 <button
                   type="button"
@@ -326,7 +335,7 @@ export function DeskPage({ onBackHome }) {
         )}
 
         {/* ADMIN DASHBOARD VIEW OR DESK TERMINAL VIEW */}
-        {activeView === 'admin' && globalStats.isAdmin ? (
+        {activeView === 'admin' && isAdmin ? (
           <DeskAdminDashboard
             globalStats={globalStats}
             onClaimFees={adminClaimFees}
@@ -342,6 +351,46 @@ export function DeskPage({ onBackHome }) {
           />
         ) : (
           <>
+            {/* Admin Console Quick-Access Banner (Only visible to Admin) */}
+            {isAdmin && (
+              <div className="bg-[#1b083d]/90 border-2 border-[#FFD700] rounded-xl p-3 sm:p-4 shadow-[4px_4px_0px_#000] flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#FFD700] animate-ping" />
+                  <div>
+                    <div className="text-xs sm:text-sm font-extrabold text-[#FFD700] flex items-center gap-2">
+                      <span>👑 PROTOCOL ADMIN CONSOLE</span>
+                      <span className="text-[9px] font-mono text-gray-300">({address?.slice(0, 6)}...{address?.slice(-4)})</span>
+                    </div>
+                    <div className="text-[10px] font-mono text-gray-400">
+                      You have full protocol authority. Click below to open the dashboard or quick popup console.
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound?.playClick?.();
+                      setActiveView('admin');
+                    }}
+                    className="flex-1 sm:flex-none pixel-btn pixel-btn-vibrant-gold px-4 py-2 text-xs font-extrabold rounded shadow-[2px_2px_0px_#000]"
+                  >
+                    [ ⚙️ OPEN ADMIN DASHBOARD ]
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound?.playClick?.();
+                      setIsAdminModalOpen(true);
+                    }}
+                    className="flex-1 sm:flex-none pixel-btn pixel-btn-vibrant-cyan px-3 py-2 text-xs font-extrabold rounded shadow-[2px_2px_0px_#000]"
+                  >
+                    [ ⚡ QUICK CONTROLS ]
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Global Protocol Ticker / Metrics */}
             <section className="bg-[#0f0729]/95 border-2 border-purple-800/80 rounded-xl p-4 sm:p-5 shadow-[6px_6px_0px_#000]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-900/60">
