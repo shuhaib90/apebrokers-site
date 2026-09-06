@@ -22,7 +22,7 @@ async function main() {
   const APEBROKE_TOKEN_ADDRESS =
     process.env.APEBROKE_TOKEN_ADDRESS || "0xe0F384ebCede975342c5431aCad515b4A1B862cc";
   const APE_BROKER_NFT_ADDRESS =
-    process.env.APE_BROKER_NFT_ADDRESS || "0xd3b030e9281fcd8797af6dc437636b24bdfe7902";
+    process.env.APE_BROKER_NFT_ADDRESS || "0x5b9ca37d499eace8f526320d6edea10fb73d4ec6";
   const ADMIN_ADDRESS =
     process.env.ADMIN_ADDRESS ||
     process.env.VITE_ADMIN_ADDRESS ||

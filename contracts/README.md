@@ -77,7 +77,7 @@ Production-grade, deterministic, gas-efficient Web3 smart contract suite for the
 ## 3. Detailed Mechanics
 
 ### 3.1 1 NFT = 1 Desk
-* There is **no separate Desk NFT**. The existing Ape Broker ERC-721 token (`0xd3b030e9281fcd8797af6dc437636b24bdfe7902`) represents the Desk identity directly.
+* There is **no separate Desk NFT**. The existing Ape Broker ERC-721 token (`0x5b9ca37d499eace8f526320d6edea10fb73d4ec6`) represents the Desk identity directly.
 * Caller must own the NFT (`IERC721.ownerOf(tokenId) == msg.sender`) to activate, boost, or claim.
 
 ### 3.2 Desk Activation
@@ -168,7 +168,7 @@ RPC_URL=https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY
 PRIVATE_KEY=your_deployer_private_key
 
 APEBROKE_TOKEN_ADDRESS=0xe0F384ebCede975342c5431aCad515b4A1B862cc
-APE_BROKER_NFT_ADDRESS=0xd3b030e9281fcd8797af6dc437636b24bdfe7902
+APE_BROKER_NFT_ADDRESS=0x5b9ca37d499eace8f526320d6edea10fb73d4ec6
 ADMIN_ADDRESS=your_admin_address
 TREASURY_ADDRESS=your_treasury_address
 BASE_BOOST_COST=10000000000000000000000

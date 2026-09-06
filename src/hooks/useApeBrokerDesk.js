@@ -23,7 +23,7 @@ export const APEBROKE_TOKEN_ADDRESS =
 export const APE_BROKER_NFT_ADDRESS =
   import.meta.env.VITE_APE_BROKER_NFT_ADDRESS ||
   deskDeployConfig.apeBrokerNftAddress ||
-  '0xd3b030e9281fcd8797af6dc437636b24bdfe7902';
+  '0x5b9ca37d499eace8f526320d6edea10fb73d4ec6';
 
 export const ADMIN_ADDRESS =
   import.meta.env.VITE_ADMIN_ADDRESS ||
@@ -531,8 +531,6 @@ export function useApeBrokerDesk() {
         Boolean(address) &&
         (address.toLowerCase() === ADMIN_ADDRESS.toLowerCase() ||
          address.toLowerCase() === '0xb8e3dfdd19b6bf35b9fd87f8373f7f82c53bc93c' ||
-         address.toLowerCase().startsWith('0x8b7a0a') ||
-         address.toLowerCase().endsWith('ff05fb') ||
          (contractOwner && address.toLowerCase() === contractOwner.toLowerCase()));
 
       setGlobalStats({
@@ -1323,8 +1321,6 @@ export function useApeBrokerDesk() {
     Boolean(address) &&
     (address.toLowerCase() === ADMIN_ADDRESS.toLowerCase() ||
      address.toLowerCase() === '0xb8e3dfdd19b6bf35b9fd87f8373f7f82c53bc93c' ||
-     address.toLowerCase().startsWith('0x8b7a0a') ||
-     address.toLowerCase().endsWith('ff05fb') ||
      (globalStats.contractOwner && address.toLowerCase() === globalStats.contractOwner.toLowerCase()) ||
      Boolean(globalStats.isAdmin));
 

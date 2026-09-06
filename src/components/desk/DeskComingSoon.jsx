@@ -145,10 +145,12 @@ export function DeskComingSoon({
         <div className="w-full max-w-md bg-[#140833] border-3 border-[#00FF66] p-6 rounded-xl shadow-[0_0_30px_rgba(0,255,102,0.2)] space-y-4">
           <div className="space-y-2">
             <div className="text-xs sm:text-sm font-bold text-[#00FF66]">
-              [ ACCESS TERMINAL ]
+              {isConnected ? '[ WALLET CONNECTED ]' : '[ ACCESS TERMINAL ]'}
             </div>
             <p className="text-[11px] font-mono text-gray-300">
-              Connect your wallet to launch and interact with the Ape Broker Desk terminal.
+              {isConnected
+                ? 'Public desk terminal rollout is coming soon. The terminal will be available to all NFT holders shortly!'
+                : 'Connect your wallet to launch and interact with the Ape Broker Desk terminal.'}
             </p>
           </div>
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">

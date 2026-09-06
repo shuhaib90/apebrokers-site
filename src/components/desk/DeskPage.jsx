@@ -50,8 +50,6 @@ export function DeskPage({ onBackHome }) {
     Boolean(address) &&
     (address.toLowerCase() === ADMIN_ADDRESS.toLowerCase() ||
      address.toLowerCase() === '0xb8e3dfdd19b6bf35b9fd87f8373f7f82c53bc93c' ||
-     address.toLowerCase().startsWith('0x8b7a0a') ||
-     address.toLowerCase().endsWith('ff05fb') ||
      Boolean(hookIsAdmin) ||
      Boolean(globalStats?.isAdmin));
 
@@ -194,8 +192,8 @@ export function DeskPage({ onBackHome }) {
     .filter((d) => d.active && d.isOwnerOfNft)
     .reduce((acc, d) => acc + d.pendingRewardsEth, 0n);
 
-  // Show Coming Soon screen to visitors who have not connected their wallet
-  if (!isConnected) {
+  // Desk page is locked for public users; only authorized admin can access the live terminal for now
+  if (!isAdmin) {
     return (
       <DeskComingSoon
         onBackHome={onBackHome}
