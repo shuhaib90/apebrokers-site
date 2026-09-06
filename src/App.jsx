@@ -6,6 +6,7 @@ import { ApplicationPage } from './components/ApplicationPage';
 import { AdminDashboard } from './components/AdminDashboard';
 import { DeskPage } from './components/desk/DeskPage';
 import { PixelFluidBackground } from './components/PixelFluidBackground';
+import { BrokerDeskSections } from './components/BrokerDeskSections';
 import { Footer } from './components/Footer';
 
 function App() {
@@ -107,9 +108,10 @@ function App() {
         <Header onDeskClick={handleDesk} />
       </div>
 
-      {/* Hero Content with Stats */}
+      {/* Hero Content with Stats & Sections */}
       <main className="flex-grow flex flex-col items-center justify-center w-full relative z-10">
         <Hero onDeskClick={handleDesk} />
+        <BrokerDeskSections onDeskClick={handleDesk} />
       </main>
 
       {/* Retro BrokerDesk Footer */}
