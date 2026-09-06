@@ -75,7 +75,7 @@ export const BrokerDeskSections = ({ onDeskClick }) => {
               </p>
             </div>
             <div className="pt-2 border-t border-white/10 font-mono text-[11px] text-[#00FF66] font-bold">
-              ⚡ 1 NFT = 1 OPERATING DESK
+              1 NFT = 1 OPERATING DESK
             </div>
           </div>
 
@@ -96,7 +96,7 @@ export const BrokerDeskSections = ({ onDeskClick }) => {
               </p>
             </div>
             <div className="pt-2 border-t border-white/10 font-mono text-[11px] text-[#FFD700] font-bold">
-              🔥 UP TO 600 WGT (+500% BOOST)
+              UP TO 600 WGT (+500% BOOST)
             </div>
           </div>
 
@@ -117,7 +117,7 @@ export const BrokerDeskSections = ({ onDeskClick }) => {
               </p>
             </div>
             <div className="pt-2 border-t border-white/10 font-mono text-[11px] text-[#00F0FF] font-bold">
-              💎 AUTOMATED NATIVE ETH YIELD
+              AUTOMATED NATIVE ETH YIELD
             </div>
           </div>
         </div>
@@ -245,7 +245,7 @@ export const BrokerDeskSections = ({ onDeskClick }) => {
             className="pixel-btn pixel-btn-vibrant-lime px-8 sm:px-12 py-3.5 sm:py-4 font-pixel text-xs sm:text-sm font-black rounded-xl shadow-[5px_5px_0px_0px_#000] inline-flex items-center gap-2.5 whitespace-nowrap"
           >
             <span className="w-2 h-2 rounded-full bg-black animate-ping shrink-0" />
-            <span>[ ⚡ ENTER BROKERDESK ]</span>
+            <span>[ ENTER BROKERDESK ]</span>
           </button>
         </div>
       </section>

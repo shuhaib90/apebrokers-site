@@ -274,7 +274,7 @@ export function DeskAdminModal({
               {/* Marketing Instant Distribution (Launch Promos) */}
               <div className="bg-[#12072b] p-3.5 border-2 border-[#FF007F] rounded-lg space-y-3 pt-3">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-[#FF007F] font-bold">🚀 MARKETING / LAUNCH INSTANT DRIP:</span>
+                  <span className="text-[#FF007F] font-bold">MARKETING / LAUNCH INSTANT DRIP:</span>
                   <span className="text-[10px] text-gray-400">100% Weight Split</span>
                 </div>
                 <div className="flex gap-2">
@@ -284,7 +284,7 @@ export function DeskAdminModal({
                     onClick={() => handleDistributeImmediate('0')}
                     className="flex-1 pixel-btn pixel-btn-vibrant-crimson py-2 text-[10px] font-bold rounded shadow-[2px_2px_0px_#000] disabled:opacity-40 whitespace-nowrap"
                   >
-                    {isDistributingImmediate ? '[ EXECUTING... ]' : '[ ⚡ DISTRIBUTE 100% OF POOL ]'}
+                    {isDistributingImmediate ? '[ EXECUTING... ]' : '[ DISTRIBUTE 100% OF POOL ]'}
                   </button>
                   <button
                     type="button"
@@ -340,7 +340,7 @@ export function DeskAdminModal({
               </div>
 
               <div className="p-3 bg-amber-950/40 border border-amber-800/60 rounded text-[10px] text-amber-300 font-mono leading-relaxed">
-                ℹ Operational Note: Protocol fees collected in $APEBROKE are claimed to the treasury. 
+                [NOTE]: Protocol fees collected in $APEBROKE are claimed to the treasury. 
                 The admin then swaps this $APEBROKE for ETH externally (on Robinhood EVM DEX/AMM) and deposits 
                 the resulting ETH into the Reward Pool above.
               </div>
@@ -387,7 +387,7 @@ export function DeskAdminModal({
               {/* Dynamic Fee Quantity Controls */}
               <div className="bg-[#12072b] p-3.5 border-2 border-[#FFD700] rounded-lg space-y-3">
                 <div className="border-b border-purple-900/60 pb-2">
-                  <span className="text-[#FFD700] font-bold text-xs">🪙 TOKEN PRICE SCALING CONTROLS:</span>
+                  <span className="text-[#FFD700] font-bold text-xs">TOKEN PRICE SCALING CONTROLS:</span>
                   <p className="text-[10px] text-gray-400 mt-0.5">
                     Lower token quantities when $APEBROKE token price surges.
                   </p>

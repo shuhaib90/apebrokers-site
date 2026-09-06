@@ -52,7 +52,7 @@ export const Footer = ({ onDeskClick }) => {
             className="pixel-btn pixel-btn-vibrant-lime px-3.5 sm:px-4 py-2 sm:py-2.5 font-pixel text-[10px] sm:text-xs font-extrabold rounded-lg shadow-[3px_3px_0px_#000] flex items-center gap-1.5 whitespace-nowrap"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-black animate-ping shrink-0" />
-            <span>[ ⚡ BROKERDESK ]</span>
+            <span>[ BROKERDESK ]</span>
           </button>
 
           <button

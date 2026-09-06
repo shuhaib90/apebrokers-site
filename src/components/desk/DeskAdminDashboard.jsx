@@ -470,11 +470,11 @@ export function DeskAdminDashboard({
       {/* Admin Navigation Tabs */}
       <nav className="flex flex-wrap gap-2 border-b-2 border-purple-900/60 pb-3">
         {[
-          { id: 'overview', label: '📊 PROTOCOL STATISTICS' },
-          { id: 'desks', label: `🏢 ALL ACTIVE DESKS (${activeDesksCount})` },
-          { id: 'distributions', label: `🪙 ETH DISTRIBUTIONS (${rewardDeposits.length})` },
-          { id: 'logs', label: '⚡ AUDIT LOGS' },
-          { id: 'actions', label: '⚙️ PROTOCOL ACTIONS & CONFIG' },
+          { id: 'overview', label: 'PROTOCOL STATISTICS' },
+          { id: 'desks', label: `ALL ACTIVE DESKS (${activeDesksCount})` },
+          { id: 'distributions', label: `ETH DISTRIBUTIONS (${rewardDeposits.length})` },
+          { id: 'logs', label: 'AUDIT LOGS' },
+          { id: 'actions', label: 'PROTOCOL ACTIONS & CONFIG' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -631,7 +631,7 @@ export function DeskAdminDashboard({
               <div className="flex items-center justify-between border-b border-purple-900/60 pb-2">
                 <div>
                   <h3 className="text-xs sm:text-sm font-extrabold text-[#FFD700] uppercase">
-                    🪙 ADJUST BOOST & ACTIVATION FEE QUANTITY
+                    ADJUST BOOST & ACTIVATION FEE QUANTITY
                   </h3>
                   <p className="text-[10px] text-gray-400 font-mono mt-0.5">
                     If $APEBROKE price increases, lower token fee quantities so boosts remain affordable.
@@ -728,7 +728,7 @@ export function DeskAdminDashboard({
               <div className="flex items-center justify-between border-b border-purple-900/60 pb-2">
                 <div>
                   <h3 className="text-xs sm:text-sm font-extrabold text-[#FF007F] uppercase">
-                    🚀 MARKETING / LAUNCH INSTANT DISTRIBUTION
+                    MARKETING / LAUNCH INSTANT DISTRIBUTION
                   </h3>
                   <p className="text-[10px] text-gray-400 mt-0.5">
                     Distribute 100% of pool or adjusted custom ETH directly to active desks right now.
@@ -753,7 +753,7 @@ export function DeskAdminDashboard({
                   onClick={() => handleDistributeImmediate('0')}
                   className="flex-1 min-h-[40px] pixel-btn pixel-btn-vibrant-crimson py-2 text-[11px] font-bold rounded shadow-[2px_2px_0px_#000] disabled:opacity-40 whitespace-nowrap"
                 >
-                  {isDistributingImmediate ? '[ EXECUTING... ]' : '[ ⚡ DISTRIBUTE 100% OF POOL ]'}
+                  {isDistributingImmediate ? '[ EXECUTING... ]' : '[ DISTRIBUTE 100% OF POOL ]'}
                 </button>
                 <button
                   type="button"
@@ -1048,7 +1048,7 @@ export function DeskAdminDashboard({
           <div className="bg-[#10072b] p-4 rounded-xl border-2 border-[#00F0FF]/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-[3px_3px_0px_#000]">
             <div>
               <div className="font-extrabold text-[#00F0FF] flex items-center gap-2">
-                <span>⚡ SAFE & FAIR DYNAMIC 3-FACTOR DRIP ENGINE</span>
+                <span>SAFE & FAIR DYNAMIC 3-FACTOR DRIP ENGINE</span>
                 <span className="px-2 py-0.5 bg-[#00F0FF]/20 border border-[#00F0FF] text-[9px] rounded text-[#00F0FF] font-bold">
                   {(Number(globalStats.epochEmissionBps || 500) / 100).toFixed(1)}% / 5h
                 </span>
@@ -1065,7 +1065,7 @@ export function DeskAdminDashboard({
               onClick={handleTriggerEpochDistribution}
               className="pixel-btn pixel-btn-vibrant-cyan px-4 py-2.5 text-xs font-extrabold rounded-lg shadow-[2px_2px_0px_#000] disabled:opacity-40 whitespace-nowrap"
             >
-              {isDistributingEpoch ? '[ SETTLING EPOCH... ]' : '[ ⚡ TRIGGER EPOCH DISTRIBUTION ]'}
+              {isDistributingEpoch ? '[ SETTLING EPOCH... ]' : '[ TRIGGER EPOCH DISTRIBUTION ]'}
             </button>
           </div>
 
@@ -1074,7 +1074,7 @@ export function DeskAdminDashboard({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#FF007F]/30 pb-3">
               <div>
                 <div className="flex items-center gap-2 font-extrabold text-[#FF007F] text-xs sm:text-sm tracking-wider uppercase">
-                  <span>🚀 MARKETING & LAUNCH STAGE: INSTANT DISTRIBUTION</span>
+                  <span>MARKETING & LAUNCH STAGE: INSTANT DISTRIBUTION</span>
                   <span className="px-2 py-0.5 bg-[#FF007F]/20 border border-[#FF007F] text-[9px] rounded text-white font-bold">
                     100% WEIGHT SPLIT
                   </span>
@@ -1119,7 +1119,7 @@ export function DeskAdminDashboard({
                 onClick={() => handleDistributeImmediate('0')}
                 className="w-full sm:w-auto pixel-btn pixel-btn-vibrant-crimson px-5 py-2.5 text-xs font-extrabold rounded-lg shadow-[3px_3px_0px_#000] whitespace-nowrap disabled:opacity-40"
               >
-                {isDistributingImmediate ? '[ EXECUTING... ]' : '[ ⚡ DISTRIBUTE 100% OF POOL NOW ]'}
+                {isDistributingImmediate ? '[ EXECUTING... ]' : '[ DISTRIBUTE 100% OF POOL NOW ]'}
               </button>
               <button
                 type="button"
@@ -1449,7 +1449,7 @@ export function DeskAdminDashboard({
                 disabled={isDistributingEpoch}
                 className="pixel-btn pixel-btn-vibrant-cyan px-4 py-2 text-xs font-bold whitespace-nowrap self-start sm:self-auto disabled:opacity-40"
               >
-                {isDistributingEpoch ? '[ SETTLING... ]' : '[ ⚡ MANUAL SETTLE EPOCH ]'}
+                {isDistributingEpoch ? '[ SETTLING... ]' : '[ MANUAL SETTLE EPOCH ]'}
               </button>
             </div>
 

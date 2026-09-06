@@ -111,8 +111,7 @@ export function DeskComingSoon({
         {/* Feature Teasers Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-4xl text-left pt-4">
           <div className="bg-[#12072e]/90 border-2 border-purple-800/80 p-5 rounded-xl space-y-2 shadow-[4px_4px_0px_#000] hover:border-[#00FF66] transition-colors">
-            <div className="text-2xl text-[#00FF66]">⏱️</div>
-            <div className="text-xs sm:text-sm font-bold text-white font-pixel">
+            <div className="text-xs sm:text-sm font-bold text-[#00FF66] font-pixel">
               5-HOUR ETH EPOCHS
             </div>
             <p className="text-[11px] font-mono text-gray-400 leading-relaxed">
@@ -121,8 +120,7 @@ export function DeskComingSoon({
           </div>
 
           <div className="bg-[#12072e]/90 border-2 border-purple-800/80 p-5 rounded-xl space-y-2 shadow-[4px_4px_0px_#000] hover:border-[#FFD700] transition-colors">
-            <div className="text-2xl text-[#FFD700]">⚡</div>
-            <div className="text-xs sm:text-sm font-bold text-white font-pixel">
+            <div className="text-xs sm:text-sm font-bold text-[#FFD700] font-pixel">
               DYNAMIC BOOSTS
             </div>
             <p className="text-[11px] font-mono text-gray-400 leading-relaxed">
@@ -131,8 +129,7 @@ export function DeskComingSoon({
           </div>
 
           <div className="bg-[#12072e]/90 border-2 border-purple-800/80 p-5 rounded-xl space-y-2 shadow-[4px_4px_0px_#000] hover:border-[#00F0FF] transition-colors">
-            <div className="text-2xl text-[#00F0FF]">🦍</div>
-            <div className="text-xs sm:text-sm font-bold text-white font-pixel">
+            <div className="text-xs sm:text-sm font-bold text-[#00F0FF] font-pixel">
               1 NFT = 1 DESK
             </div>
             <p className="text-[11px] font-mono text-gray-400 leading-relaxed">

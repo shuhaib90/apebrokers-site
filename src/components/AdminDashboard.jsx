@@ -135,8 +135,10 @@ export const AdminDashboard = ({ onBackHome }) => {
         <main className="flex-grow flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-[#0e0722] border-4 border-black ring-2 ring-[#00FF66]/50 p-6 sm:p-8 rounded-lg shadow-[8px_8px_0px_0px_#000] text-center space-y-6">
             <div className="space-y-2">
-              <div className="w-12 h-12 bg-[#00FF66]/20 border-2 border-[#00FF66] rounded-full mx-auto flex items-center justify-center text-[#00FF66] text-xl font-bold">
-                🔒
+              <div className="w-12 h-12 bg-[#00FF66]/20 border-2 border-[#00FF66] rounded-full mx-auto flex items-center justify-center text-[#00FF66]">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
               </div>
               <h1 className="font-pixel text-base sm:text-lg text-white font-extrabold">
                 ADMIN ACCESS

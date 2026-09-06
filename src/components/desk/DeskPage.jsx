@@ -267,7 +267,7 @@ export function DeskPage({ onBackHome }) {
                       : 'text-gray-300 hover:text-white'
                   }`}
                 >
-                  🦍 DESKS
+                  DESKS
                 </button>
                 <button
                   type="button"
@@ -281,7 +281,7 @@ export function DeskPage({ onBackHome }) {
                       : 'text-[#FFD700] hover:bg-[#FFD700]/20'
                   }`}
                 >
-                  ⚙️ ADMIN DASHBOARD
+                  ADMIN DASHBOARD
                 </button>
                 <button
                   type="button"
@@ -292,7 +292,7 @@ export function DeskPage({ onBackHome }) {
                   className="px-2.5 py-1 text-[9px] sm:text-xs font-bold text-[#00F0FF] hover:bg-[#00F0FF]/20 rounded transition-colors"
                   title="Quick Admin Popup Console"
                 >
-                  ⚡ QUICK CONTROLS
+                  QUICK CONTROLS
                 </button>
               </div>
             )}
@@ -387,7 +387,7 @@ export function DeskPage({ onBackHome }) {
                   <span className="w-2.5 h-2.5 rounded-full bg-[#FFD700] animate-ping" />
                   <div>
                     <div className="text-xs sm:text-sm font-extrabold text-[#FFD700] flex items-center gap-2">
-                      <span>👑 PROTOCOL ADMIN CONSOLE</span>
+                      <span>PROTOCOL ADMIN CONSOLE</span>
                       <span className="text-[9px] font-mono text-gray-300">({address?.slice(0, 6)}...{address?.slice(-4)})</span>
                     </div>
                     <div className="text-[10px] font-mono text-gray-400">
@@ -404,7 +404,7 @@ export function DeskPage({ onBackHome }) {
                     }}
                     className="flex-1 sm:flex-none pixel-btn pixel-btn-vibrant-gold px-4 py-2 text-xs font-extrabold rounded shadow-[2px_2px_0px_#000]"
                   >
-                    [ ⚙️ OPEN ADMIN DASHBOARD ]
+                    [ OPEN ADMIN DASHBOARD ]
                   </button>
                   <button
                     type="button"
@@ -414,7 +414,7 @@ export function DeskPage({ onBackHome }) {
                     }}
                     className="flex-1 sm:flex-none pixel-btn pixel-btn-vibrant-cyan px-3 py-2 text-xs font-extrabold rounded shadow-[2px_2px_0px_#000]"
                   >
-                    [ ⚡ QUICK CONTROLS ]
+                    [ QUICK CONTROLS ]
                   </button>
                 </div>
               </div>
@@ -622,7 +622,6 @@ export function DeskPage({ onBackHome }) {
 
           {!isConnected ? (
             <div className="bg-[#10072b] border-2 border-dashed border-purple-800/80 rounded-xl p-8 sm:p-12 text-center space-y-4 shadow-[4px_4px_0px_#000]">
-              <div className="text-3xl text-purple-400">⚡</div>
               <div className="text-sm sm:text-base font-bold text-[#00FF66]">
                 CONNECT WALLET TO ACCESS DESKS
               </div>
@@ -728,7 +727,7 @@ export function DeskPage({ onBackHome }) {
                             }}
                             className="w-full flex items-center justify-between text-[9px] text-cyan-400 hover:text-white transition-colors"
                           >
-                            <span>[ ⚙ HOW IS THIS CALCULATED? ]</span>
+                            <span>[ HOW IS THIS CALCULATED? ]</span>
                             <span className="text-[8px]">{expandedCalcTokenId === desk.tokenId ? '▲ HIDE' : '▼ VIEW FORMULA'}</span>
                           </button>
 

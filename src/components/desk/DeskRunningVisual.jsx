@@ -45,7 +45,7 @@ export function DeskRunningVisual({ desk, globalStats, timeLeft }) {
     if (boostCount === 5) {
       return (
         <span className="text-[8px] font-pixel px-1.5 py-0.5 rounded bg-amber-950/80 border border-yellow-400 text-yellow-300 shadow-[0_0_8px_#FFD700] animate-pulse">
-          ⚡ 600 WGT MAX
+          600 WGT MAX
         </span>
       );
     }
@@ -225,7 +225,7 @@ export function DeskRunningVisual({ desk, globalStats, timeLeft }) {
 
         {isActive && timeLeft !== undefined && (
           <div className="text-cyan-400 font-bold whitespace-nowrap pl-2">
-            ⏱ {formatTimer(timeLeft)}
+            {formatTimer(timeLeft)}
           </div>
         )}
       </div>

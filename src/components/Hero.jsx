@@ -78,7 +78,7 @@ export const Hero = ({ onDeskClick }) => {
             className="w-full sm:w-auto min-h-[48px] sm:min-h-[52px] pixel-btn pixel-btn-vibrant-lime px-6 sm:px-8 py-3 sm:py-3.5 font-pixel text-xs sm:text-sm font-extrabold rounded-lg shadow-[4px_4px_0px_0px_#000] flex items-center justify-center gap-2 whitespace-nowrap"
           >
             <span className="w-2 h-2 rounded-full bg-black animate-ping shrink-0" />
-            <span className="whitespace-nowrap">[ ⚡ BROKERDESK ]</span>
+            <span className="whitespace-nowrap">[ BROKERDESK ]</span>
           </button>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
