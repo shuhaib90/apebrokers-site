@@ -100,12 +100,16 @@ export function DeskAdminDashboard({
       ]);
 
       // Query on-chain status & pending rewards for all known desks + probe 1..10
-      const tokenIdsToProbe = new Set((desks || []).map((d) => Number(d.token_id)));
+      const tokenIdsToProbe = new Set(
+        (desks || [])
+          .map((d) => Number(d.token_id))
+          .filter((id) => !isNaN(id) && id > 0)
+      );
       for (let i = 1; i <= 10; i++) tokenIdsToProbe.add(i);
 
       const onChainMap = {};
       if (publicClient) {
-        const probeList = Array.from(tokenIdsToProbe);
+        const probeList = Array.from(tokenIdsToProbe).slice(0, 50);
         const deskResults = await Promise.allSettled(
           probeList.map((tid) =>
             Promise.all([
@@ -240,7 +244,7 @@ export function DeskAdminDashboard({
     setStatusMessage(null);
     setErrorMessage(null);
 
-    const protocolFees = globalStats.protocolFeeBalance || 0n;
+    const protocolFees = globalStats?.protocolFeeBalance || 0n;
     try {
       const amountRaw = feeClaimInput ? parseEther(feeClaimInput) : protocolFees;
       await onClaimFees(amountRaw);
@@ -435,12 +439,13 @@ export function DeskAdminDashboard({
     const directTotals = {};
     const batchTotals = {};
 
-    rewardClaims.forEach((c) => {
+    (rewardClaims || []).forEach((c) => {
+      if (!c) return;
       const amt = parseFloat(c.amount_eth || 0);
       if (c.token_id !== null && c.token_id !== undefined && !isNaN(Number(c.token_id))) {
         const tid = Number(c.token_id);
         directTotals[tid] = (directTotals[tid] || 0) + amt;
-      } else if (c.claimer) {
+      } else if (c.claimer && typeof c.claimer === 'string') {
         const key = c.claimer.toLowerCase().trim();
         batchTotals[key] = (batchTotals[key] || 0) + amt;
       }
@@ -448,8 +453,8 @@ export function DeskAdminDashboard({
 
     // Group active desks by owner to distribute batch claims proportionally by desk weight
     const desksByOwner = {};
-    allDesks.forEach((d) => {
-      if (d.owner) {
+    (allDesks || []).forEach((d) => {
+      if (d && d.owner && typeof d.owner === 'string') {
         const key = d.owner.toLowerCase().trim();
         if (!desksByOwner[key]) desksByOwner[key] = [];
         const onChain = onChainDeskData[Number(d.token_id)];
@@ -467,9 +472,9 @@ export function DeskAdminDashboard({
       const targetDesks = activeOwnerDesks.length > 0 ? activeOwnerDesks : ownerDesks;
 
       if (targetDesks.length > 0) {
-        const totalOwnerWeight = targetDesks.reduce((sum, od) => sum + od.weight, 0) || (targetDesks.length * 100);
+        const totalOwnerWeight = targetDesks.reduce((sum, od) => sum + (od.weight || 100), 0) || (targetDesks.length * 100);
         targetDesks.forEach((od) => {
-          const deskShare = (batchAmt * od.weight) / totalOwnerWeight;
+          const deskShare = (batchAmt * (od.weight || 100)) / totalOwnerWeight;
           finalDeskTotals[od.tid] = (finalDeskTotals[od.tid] || 0) + deskShare;
         });
       }
@@ -481,16 +486,16 @@ export function DeskAdminDashboard({
   // Enriched Desks with Live Claimable, User Claimed, and User Total Earned
   const enrichedDesks = useMemo(() => {
     const pool =
-      (globalStats?.availableRewardPool > 0n
-        ? globalStats?.availableRewardPool
+      (globalStats?.availableRewardPool && globalStats.availableRewardPool > 0n
+        ? globalStats.availableRewardPool
         : globalStats?.rewardPoolBalance) || 1000000000000000n;
     const emissionBps = globalStats?.epochEmissionBps || 500n;
     const floor = globalStats?.benchmarkWeightFloor || 2000n;
-    const totalWgt = globalStats?.totalEligibleWeight > 0n ? globalStats.totalEligibleWeight : 100n;
+    const totalWgt = globalStats?.totalEligibleWeight && globalStats.totalEligibleWeight > 0n ? globalStats.totalEligibleWeight : 100n;
     const divisor = totalWgt < floor ? floor : totalWgt;
     const dist = (pool * emissionBps) / 10000n;
 
-    return allDesks.map((d) => {
+    return (allDesks || []).map((d) => {
       const tid = Number(d.token_id);
       const onChain = onChainDeskData[tid];
 
@@ -509,8 +514,9 @@ export function DeskAdminDashboard({
       // Cumulative user total earned = claimed + available pending
       const totalEarnedEth = claimedEth + availableToClaimEth;
 
-      // Est Next 5H
-      const estEthRaw = divisor > 0n ? (dist * BigInt(currentWeight)) / divisor : 0n;
+      // Est Next 5H (Guarded safe BigInt conversion)
+      const safeWeight = BigInt(Math.max(1, Math.round(Number(currentWeight || 100))));
+      const estEthRaw = divisor > 0n ? (dist * safeWeight) / divisor : 0n;
       const estEth = parseFloat(formatEther(estEthRaw));
 
       return {
@@ -526,7 +532,7 @@ export function DeskAdminDashboard({
         estEth,
       };
     });
-  }, [allDesks, onChainDeskData, deskClaimTotals, ownerClaimTotals, globalStats]);
+  }, [allDesks, onChainDeskData, deskClaimTotals, globalStats]);
 
   // Copy Owner Address feedback
   const handleCopyOwner = (address) => {
@@ -613,7 +619,7 @@ export function DeskAdminDashboard({
     (sum, d) => sum + parseFloat(d.amount_eth || 0),
     0
   );
-  const onChainDepositedEth = parseFloat(formatEther(globalStats.totalEthDeposited || 0n));
+  const onChainDepositedEth = parseFloat(formatEther(globalStats?.totalEthDeposited || 0n));
   const effectiveTotalDistributed = onChainDepositedEth > 0 ? onChainDepositedEth : totalEthDistributedDb;
 
   return (
@@ -636,15 +642,15 @@ export function DeskAdminDashboard({
             </h1>
             <div className="flex flex-wrap items-center gap-3 mt-2 text-[10px] font-mono text-gray-400">
               <div>
-                Admin: <span className="text-[#00FF66] font-bold">{ADMIN_ADDRESS.slice(0, 6)}...{ADMIN_ADDRESS.slice(-4)}</span>
+                Admin: <span className="text-[#00FF66] font-bold">{ADMIN_ADDRESS?.slice ? `${ADMIN_ADDRESS.slice(0, 6)}...${ADMIN_ADDRESS.slice(-4)}` : '0x...'}</span>
               </div>
               <div>•</div>
               <div>
-                Treasury: <span className="text-[#FFD700] font-bold">{TREASURY_ADDRESS.slice(0, 6)}...{TREASURY_ADDRESS.slice(-4)}</span>
+                Treasury: <span className="text-[#FFD700] font-bold">{TREASURY_ADDRESS?.slice ? `${TREASURY_ADDRESS.slice(0, 6)}...${TREASURY_ADDRESS.slice(-4)}` : '0x...'}</span>
               </div>
               <div>•</div>
               <div>
-                Robinhood EVM Contract: <span className="text-[#00F0FF]">{DESK_CONTRACT_ADDRESS.slice(0, 6)}...{DESK_CONTRACT_ADDRESS.slice(-4)}</span>
+                Robinhood EVM Contract: <span className="text-[#00F0FF]">{DESK_CONTRACT_ADDRESS?.slice ? `${DESK_CONTRACT_ADDRESS.slice(0, 6)}...${DESK_CONTRACT_ADDRESS.slice(-4)}` : '0x...'}</span>
               </div>
             </div>
           </div>
@@ -774,7 +780,7 @@ export function DeskAdminDashboard({
               </div>
               <div className="text-lg sm:text-2xl font-extrabold text-[#00F0FF] mt-1 drop-shadow-[0_0_8px_rgba(0,240,255,0.3)]">
                 {formatEthOrUsdt(
-                  Math.max(Number(formatEther(globalStats.totalEthClaimed || 0n)), totalClaimedAllDesks),
+                  Math.max(Number(formatEther(globalStats?.totalEthClaimed || 0n)), totalClaimedAllDesks),
                   isUsdt,
                   ethPrice
                 )}
@@ -813,7 +819,7 @@ export function DeskAdminDashboard({
                 {isUsdt ? 'CURRENT REWARD POOL (USDT)' : 'CURRENT REWARD POOL'}
               </div>
               <div className="text-lg sm:text-2xl font-extrabold text-[#A855F7] mt-1 drop-shadow-[0_0_8px_rgba(168,85,247,0.3)]">
-                {formatEthOrUsdt(globalStats.rewardPoolBalance || 0n, isUsdt, ethPrice)}
+                {formatEthOrUsdt(globalStats?.rewardPoolBalance || 0n, isUsdt, ethPrice)}
               </div>
               <div className="text-[9px] text-purple-400 mt-1 font-mono">Ready for 5-Hour Claims</div>
             </div>
@@ -821,7 +827,7 @@ export function DeskAdminDashboard({
             <div className="bg-[#140833] border border-purple-800 p-4 rounded-xl shadow-[4px_4px_0px_#000]">
               <div className="text-[10px] text-gray-400">COLLECTED PROTOCOL FEES</div>
               <div className="text-lg sm:text-2xl font-extrabold text-[#FFD700] mt-1">
-                {Number(formatEther(globalStats.protocolFeeBalance || 0n)).toLocaleString()}
+                {Number(formatEther(globalStats?.protocolFeeBalance || 0n)).toLocaleString()}
               </div>
               <div className="text-[9px] text-yellow-400 mt-1 font-mono">$APEBROKE to Treasury</div>
             </div>
@@ -837,7 +843,7 @@ export function DeskAdminDashboard({
             <div className="bg-[#140833] border border-purple-800 p-4 rounded-xl shadow-[4px_4px_0px_#000]">
               <div className="text-[10px] text-gray-400">TOTAL ELIGIBLE WEIGHT</div>
               <div className="text-lg sm:text-2xl font-extrabold text-white mt-1">
-                {(Number(globalStats.totalEligibleWeight || 0n) || totalDbWeight).toLocaleString()} WGT
+                {(Number(globalStats?.totalEligibleWeight || 0n) || totalDbWeight).toLocaleString()} WGT
               </div>
               <div className="text-[9px] text-gray-400 mt-1 font-mono">Active Proportional Share</div>
             </div>
@@ -845,7 +851,7 @@ export function DeskAdminDashboard({
             <div className="bg-[#140833] border border-purple-800 p-4 rounded-xl shadow-[4px_4px_0px_#000]">
               <div className="text-[10px] text-gray-400">TOTAL BOOST FEES</div>
               <div className="text-lg sm:text-2xl font-extrabold text-[#FF80BE] mt-1">
-                {Number(formatEther(globalStats.totalBoostFeesCollected || 0n)).toLocaleString()}
+                {Number(formatEther(globalStats?.totalBoostFeesCollected || 0n)).toLocaleString()}
               </div>
               <div className="text-[9px] text-pink-400 mt-1 font-mono">{totalDbBoosts} Boosts Applied</div>
             </div>
@@ -853,7 +859,7 @@ export function DeskAdminDashboard({
             <div className="bg-[#140833] border border-purple-800 p-4 rounded-xl shadow-[4px_4px_0px_#000]">
               <div className="text-[10px] text-gray-400">CURRENT PROTOCOL EPOCH</div>
               <div className="text-lg sm:text-2xl font-extrabold text-[#00F0FF] mt-1">
-                EPOCH #{globalStats.currentEpoch.toString()}
+                EPOCH #{globalStats?.currentEpoch ? globalStats.currentEpoch.toString() : '0'}
               </div>
               <div className="text-[9px] text-cyan-400 mt-1 font-mono">5-Hour Interval Schedule</div>
             </div>
@@ -866,7 +872,7 @@ export function DeskAdminDashboard({
                 <h3 className="text-xs sm:text-sm font-extrabold text-[#FFD700]">
                   QUICK DISTRIBUTE NATIVE ETH
                 </h3>
-                <span className="text-[9px] text-gray-400 font-mono">Epoch #{globalStats.currentEpoch.toString()}</span>
+                <span className="text-[9px] text-gray-400 font-mono">Epoch #{globalStats?.currentEpoch ? globalStats.currentEpoch.toString() : '0'}</span>
               </div>
               <p className="text-[11px] font-mono text-gray-400">
                 Fund the 5-hour reward pool with native ETH. Active desks automatically share this pool proportionally based on Desk Weight.
@@ -902,16 +908,16 @@ export function DeskAdminDashboard({
                 <span className="text-[9px] text-[#00FF66] font-mono">To Treasury</span>
               </div>
               <p className="text-[11px] font-mono text-gray-400">
-                Claim collected activation & boost protocol fees to treasury (<span className="text-white">{TREASURY_ADDRESS.slice(0, 6)}...{TREASURY_ADDRESS.slice(-4)}</span>). Then swap externally to ETH to fund subsequent reward pools.
+                Claim collected activation & boost protocol fees to treasury (<span className="text-white">{TREASURY_ADDRESS?.slice ? `${TREASURY_ADDRESS.slice(0, 6)}...${TREASURY_ADDRESS.slice(-4)}` : 'Treasury'}</span>). Then swap externally to ETH to fund subsequent reward pools.
               </p>
               <div className="flex items-center justify-between text-xs font-mono bg-black/40 p-2.5 rounded border border-purple-900/50">
                 <span className="text-gray-400">Unclaimed Fee Balance:</span>
-                <span className="text-[#FFD700] font-bold">{Number(formatEther(globalStats.protocolFeeBalance || 0n)).toLocaleString()} $APE</span>
+                <span className="text-[#FFD700] font-bold">{Number(formatEther(globalStats?.protocolFeeBalance || 0n)).toLocaleString()} $APE</span>
               </div>
               <button
                 type="button"
                 onClick={handleClaimFees}
-                disabled={isSubmitting || (globalStats.protocolFeeBalance || 0n) === 0n}
+                disabled={isSubmitting || (globalStats?.protocolFeeBalance || 0n) === 0n}
                 className="w-full min-h-[44px] pixel-btn pixel-btn-black py-2.5 text-xs font-bold text-[#A855F7] hover:text-white border-2 border-purple-700 hover:bg-purple-950/50 rounded-lg shadow-[3px_3px_0px_#000] disabled:opacity-40"
               >
                 {isSubmitting ? '[ CLAIMING TO TREASURY... ]' : '[ CLAIM ALL $APEBROKE TO TREASURY ]'}
@@ -1034,14 +1040,14 @@ export function DeskAdminDashboard({
               <div className="bg-black/40 p-2.5 rounded border border-purple-900/50 text-xs flex justify-between">
                 <span className="text-gray-400">Available Reward Pool:</span>
                 <span className="text-[#FFD700] font-bold">
-                  {Number(formatEther(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 0n)).toFixed(4)} ETH
+                  {Number(formatEther(globalStats?.availableRewardPool || globalStats?.rewardPoolBalance || 0n)).toFixed(4)} ETH
                 </span>
               </div>
 
               <div className="flex flex-wrap gap-2 pt-1">
                 <button
                   type="button"
-                  disabled={isDistributingImmediate || (globalStats.availableRewardPool || 0n) === 0n || (globalStats.totalEligibleWeight || 0n) === 0n}
+                  disabled={isDistributingImmediate || (globalStats?.availableRewardPool || 0n) === 0n || (globalStats?.totalEligibleWeight || 0n) === 0n}
                   onClick={() => handleDistributeImmediate('0')}
                   className="flex-1 min-h-[40px] pixel-btn pixel-btn-vibrant-crimson py-2 text-[11px] font-bold rounded shadow-[2px_2px_0px_#000] disabled:opacity-40 whitespace-nowrap"
                 >
@@ -1049,9 +1055,9 @@ export function DeskAdminDashboard({
                 </button>
                 <button
                   type="button"
-                  disabled={isDistributingImmediate || (globalStats.availableRewardPool || 0n) === 0n || (globalStats.totalEligibleWeight || 0n) === 0n}
+                  disabled={isDistributingImmediate || (globalStats?.availableRewardPool || 0n) === 0n || (globalStats?.totalEligibleWeight || 0n) === 0n}
                   onClick={() => {
-                    const poolEth = Number(formatEther(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 0n));
+                    const poolEth = Number(formatEther(globalStats?.availableRewardPool || globalStats?.rewardPoolBalance || 0n));
                     const half = (poolEth / 2).toFixed(4);
                     handleDistributeImmediate(half);
                   }}
@@ -1073,7 +1079,7 @@ export function DeskAdminDashboard({
                 />
                 <button
                   type="button"
-                  disabled={isDistributingImmediate || !immediateEthInput || parseFloat(immediateEthInput) <= 0 || (globalStats.totalEligibleWeight || 0n) === 0n}
+                  disabled={isDistributingImmediate || !immediateEthInput || parseFloat(immediateEthInput) <= 0 || (globalStats?.totalEligibleWeight || 0n) === 0n}
                   onClick={() => handleDistributeImmediate(immediateEthInput)}
                   className="pixel-btn pixel-btn-vibrant-cyan px-3 py-2 text-xs font-bold rounded shadow-[2px_2px_0px_#000] disabled:opacity-40 whitespace-nowrap"
                 >
@@ -1481,13 +1487,13 @@ export function DeskAdminDashboard({
               <div className="font-extrabold text-[#00F0FF] flex items-center gap-2">
                 <span>SAFE & FAIR DYNAMIC 3-FACTOR DRIP ENGINE</span>
                 <span className="px-2 py-0.5 bg-[#00F0FF]/20 border border-[#00F0FF] text-[9px] rounded text-[#00F0FF] font-bold">
-                  {(Number(globalStats.epochEmissionBps || 500) / 100).toFixed(1)}% / 5h
+                  {(Number(globalStats?.epochEmissionBps || 500) / 100).toFixed(1)}% / 5h
                 </span>
               </div>
               <div className="text-[10px] text-gray-300 mt-1 flex flex-wrap gap-x-4 gap-y-1">
-                <span>Benchmark Floor: <strong className="text-white">{Number(globalStats.benchmarkWeightFloor || 2000)} WGT</strong></span>
-                <span>Active Weight: <strong className="text-[#00FF66]">{Number(globalStats.totalEligibleWeight || 0)} WGT</strong></span>
-                <span>Available Pool: <strong className="text-[#FFD700]">{formatEthOrUsdt(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 0n, isUsdt, ethPrice)}</strong></span>
+                <span>Benchmark Floor: <strong className="text-white">{Number(globalStats?.benchmarkWeightFloor || 2000)} WGT</strong></span>
+                <span>Active Weight: <strong className="text-[#00FF66]">{Number(globalStats?.totalEligibleWeight || 0)} WGT</strong></span>
+                <span>Available Pool: <strong className="text-[#FFD700]">{formatEthOrUsdt(globalStats?.availableRewardPool || globalStats?.rewardPoolBalance || 0n, isUsdt, ethPrice)}</strong></span>
               </div>
             </div>
             <button
@@ -1519,7 +1525,7 @@ export function DeskAdminDashboard({
                   {isUsdt ? 'Available Pool (USDT)' : 'Available Unallocated Pool'}
                 </span>
                 <span className="text-sm font-extrabold text-[#FFD700]">
-                  {formatEthOrUsdt(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 0n, isUsdt, ethPrice)}
+                  {formatEthOrUsdt(globalStats?.availableRewardPool || globalStats?.rewardPoolBalance || 0n, isUsdt, ethPrice)}
                 </span>
               </div>
             </div>
@@ -1531,13 +1537,13 @@ export function DeskAdminDashboard({
                   Active Desks: <strong className="text-white">{allDesks.filter((d) => d.active).length} desks</strong>
                 </span>
                 <span className="text-gray-400">
-                  Total Active Weight: <strong className="text-[#00FF66]">{Number(globalStats.totalEligibleWeight || 0)} WGT</strong>
+                  Total Active Weight: <strong className="text-[#00FF66]">{Number(globalStats?.totalEligibleWeight || 0)} WGT</strong>
                 </span>
                 <span className="text-gray-400">
                   Base Desk (100 WGT) Share:{' '}
                   <strong className="text-[#00F0FF]">
-                    {Number(globalStats.totalEligibleWeight || 0n) > 0
-                      ? `${((100 / Number(globalStats.totalEligibleWeight)) * 100).toFixed(1)}%`
+                    {Number(globalStats?.totalEligibleWeight || 0n) > 0
+                      ? `${((100 / Number(globalStats?.totalEligibleWeight || 100)) * 100).toFixed(1)}%`
                       : '0%'}
                   </strong>
                 </span>
@@ -1548,7 +1554,7 @@ export function DeskAdminDashboard({
             <div className="flex flex-col sm:flex-row items-center gap-3">
               <button
                 type="button"
-                disabled={isDistributingImmediate || (globalStats.availableRewardPool || 0n) === 0n || (globalStats.totalEligibleWeight || 0n) === 0n}
+                disabled={isDistributingImmediate || (globalStats?.availableRewardPool || 0n) === 0n || (globalStats?.totalEligibleWeight || 0n) === 0n}
                 onClick={() => handleDistributeImmediate('0')}
                 className="w-full sm:w-auto pixel-btn pixel-btn-vibrant-crimson px-5 py-2.5 text-xs font-extrabold rounded-lg shadow-[3px_3px_0px_#000] whitespace-nowrap disabled:opacity-40"
               >
@@ -1556,9 +1562,9 @@ export function DeskAdminDashboard({
               </button>
               <button
                 type="button"
-                disabled={isDistributingImmediate || (globalStats.availableRewardPool || 0n) === 0n || (globalStats.totalEligibleWeight || 0n) === 0n}
+                disabled={isDistributingImmediate || (globalStats?.availableRewardPool || 0n) === 0n || (globalStats?.totalEligibleWeight || 0n) === 0n}
                 onClick={() => {
-                  const poolEth = Number(formatEther(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 0n));
+                  const poolEth = Number(formatEther(globalStats?.availableRewardPool || globalStats?.rewardPoolBalance || 0n));
                   const half = (poolEth / 2).toFixed(4);
                   handleDistributeImmediate(half);
                 }}
@@ -1582,7 +1588,7 @@ export function DeskAdminDashboard({
                 </div>
                 <button
                   type="button"
-                  disabled={isDistributingImmediate || !immediateEthInput || parseFloat(immediateEthInput) <= 0 || (globalStats.totalEligibleWeight || 0n) === 0n}
+                  disabled={isDistributingImmediate || !immediateEthInput || parseFloat(immediateEthInput) <= 0 || (globalStats?.totalEligibleWeight || 0n) === 0n}
                   onClick={() => handleDistributeImmediate(immediateEthInput)}
                   className="pixel-btn pixel-btn-vibrant-cyan px-4 py-2 text-xs font-bold rounded-lg shadow-[2px_2px_0px_#000] whitespace-nowrap disabled:opacity-40"
                 >
@@ -1865,7 +1871,7 @@ export function DeskAdminDashboard({
                 <div className="text-sm font-bold text-[#FFD700] mt-0.5">
                   {formatEthOrUsdt(
                     globalStats?.availableRewardPool !== undefined
-                      ? globalStats.availableRewardPool
+                      ? globalStats?.availableRewardPool
                       : (globalStats?.rewardPoolBalance || 0n),
                     isUsdt,
                     ethPrice

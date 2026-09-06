@@ -26,8 +26,8 @@ export function DeskAdminModal({
 
   if (!isOpen) return null;
 
-  const protocolFees = globalStats.protocolFeeBalance || 0n;
-  const rewardPoolEth = globalStats.rewardPoolBalance || 0n;
+  const protocolFees = globalStats?.protocolFeeBalance || 0n;
+  const rewardPoolEth = globalStats?.rewardPoolBalance || 0n;
 
   const handleDepositEth = async (e) => {
     e.preventDefault();
@@ -231,13 +231,13 @@ export function DeskAdminModal({
                 <div className="flex justify-between text-gray-400">
                   <span>Current Epoch:</span>
                   <span className="text-white font-bold">
-                    Epoch #{globalStats.currentEpoch.toString()}
+                    Epoch #{globalStats?.currentEpoch ? globalStats.currentEpoch.toString() : '0'}
                   </span>
                 </div>
                 <div className="flex justify-between text-gray-400">
                   <span>Total Protocol Desk Weight:</span>
                   <span className="text-[#00F0FF] font-bold">
-                    {globalStats.totalEligibleWeight.toString()} WGT
+                    {globalStats?.totalEligibleWeight ? globalStats.totalEligibleWeight.toString() : '0'} WGT
                   </span>
                 </div>
               </div>
@@ -280,7 +280,7 @@ export function DeskAdminModal({
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    disabled={isDistributingImmediate || (globalStats.availableRewardPool || 0n) === 0n}
+                    disabled={isDistributingImmediate || (globalStats?.availableRewardPool || 0n) === 0n}
                     onClick={() => handleDistributeImmediate('0')}
                     className="flex-1 pixel-btn pixel-btn-vibrant-crimson py-2 text-[10px] font-bold rounded shadow-[2px_2px_0px_#000] disabled:opacity-40 whitespace-nowrap"
                   >
@@ -288,9 +288,9 @@ export function DeskAdminModal({
                   </button>
                   <button
                     type="button"
-                    disabled={isDistributingImmediate || (globalStats.availableRewardPool || 0n) === 0n}
+                    disabled={isDistributingImmediate || (globalStats?.availableRewardPool || 0n) === 0n}
                     onClick={() => {
-                      const poolEth = Number(formatEther(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 0n));
+                      const poolEth = Number(formatEther(globalStats?.availableRewardPool || globalStats?.rewardPoolBalance || 0n));
                       const half = (poolEth / 2).toFixed(4);
                       handleDistributeImmediate(half);
                     }}
@@ -334,7 +334,7 @@ export function DeskAdminModal({
                 <div className="flex justify-between text-gray-400">
                   <span>Treasury Destination:</span>
                   <span className="text-[#00FF66] text-[10px] break-all font-bold">
-                    {globalStats.treasuryAddress || '0xb8E3DfDd19b6Bf35b9Fd87F8373F7f82C53bc93C'}
+                    {globalStats?.treasuryAddress || '0xb8E3DfDd19b6Bf35b9Fd87F8373F7f82C53bc93C'}
                   </span>
                 </div>
               </div>
@@ -398,7 +398,7 @@ export function DeskAdminModal({
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-gray-300">Base Boost Cost:</span>
                     <span className="text-[#FFD700] font-bold">
-                      {Number(formatEther(globalStats.baseBoostCost || 349693n * 10n ** 18n)).toLocaleString()} $APE
+                      {Number(formatEther(globalStats?.baseBoostCost || 349693n * 10n ** 18n)).toLocaleString()} $APE
                     </span>
                   </div>
                   <div className="flex gap-2">
@@ -438,7 +438,7 @@ export function DeskAdminModal({
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-gray-300">Desk Activation Fee:</span>
                     <span className="text-[#00FF66] font-bold">
-                      {Number(formatEther(globalStats.activationFee || 349693n * 10n ** 18n)).toLocaleString()} $APE
+                      {Number(formatEther(globalStats?.activationFee || 349693n * 10n ** 18n)).toLocaleString()} $APE
                     </span>
                   </div>
                   <div className="flex gap-2">
@@ -477,18 +477,18 @@ export function DeskAdminModal({
               <div className="bg-[#160833] p-3.5 border border-purple-900/60 rounded-lg space-y-2">
                 <div className="flex justify-between text-gray-400">
                   <span>Base Desk Weight:</span>
-                  <span className="text-white font-bold">{globalStats.baseDeskWeight.toString()} WGT</span>
+                  <span className="text-white font-bold">{globalStats?.baseDeskWeight ? globalStats.baseDeskWeight.toString() : '100'} WGT</span>
                 </div>
                 <div className="flex justify-between text-gray-400">
                   <span>Safe Epoch Emission:</span>
                   <span className="text-[#00FF66] font-bold">
-                    {((Number(globalStats.epochEmissionBps || 500)) / 100).toFixed(2)}% / Epoch
+                    {((Number(globalStats?.epochEmissionBps || 500)) / 100).toFixed(2)}% / Epoch
                   </span>
                 </div>
                 <div className="flex justify-between text-gray-400">
                   <span>Benchmark Floor:</span>
                   <span className="text-[#00F0FF] font-bold">
-                    {Number(globalStats.benchmarkWeightFloor || 2000).toLocaleString()} WGT
+                    {Number(globalStats?.benchmarkWeightFloor || 2000).toLocaleString()} WGT
                   </span>
                 </div>
                 <div className="flex justify-between text-gray-400">
@@ -506,13 +506,13 @@ export function DeskAdminModal({
                 <div className="flex justify-between text-gray-400">
                   <span>Admin Address:</span>
                   <span className="text-[#00FF66] text-[10px] break-all font-bold">
-                    {globalStats.contractOwner || '0xb8E3DfDd19b6Bf35b9Fd87F8373F7f82C53bc93C'}
+                    {globalStats?.contractOwner || '0xb8E3DfDd19b6Bf35b9Fd87F8373F7f82C53bc93C'}
                   </span>
                 </div>
                 <div className="flex justify-between text-gray-400">
                   <span>Treasury Address:</span>
                   <span className="text-[#FFD700] text-[10px] break-all font-bold">
-                    {globalStats.treasuryAddress || '0xb8E3DfDd19b6Bf35b9Fd87F8373F7f82C53bc93C'}
+                    {globalStats?.treasuryAddress || '0xb8E3DfDd19b6Bf35b9Fd87F8373F7f82C53bc93C'}
                   </span>
                 </div>
               </div>

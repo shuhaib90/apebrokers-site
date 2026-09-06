@@ -9,6 +9,7 @@ import { DeskActionModal } from './DeskActionModal';
 import { DeskPnlModal } from './DeskPnlModal';
 import { DeskAdminModal } from './DeskAdminModal';
 import { DeskAdminDashboard } from './DeskAdminDashboard';
+import { DeskAdminErrorBoundary } from './DeskAdminErrorBoundary';
 import { fetchRecentProtocolActivity, fetchAllRewardDepositsFromDb } from '../../utils/supabaseDesk';
 import { sound } from '../../utils/audio';
 
@@ -99,7 +100,7 @@ export function DeskPage({ onBackHome }) {
       .catch(() => {});
   }, []);
 
-  const onChainDepositedEth = parseFloat(formatEther(globalStats.totalEthDeposited || 0n));
+  const onChainDepositedEth = parseFloat(formatEther(globalStats?.totalEthDeposited || 0n));
   const effectiveTotalDistributed = onChainDepositedEth > 0 ? onChainDepositedEth : totalEthDistributedDb;
 
   // Search / Track Token ID input
@@ -108,7 +109,7 @@ export function DeskPage({ onBackHome }) {
   const [expandedCalcTokenId, setExpandedCalcTokenId] = useState(null);
 
   // Live countdown timer for 5-hour epoch
-  const [timeLeft, setTimeLeft] = useState(Number(globalStats.secondsUntilNextEpoch || 0));
+  const [timeLeft, setTimeLeft] = useState(Number(globalStats?.secondsUntilNextEpoch || 0));
 
   // Helper to format ETH or USDT reward amounts
   const formatEthReward = (weiAmount) => {
@@ -121,8 +122,8 @@ export function DeskPage({ onBackHome }) {
   const [isClaimingHistorical, setIsClaimingHistorical] = useState(false);
 
   useEffect(() => {
-    setTimeLeft(Number(globalStats.secondsUntilNextEpoch || 0));
-  }, [globalStats.secondsUntilNextEpoch]);
+    setTimeLeft(Number(globalStats?.secondsUntilNextEpoch || 0));
+  }, [globalStats?.secondsUntilNextEpoch]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -484,22 +485,24 @@ export function DeskPage({ onBackHome }) {
 
         {/* ADMIN DASHBOARD VIEW OR DESK TERMINAL VIEW */}
         {activeView === 'admin' && isAdmin ? (
-          <DeskAdminDashboard
-            globalStats={globalStats}
-            onClaimFees={adminClaimFees}
-            onDepositRewards={adminDepositRewards}
-            onDistributeEpochRewards={distributeEpochRewards}
-            onDistributeImmediateRewards={adminDistributeImmediateRewards}
-            onSetEpochEmissionBps={adminSetEpochEmissionBps}
-            onSetBenchmarkWeightFloor={adminSetBenchmarkWeightFloor}
-            onSetBaseBoostCost={adminSetBaseBoostCost}
-            onSetActivationFee={adminSetActivationFee}
-            onBackToTerminal={() => setActiveView('terminal')}
-            refetchGlobalStats={refetchGlobalStats}
-            isUsdt={isUsdt}
-            setIsUsdt={setIsUsdt}
-            ethPrice={ethPrice}
-          />
+          <DeskAdminErrorBoundary onBackToTerminal={() => setActiveView('terminal')}>
+            <DeskAdminDashboard
+              globalStats={globalStats}
+              onClaimFees={adminClaimFees}
+              onDepositRewards={adminDepositRewards}
+              onDistributeEpochRewards={distributeEpochRewards}
+              onDistributeImmediateRewards={adminDistributeImmediateRewards}
+              onSetEpochEmissionBps={adminSetEpochEmissionBps}
+              onSetBenchmarkWeightFloor={adminSetBenchmarkWeightFloor}
+              onSetBaseBoostCost={adminSetBaseBoostCost}
+              onSetActivationFee={adminSetActivationFee}
+              onBackToTerminal={() => setActiveView('terminal')}
+              refetchGlobalStats={refetchGlobalStats}
+              isUsdt={isUsdt}
+              setIsUsdt={setIsUsdt}
+              ethPrice={ethPrice}
+            />
+          </DeskAdminErrorBoundary>
         ) : (
           <>
             {/* Admin Console Quick-Access Banner (Only visible to Admin) */}
@@ -591,7 +594,7 @@ export function DeskPage({ onBackHome }) {
 
                   {/* 5-Hour Epoch Countdown */}
                   <div className="flex items-center gap-2 bg-[#1b0a40] px-3 py-1.5 border border-[#00F0FF] rounded-lg text-xs">
-                    <span className="text-gray-400 text-[10px]">EPOCH #{globalStats.currentEpoch.toString()} ENDS IN:</span>
+                    <span className="text-gray-400 text-[10px]">EPOCH #{globalStats?.currentEpoch ? globalStats.currentEpoch.toString() : '0'} ENDS IN:</span>
                     <span className="text-[#00F0FF] font-mono font-bold tracking-wider">
                       {formatCountdown(timeLeft)}
                     </span>
@@ -605,7 +608,7 @@ export function DeskPage({ onBackHome }) {
                 <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
                   <div className="text-[10px] text-gray-400 font-pixel">TOTAL WEIGHT</div>
                   <div className="text-base sm:text-xl font-bold text-[#00FF66] mt-1">
-                    {globalStats.totalEligibleWeight.toString()} WGT
+                    {globalStats?.totalEligibleWeight ? globalStats.totalEligibleWeight.toString() : '0'} WGT
                   </div>
                   <div className="text-[9px] text-gray-500 mt-0.5">Eligible Distribution</div>
                 </div>
@@ -616,7 +619,7 @@ export function DeskPage({ onBackHome }) {
                     {isUsdt ? 'USDT REWARD POOL' : 'ETH REWARD POOL'}
                   </div>
                   <div className="text-base sm:text-xl font-bold text-[#00F0FF] mt-1">
-                    {formatEthOrUsdt(globalStats.rewardPoolBalance, isUsdt, ethPrice)}
+                    {formatEthOrUsdt(globalStats?.rewardPoolBalance || 0n, isUsdt, ethPrice)}
                   </div>
                   <div className="text-[9px] text-cyan-400 mt-0.5">Available To Mine</div>
                 </div>
@@ -634,7 +637,7 @@ export function DeskPage({ onBackHome }) {
                 <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
                   <div className="text-[10px] text-gray-400 font-pixel">TOTAL CLAIMED</div>
                   <div className="text-base sm:text-xl font-bold text-[#FFD700] mt-1">
-                    {formatEthOrUsdt(globalStats.totalEthClaimed || 0n, isUsdt, ethPrice)}
+                    {formatEthOrUsdt(globalStats?.totalEthClaimed || 0n, isUsdt, ethPrice)}
                   </div>
                   <div className="text-[9px] text-yellow-400 mt-0.5">Distributed to Desks</div>
                 </div>
@@ -687,7 +690,7 @@ export function DeskPage({ onBackHome }) {
               <div className="bg-black/40 p-3 rounded-lg border border-purple-900/50 flex flex-col justify-between">
                 <span className="text-[10px] text-gray-400">Active Desks:</span>
                 <span className="text-sm font-bold text-[#00FF66] mt-1">
-                  {userBalances.activeDeskCount.toString()} / 5 Active
+                  {userBalances?.activeDeskCount ? userBalances.activeDeskCount.toString() : '0'} / 5 Active
                 </span>
               </div>
 
@@ -842,7 +845,7 @@ export function DeskPage({ onBackHome }) {
                   const isActive = desk.active;
                   const boostCount = desk.boostCount || 0;
                   const weight = desk.currentWeight || 100;
-                  const baseBoost = globalStats.baseBoostCost || 349693n * 10n ** 18n;
+                  const baseBoost = globalStats?.baseBoostCost || 349693n * 10n ** 18n;
                   const reqBoostCost =
                     desk.nextBoostCost && desk.nextBoostCost > 0n
                       ? desk.nextBoostCost
@@ -923,8 +926,8 @@ export function DeskPage({ onBackHome }) {
                             {expandedCalcTokenId === desk.tokenId && (
                               <div className="mt-2 p-2 rounded bg-black/90 border border-cyan-900/80 text-[9px] text-gray-300 space-y-1 animate-fadeIn">
                                 <div className="text-[#00FF66] font-bold">Smart Contract Math (ApeBrokerDesk.sol):</div>
-                                <div className="text-[8px] text-gray-400">• Pool Balance: <span className="text-white">{formatEthOrUsdt(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 1000000000000000n, isUsdt, ethPrice, { decimals: 4 })}</span></div>
-                                <div className="text-[8px] text-gray-400">• 5H Emission: <span className="text-white">{Number(globalStats.epochEmissionBps || 500n) / 100}%</span> (~{formatEthOrUsdt(((globalStats.availableRewardPool || globalStats.rewardPoolBalance || 1000000000000000n) * (globalStats.epochEmissionBps || 500n)) / 10000n, isUsdt, ethPrice, { decimals: 6 })})</div>
+                                <div className="text-[8px] text-gray-400">• Pool Balance: <span className="text-white">{formatEthOrUsdt(globalStats?.availableRewardPool || globalStats?.rewardPoolBalance || 1000000000000000n, isUsdt, ethPrice, { decimals: 4 })}</span></div>
+                                <div className="text-[8px] text-gray-400">• 5H Emission: <span className="text-white">{Number(globalStats?.epochEmissionBps || 500n) / 100}%</span> (~{formatEthOrUsdt(((globalStats?.availableRewardPool || globalStats?.rewardPoolBalance || 1000000000000000n) * (globalStats?.epochEmissionBps || 500n)) / 10000n, isUsdt, ethPrice, { decimals: 6 })})</div>
                                 <div className="text-[8px] text-gray-400">• Desk Weight: <span className="text-white">{weight} WGT</span> ÷ Divisor: <span className="text-white">{desk.effectiveDivisor || 2000}</span></div>
                                 <div className="text-[8px] text-[#FFD700] pt-1 border-t border-gray-800 font-bold">
                                   = {formatEthOrUsdt(desk.estimatedEpochRewardEth, isUsdt, ethPrice, { decimals: 6 })} per 5-Hour Epoch
@@ -995,9 +998,9 @@ export function DeskPage({ onBackHome }) {
                             onClick={() => openActionModal(desk, 'activate')}
                             className="w-full min-h-[44px] pixel-btn pixel-btn-vibrant-lime py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000]"
                           >
-                            [ ACTIVATE ({Number(formatEther(globalStats.activationFee || 349693n * 10n ** 18n)).toLocaleString()} $APE) ]
+                            [ ACTIVATE ({Number(formatEther(globalStats?.activationFee || 349693n * 10n ** 18n)).toLocaleString()} $APE) ]
                           </button>
-                          {(userBalances?.apeBrokeBalance || 0n) < (globalStats.activationFee || 349693n * 10n ** 18n) && (
+                          {(userBalances?.apeBrokeBalance || 0n) < (globalStats?.activationFee || 349693n * 10n ** 18n) && (
                             <div className="text-center pt-0.5">
                               <a
                                 href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
@@ -1154,7 +1157,7 @@ export function DeskPage({ onBackHome }) {
         desk={actionModal.desk}
         apeBrokeBalance={userBalances?.apeBrokeBalance || 0n}
         allowance={userBalances?.allowance || 0n}
-        activationFee={globalStats.activationFee}
+        activationFee={globalStats?.activationFee}
         onApprove={approveApebroke}
         onExecute={actionModal.actionType === 'activate' ? activateDesk : boostDesk}
       />
