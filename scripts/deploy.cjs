@@ -12,6 +12,12 @@ async function main() {
   const balance = await ethers.provider.getBalance(deployer.address);
   console.log("Deployer Balance:", ethers.formatEther(balance), "ETH");
 
+  if (balance < ethers.parseEther("0.002")) {
+    console.log("\n⚠️ NOTICE: Deployer balance is " + ethers.formatEther(balance) + " ETH.");
+    console.log("Robinhood Chain requires approximately 0.002 to 0.005 ETH to cover the deployment transaction buffer.");
+    console.log("Please send 0.002 - 0.005 ETH to: " + deployer.address + "\n");
+  }
+
   // Read environment configurations with fallback to confirmed Robinhood contracts
   const APEBROKE_TOKEN_ADDRESS =
     process.env.APEBROKE_TOKEN_ADDRESS || "0xe0F384ebCede975342c5431aCad515b4A1B862cc";
@@ -40,6 +46,13 @@ async function main() {
   console.log("- Base Boost Cost        :", BASE_BOOST_COST.toString());
   console.log("- Base Desk Weight       :", BASE_DESK_WEIGHT.toString());
 
+  // Fetch current fee data
+  const feeData = await ethers.provider.getFeeData();
+  const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas || ethers.parseUnits("0.05", "gwei");
+  const latestBlock = await ethers.provider.getBlock("latest");
+  const baseFee = latestBlock && latestBlock.baseFeePerGas ? latestBlock.baseFeePerGas : ethers.parseUnits("0.45", "gwei");
+  const maxFeePerGas = (baseFee * 125n) / 100n + maxPriorityFeePerGas;
+
   // Deploy ApeBrokerDesk contract
   console.log("\nDeploying ApeBrokerDesk contract...");
   const ApeBrokerDesk = await ethers.getContractFactory("ApeBrokerDesk");
@@ -49,7 +62,12 @@ async function main() {
     ADMIN_ADDRESS,
     TREASURY_ADDRESS,
     BASE_BOOST_COST,
-    BASE_DESK_WEIGHT
+    BASE_DESK_WEIGHT,
+    {
+      gasLimit: 2500000n,
+      maxFeePerGas,
+      maxPriorityFeePerGas,
+    }
   );
 
   await desk.waitForDeployment();
