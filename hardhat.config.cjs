@@ -1,6 +1,14 @@
 require("@nomicfoundation/hardhat-toolbox");
+const fs = require("fs");
 
-/** @type import('hardhat/config').HardhatUserConfig */
+let deployerKey = process.env.PRIVATE_KEY;
+if (!deployerKey && fs.existsSync(".deployer_wallet.json")) {
+  try {
+    const data = JSON.parse(fs.readFileSync(".deployer_wallet.json", "utf8"));
+    if (data.privateKey) deployerKey = data.privateKey;
+  } catch (e) {}
+}
+
 module.exports = {
   solidity: {
     version: "0.8.24",
@@ -20,7 +28,7 @@ module.exports = {
     robinhood: {
       url: process.env.RPC_URL || "https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY",
       chainId: process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : 4663,
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      accounts: deployerKey ? [deployerKey] : [],
     },
   },
   paths: {
