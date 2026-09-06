@@ -430,30 +430,53 @@ export function DeskAdminDashboard({
     }
   };
 
-  // Group user claims by token_id and by claimer
+  // Group user claims by token_id and attribute batch claims proportionally by desk weight
   const deskClaimTotals = useMemo(() => {
-    const totals = {};
-    rewardClaims.forEach((c) => {
-      if (c.token_id !== null && c.token_id !== undefined) {
-        const tid = Number(c.token_id);
-        const amt = parseFloat(c.amount_eth || 0);
-        totals[tid] = (totals[tid] || 0) + amt;
-      }
-    });
-    return totals;
-  }, [rewardClaims]);
+    const directTotals = {};
+    const batchTotals = {};
 
-  const ownerClaimTotals = useMemo(() => {
-    const totals = {};
     rewardClaims.forEach((c) => {
-      if (c.claimer) {
+      const amt = parseFloat(c.amount_eth || 0);
+      if (c.token_id !== null && c.token_id !== undefined && !isNaN(Number(c.token_id))) {
+        const tid = Number(c.token_id);
+        directTotals[tid] = (directTotals[tid] || 0) + amt;
+      } else if (c.claimer) {
         const key = c.claimer.toLowerCase().trim();
-        const amt = parseFloat(c.amount_eth || 0);
-        totals[key] = (totals[key] || 0) + amt;
+        batchTotals[key] = (batchTotals[key] || 0) + amt;
       }
     });
-    return totals;
-  }, [rewardClaims]);
+
+    // Group active desks by owner to distribute batch claims proportionally by desk weight
+    const desksByOwner = {};
+    allDesks.forEach((d) => {
+      if (d.owner) {
+        const key = d.owner.toLowerCase().trim();
+        if (!desksByOwner[key]) desksByOwner[key] = [];
+        const onChain = onChainDeskData[Number(d.token_id)];
+        const isActive = onChain?.active !== undefined ? onChain.active : Boolean(d.active);
+        const w = Number(onChain?.currentWeight || d.current_weight || 100);
+        desksByOwner[key].push({ tid: Number(d.token_id), weight: w, active: isActive });
+      }
+    });
+
+    const finalDeskTotals = { ...directTotals };
+
+    Object.entries(batchTotals).forEach(([ownerKey, batchAmt]) => {
+      const ownerDesks = desksByOwner[ownerKey] || [];
+      const activeOwnerDesks = ownerDesks.filter((d) => d.active);
+      const targetDesks = activeOwnerDesks.length > 0 ? activeOwnerDesks : ownerDesks;
+
+      if (targetDesks.length > 0) {
+        const totalOwnerWeight = targetDesks.reduce((sum, od) => sum + od.weight, 0) || (targetDesks.length * 100);
+        targetDesks.forEach((od) => {
+          const deskShare = (batchAmt * od.weight) / totalOwnerWeight;
+          finalDeskTotals[od.tid] = (finalDeskTotals[od.tid] || 0) + deskShare;
+        });
+      }
+    });
+
+    return finalDeskTotals;
+  }, [rewardClaims, allDesks, onChainDeskData]);
 
   // Enriched Desks with Live Claimable, User Claimed, and User Total Earned
   const enrichedDesks = useMemo(() => {
@@ -481,10 +504,7 @@ export function DeskAdminDashboard({
       const availableToClaimEth = pendingWei > 0n ? parseFloat(formatEther(pendingWei)) : 0;
 
       // Cumulative user claimed ETH
-      let claimedEth = deskClaimTotals[tid] || 0;
-      if (claimedEth === 0 && owner && ownerClaimTotals[owner.toLowerCase().trim()]) {
-        claimedEth = ownerClaimTotals[owner.toLowerCase().trim()];
-      }
+      const claimedEth = deskClaimTotals[tid] || 0;
 
       // Cumulative user total earned = claimed + available pending
       const totalEarnedEth = claimedEth + availableToClaimEth;
