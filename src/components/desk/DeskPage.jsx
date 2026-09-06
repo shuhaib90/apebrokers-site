@@ -681,69 +681,71 @@ export function DeskPage({ onBackHome }) {
                       {/* Interactive Workstation Screen with Running Animations */}
                       <DeskRunningVisual desk={desk} globalStats={globalStats} timeLeft={timeLeft} />
 
-                      {/* ================= NEXT ESTIMATED REWARD (FROM CALCULATIONS) ================= */}
-                      <div className="bg-[#0b1b26]/90 border-2 border-[#00F0FF]/70 rounded-xl p-3 space-y-2 shadow-[0_0_12px_rgba(0,240,255,0.15)] font-mono">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-[#00FF66] animate-ping' : 'bg-cyan-400'}`} />
-                            <span className="text-[10px] font-pixel text-[#00F0FF] font-bold tracking-wider">
-                              NEXT EST. REWARD
+                      {/* ================= NEXT ESTIMATED REWARD (FROM CALCULATIONS) - ONLY ON ACTIVE DESKS ================= */}
+                      {isActive && (
+                        <div className="bg-[#0b1b26]/90 border-2 border-[#00F0FF]/70 rounded-xl p-3 space-y-2 shadow-[0_0_12px_rgba(0,240,255,0.15)] font-mono">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-ping" />
+                              <span className="text-[10px] font-pixel text-[#00F0FF] font-bold tracking-wider">
+                                NEXT EST. REWARD
+                              </span>
+                            </div>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-800 text-cyan-300 font-bold">
+                              5H EPOCH
                             </span>
                           </div>
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-800 text-cyan-300 font-bold">
-                            5H EPOCH
-                          </span>
-                        </div>
 
-                        <div className="flex items-baseline justify-between pt-0.5">
-                          <div>
-                            <div className="text-base sm:text-lg font-extrabold text-[#00FF66] tracking-tight">
-                              ~{formatEthReward(desk.estimatedEpochRewardEth)} ETH
-                            </div>
-                            <div className="text-[9px] text-gray-400 mt-0.5">
-                              Projected: <span className="text-gray-200">~{formatEthReward(desk.estimatedDailyRewardEth)} ETH</span> / 24H
-                            </div>
-                          </div>
-
-                          <div className="text-right">
-                            <div className="text-xs font-bold text-white">
-                              {desk.poolSharePct ? `${desk.poolSharePct.toFixed(2)}%` : '5.00%'}
-                            </div>
-                            <div className="text-[9px] text-gray-400">
-                              Pool Share
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Calculation Formula Transparency Accordion */}
-                        <div className="border-t border-cyan-900/60 pt-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              sound?.playClick?.();
-                              setExpandedCalcTokenId(
-                                expandedCalcTokenId === desk.tokenId ? null : desk.tokenId
-                              );
-                            }}
-                            className="w-full flex items-center justify-between text-[9px] text-cyan-400 hover:text-white transition-colors"
-                          >
-                            <span>[ HOW IS THIS CALCULATED? ]</span>
-                            <span className="text-[8px]">{expandedCalcTokenId === desk.tokenId ? '▲ HIDE' : '▼ VIEW FORMULA'}</span>
-                          </button>
-
-                          {expandedCalcTokenId === desk.tokenId && (
-                            <div className="mt-2 p-2 rounded bg-black/90 border border-cyan-900/80 text-[9px] text-gray-300 space-y-1 animate-fadeIn">
-                              <div className="text-[#00FF66] font-bold">Smart Contract Math (ApeBrokerDesk.sol):</div>
-                              <div className="text-[8px] text-gray-400">• Pool Balance: <span className="text-white">{Number(formatEther(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 1000000000000000n)).toFixed(4)} ETH</span></div>
-                              <div className="text-[8px] text-gray-400">• 5H Emission: <span className="text-white">{Number(globalStats.epochEmissionBps || 500n) / 100}%</span> (~{Number(formatEther(((globalStats.availableRewardPool || globalStats.rewardPoolBalance || 1000000000000000n) * (globalStats.epochEmissionBps || 500n)) / 10000n)).toFixed(6)} ETH)</div>
-                              <div className="text-[8px] text-gray-400">• Desk Weight: <span className="text-white">{weight} WGT</span> ÷ Divisor: <span className="text-white">{desk.effectiveDivisor || 2000}</span></div>
-                              <div className="text-[8px] text-[#FFD700] pt-1 border-t border-gray-800 font-bold">
-                                = {formatEthReward(desk.estimatedEpochRewardEth)} ETH per 5-Hour Epoch
+                          <div className="flex items-baseline justify-between pt-0.5">
+                            <div>
+                              <div className="text-base sm:text-lg font-extrabold text-[#00FF66] tracking-tight">
+                                ~{formatEthReward(desk.estimatedEpochRewardEth)} ETH
+                              </div>
+                              <div className="text-[9px] text-gray-400 mt-0.5">
+                                Projected: <span className="text-gray-200">~{formatEthReward(desk.estimatedDailyRewardEth)} ETH</span> / 24H
                               </div>
                             </div>
-                          )}
+
+                            <div className="text-right">
+                              <div className="text-xs font-bold text-white">
+                                {desk.poolSharePct ? `${desk.poolSharePct.toFixed(2)}%` : '5.00%'}
+                              </div>
+                              <div className="text-[9px] text-gray-400">
+                                Pool Share
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Calculation Formula Transparency Accordion */}
+                          <div className="border-t border-cyan-900/60 pt-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                sound?.playClick?.();
+                                setExpandedCalcTokenId(
+                                  expandedCalcTokenId === desk.tokenId ? null : desk.tokenId
+                                );
+                              }}
+                              className="w-full flex items-center justify-between text-[9px] text-cyan-400 hover:text-white transition-colors"
+                            >
+                              <span>[ HOW IS THIS CALCULATED? ]</span>
+                              <span className="text-[8px]">{expandedCalcTokenId === desk.tokenId ? '▲ HIDE' : '▼ VIEW FORMULA'}</span>
+                            </button>
+
+                            {expandedCalcTokenId === desk.tokenId && (
+                              <div className="mt-2 p-2 rounded bg-black/90 border border-cyan-900/80 text-[9px] text-gray-300 space-y-1 animate-fadeIn">
+                                <div className="text-[#00FF66] font-bold">Smart Contract Math (ApeBrokerDesk.sol):</div>
+                                <div className="text-[8px] text-gray-400">• Pool Balance: <span className="text-white">{Number(formatEther(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 1000000000000000n)).toFixed(4)} ETH</span></div>
+                                <div className="text-[8px] text-gray-400">• 5H Emission: <span className="text-white">{Number(globalStats.epochEmissionBps || 500n) / 100}%</span> (~{Number(formatEther(((globalStats.availableRewardPool || globalStats.rewardPoolBalance || 1000000000000000n) * (globalStats.epochEmissionBps || 500n)) / 10000n)).toFixed(6)} ETH)</div>
+                                <div className="text-[8px] text-gray-400">• Desk Weight: <span className="text-white">{weight} WGT</span> ÷ Divisor: <span className="text-white">{desk.effectiveDivisor || 2000}</span></div>
+                                <div className="text-[8px] text-[#FFD700] pt-1 border-t border-gray-800 font-bold">
+                                  = {formatEthReward(desk.estimatedEpochRewardEth)} ETH per 5-Hour Epoch
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Desk Specs & Boost Status */}
                       <div className="space-y-2 text-xs font-mono bg-[#160a36]/60 p-3 rounded-lg border border-purple-900/40">

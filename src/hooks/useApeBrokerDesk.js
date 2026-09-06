@@ -801,6 +801,31 @@ export function useApeBrokerDesk() {
         });
       }
 
+      // If user has active desks on the Desk contract, ensure those active desks are included
+      if (activeDeskCount > 0n && publicClient) {
+        const checkRange = Array.from({ length: 50 }, (_, i) => i + 1);
+        const deskOwnerChecks = await Promise.allSettled(
+          checkRange.map((id) =>
+            publicClient.readContract({
+              address: DESK_CONTRACT_ADDRESS,
+              abi: deskDeployConfig.abi,
+              functionName: 'deskOwner',
+              args: [BigInt(id)],
+            })
+          )
+        );
+        deskOwnerChecks.forEach((res, idx) => {
+          if (
+            selectedTokenIds.size < 5 &&
+            res.status === 'fulfilled' &&
+            res.value &&
+            res.value.toLowerCase() === address.toLowerCase()
+          ) {
+            selectedTokenIds.add(checkRange[idx]);
+          }
+        });
+      }
+
       // 3. For the selected token IDs (max 5), read on-chain Desk status
       const desksList = [];
       for (const tid of Array.from(selectedTokenIds)) {
@@ -810,10 +835,11 @@ export function useApeBrokerDesk() {
         let pendingEth = 0n;
         let nftOwner = null;
         let onChainEst = 0n;
+        let isDeskActiveDirect = false;
 
         if (publicClient) {
           try {
-            const [dData, bCount, cWeight, pEth, nOwner, estReward] = await Promise.all([
+            const [dData, bCount, cWeight, pEth, nOwner, estReward, activeDirect] = await Promise.all([
               publicClient
                 .readContract({
                   address: DESK_CONTRACT_ADDRESS,
@@ -862,6 +888,14 @@ export function useApeBrokerDesk() {
                   args: [BigInt(tid)],
                 })
                 .catch(() => 0n),
+              publicClient
+                .readContract({
+                  address: DESK_CONTRACT_ADDRESS,
+                  abi: deskDeployConfig.abi,
+                  functionName: 'isDeskActive',
+                  args: [BigInt(tid)],
+                })
+                .catch(() => false),
             ]);
 
             deskData = dData;
@@ -870,13 +904,36 @@ export function useApeBrokerDesk() {
             pendingEth = pEth;
             nftOwner = nOwner;
             onChainEst = estReward;
+            isDeskActiveDirect = Boolean(activeDirect);
           } catch (e) {
             // Keep default
           }
         }
 
+        // Parse getDesk returns (handles both viem array [active, boostCount, currentWeight, owner, pendingRewards] and object)
+        let deskActiveFromData = false;
+        let deskOwnerFromContract = null;
+        if (Array.isArray(deskData) && deskData.length >= 5) {
+          deskActiveFromData = Boolean(deskData[0]);
+          if (boostCount === 0n && deskData[1] !== undefined) {
+            boostCount = BigInt(deskData[1]);
+          }
+          if (currentWeight <= 100n && deskData[2]) {
+            currentWeight = BigInt(deskData[2]);
+          }
+          if (deskData[3] && deskData[3] !== '0x0000000000000000000000000000000000000000') {
+            deskOwnerFromContract = deskData[3];
+          }
+          if (pendingEth === 0n && deskData[4]) {
+            pendingEth = BigInt(deskData[4]);
+          }
+        } else if (deskData && typeof deskData === 'object') {
+          deskActiveFromData = Boolean(deskData.active);
+          if (deskData.owner) deskOwnerFromContract = deskData.owner;
+        }
+
         // On-chain status is the definitive source of truth for contract state
-        const onChainActive = Boolean(deskData && deskData.active);
+        const onChainActive = Boolean(isDeskActiveDirect || deskActiveFromData);
         const isActive = onChainActive;
         const currentBoosts = Number(boostCount);
         const nextBoostNumber = currentBoosts < 5 ? currentBoosts + 1 : 5;
@@ -905,10 +962,13 @@ export function useApeBrokerDesk() {
 
         // Check if caller is verified on-chain owner
         const isOwnerInAlchemy = alchemyNfts.some((n) => Number(n.tokenId) === tid);
-        const isOwnerOnChain = Boolean(
+        const isOwnerOnChainNft = Boolean(
           nftOwner && address && nftOwner.toLowerCase() === address.toLowerCase()
         );
-        const isOwnerOfNft = isOwnerOnChain || isOwnerInAlchemy;
+        const isOwnerOnDeskContract = Boolean(
+          deskOwnerFromContract && address && deskOwnerFromContract.toLowerCase() === address.toLowerCase()
+        );
+        const isOwnerOfNft = isOwnerOnChainNft || isOwnerInAlchemy || isOwnerOnDeskContract;
 
         let meta = nftMetadataMap.get(tid);
         if (!meta) {

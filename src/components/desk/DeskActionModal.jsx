@@ -115,7 +115,25 @@ export function DeskActionModal({
 
         {/* Modal Body */}
         <div className="p-5 sm:p-6 space-y-4">
-          {step === 'success' ? (
+          {isActivate && isDeskActiveOnChain ? (
+            <div className="text-center py-6 space-y-3 font-mono">
+              <div className="text-base sm:text-lg text-[#00FF66] font-bold font-pixel">
+                DESK #{tokenId} IS ALREADY ACTIVE!
+              </div>
+              <p className="text-xs text-gray-300 max-w-sm mx-auto">
+                This desk is already activated on-chain and mining rewards. You can apply boosts to increase its weight.
+              </p>
+              <div className="pt-3">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="pixel-btn pixel-btn-vibrant-lime px-6 py-2.5 text-xs font-bold rounded-lg shadow-[2px_2px_0px_#000]"
+                >
+                  [ CLOSE ]
+                </button>
+              </div>
+            </div>
+          ) : step === 'success' ? (
             <div className="text-center py-6 space-y-4">
               <div className="text-3xl sm:text-4xl text-[#00FF66] animate-bounce">✓</div>
               <div className="text-base sm:text-lg text-[#00FF66] font-bold">
