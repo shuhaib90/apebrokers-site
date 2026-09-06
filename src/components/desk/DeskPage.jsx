@@ -5,9 +5,9 @@ import { formatEther } from 'viem';
 import { useApeBrokerDesk } from '../../hooks/useApeBrokerDesk';
 import { DeskRunningVisual } from './DeskRunningVisual';
 import { DeskActionModal } from './DeskActionModal';
+import { DeskPnlModal } from './DeskPnlModal';
 import { DeskAdminModal } from './DeskAdminModal';
 import { DeskAdminDashboard } from './DeskAdminDashboard';
-import { DeskComingSoon } from './DeskComingSoon';
 import { fetchRecentProtocolActivity } from '../../utils/supabaseDesk';
 import { sound } from '../../utils/audio';
 
@@ -59,6 +59,10 @@ export function DeskPage({ onBackHome }) {
     isOpen: false,
     actionType: 'activate', // 'activate' | 'boost'
     desk: null,
+  });
+  const [pnlModal, setPnlModal] = useState({
+    isOpen: false,
+    claimData: null,
   });
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [activeView, setActiveView] = useState('terminal'); // 'terminal' | 'admin'
@@ -144,11 +148,36 @@ export function DeskPage({ onBackHome }) {
     });
   };
 
+  const openPnlCard = (data) => {
+    sound?.playClick?.();
+    setPnlModal({
+      isOpen: true,
+      claimData: data,
+    });
+  };
+
   const handleClaimSingle = async (desk) => {
     sound?.playClick?.();
+    const claimAmountEth = Number(formatEther(desk.pendingRewardsEth || 0n)).toFixed(6);
     try {
-      await claimRewards(desk.tokenId, desk.pendingRewardsEth);
+      const res = await claimRewards(desk.tokenId, desk.pendingRewardsEth);
       sound?.playSuccess?.();
+      setPnlModal({
+        isOpen: true,
+        claimData: {
+          amountEth: claimAmountEth,
+          tokenId: desk.tokenId,
+          tokenIds: [desk.tokenId],
+          deskWeight: desk.currentWeight || 100,
+          boostCount: desk.boostCount || 0,
+          image: desk.image || '/brokerdesk-art.png',
+          deskName: desk.name || `Broker Desk #${desk.tokenId}`,
+          address,
+          txHash: res?.hash || '',
+          timestamp: new Date().toISOString(),
+          claimType: 'single',
+        },
+      });
     } catch (err) {
       console.error('Claim failed:', err);
       sound?.playError?.();
@@ -169,8 +198,32 @@ export function DeskPage({ onBackHome }) {
         (acc, d) => acc + d.pendingRewardsEth,
         0n
       );
-      await claimAllRewards(ids, totalPending);
+      const totalWeight = claimableDesks.reduce(
+        (acc, d) => acc + (d.currentWeight || 100),
+        0
+      );
+      const maxBoost = Math.max(...claimableDesks.map((d) => d.boostCount || 0));
+      const claimAmountEth = Number(formatEther(totalPending)).toFixed(6);
+      const primaryDesk = claimableDesks[0];
+
+      const res = await claimAllRewards(ids, totalPending);
       sound?.playSuccess?.();
+      setPnlModal({
+        isOpen: true,
+        claimData: {
+          amountEth: claimAmountEth,
+          tokenId: ids[0],
+          tokenIds: ids,
+          deskWeight: totalWeight,
+          boostCount: maxBoost,
+          image: primaryDesk?.image || '/brokerdesk-art.png',
+          deskName: `${ids.length} Broker Desks`,
+          address,
+          txHash: res?.hash || '',
+          timestamp: new Date().toISOString(),
+          claimType: 'all',
+        },
+      });
     } catch (err) {
       console.error('Claim all failed:', err);
       sound?.playError?.();
@@ -184,8 +237,26 @@ export function DeskPage({ onBackHome }) {
     sound?.playClick?.();
     setIsClaimingHistorical(true);
     try {
-      await claimHistoricalRewards(userBalances.historicalClaimableEth);
+      const histAmountEth = Number(formatEther(userBalances.historicalClaimableEth)).toFixed(6);
+      const primaryDesk = userDesks[0];
+      const res = await claimHistoricalRewards(userBalances.historicalClaimableEth);
       sound?.playSuccess?.();
+      setPnlModal({
+        isOpen: true,
+        claimData: {
+          amountEth: histAmountEth,
+          tokenId: primaryDesk?.tokenId || 1,
+          tokenIds: primaryDesk ? [primaryDesk.tokenId] : [],
+          deskWeight: totalUserWeight || 100,
+          boostCount: primaryDesk?.boostCount || 0,
+          image: primaryDesk?.image || '/brokerdesk-art.png',
+          deskName: primaryDesk?.name || 'Accrued Historical Rewards',
+          address,
+          txHash: res?.hash || '',
+          timestamp: new Date().toISOString(),
+          claimType: 'historical',
+        },
+      });
     } catch (err) {
       console.error('Claim historical failed:', err);
       sound?.playError?.();
@@ -429,7 +500,7 @@ export function DeskPage({ onBackHome }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 font-mono text-center">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-4 font-mono text-center">
             {/* Total Active Desks */}
             <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
               <div className="text-[10px] text-gray-400 font-pixel">TOTAL WEIGHT</div>
@@ -445,7 +516,16 @@ export function DeskPage({ onBackHome }) {
               <div className="text-base sm:text-xl font-bold text-[#00F0FF] mt-1">
                 {Number(formatEther(globalStats.rewardPoolBalance)).toFixed(4)} ETH
               </div>
-              <div className="text-[9px] text-gray-500 mt-0.5">Available To Claim</div>
+              <div className="text-[9px] text-gray-500 mt-0.5">Available To Mine</div>
+            </div>
+
+            {/* Total Rewards Claimed Protocol-wide */}
+            <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
+              <div className="text-[10px] text-gray-400 font-pixel">TOTAL REWARDS CLAIMED</div>
+              <div className="text-base sm:text-xl font-bold text-[#FFD700] mt-1">
+                {Number(formatEther(globalStats.totalEthClaimed || 0n)).toFixed(4)} ETH
+              </div>
+              <div className="text-[9px] text-gray-500 mt-0.5">Distributed to Desks</div>
             </div>
 
             {/* Wallet Limit Note */}
@@ -873,6 +953,32 @@ export function DeskPage({ onBackHome }) {
                               </a>
                             </div>
                           )}
+                          <div className="pt-1 text-center">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openPnlCard({
+                                  amountEth:
+                                    desk.pendingRewardsEth > 0n
+                                      ? pendingEthFormatted
+                                      : formatEthReward(desk.estimatedEpochRewardEth),
+                                  tokenId: desk.tokenId,
+                                  tokenIds: [desk.tokenId],
+                                  deskWeight: weight,
+                                  boostCount,
+                                  image: desk.image || '/brokerdesk-art.png',
+                                  deskName: desk.name || `Broker Desk #${desk.tokenId}`,
+                                  address,
+                                  txHash: '',
+                                  timestamp: new Date().toISOString(),
+                                  claimType: 'preview',
+                                })
+                              }
+                              className="text-[9px] font-mono text-cyan-400 hover:text-white underline font-semibold inline-flex items-center justify-center gap-1 mx-auto transition-colors"
+                            >
+                              [ VIEW &amp; SHARE PNL CARD ]
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -940,6 +1046,13 @@ export function DeskPage({ onBackHome }) {
         activationFee={globalStats.activationFee}
         onApprove={approveApebroke}
         onExecute={actionModal.actionType === 'activate' ? activateDesk : boostDesk}
+      />
+
+      {/* PNL Claim Share & Download Modal */}
+      <DeskPnlModal
+        isOpen={pnlModal.isOpen}
+        onClose={() => setPnlModal({ isOpen: false, claimData: null })}
+        claimData={pnlModal.claimData}
       />
 
       {/* Admin Modal */}
