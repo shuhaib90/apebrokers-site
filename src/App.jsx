@@ -47,11 +47,7 @@ function App() {
   };
 
   const handleDesk = () => {
-    if (window.location.pathname !== '/brokerdesk') {
-      window.history.pushState({}, '', '/brokerdesk');
-    }
-    setCurrentPage('desk');
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    window.location.href = '/brokerdesk';
   };
 
   const handleAdmin = () => {
