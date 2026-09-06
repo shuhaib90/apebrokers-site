@@ -12,13 +12,19 @@ function App() {
 
   useEffect(() => {
     const handleRoute = () => {
-      const path = window.location.pathname;
-      const hash = window.location.hash;
+      const path = (window.location.pathname || '').toLowerCase();
+      const hash = (window.location.hash || '').toLowerCase();
       if (path === '/admin' || hash === '#admin') {
         setCurrentPage('admin');
       } else if (path === '/apply' || hash === '#apply') {
         setCurrentPage('apply');
-      } else if (path === '/desk' || hash === '#desk') {
+      } else if (
+        path === '/brokerdesk' ||
+        path.startsWith('/brokerdesk') ||
+        hash === '#brokerdesk' ||
+        path === '/desk' ||
+        hash === '#desk'
+      ) {
         setCurrentPage('desk');
       } else {
         setCurrentPage('home');
@@ -27,7 +33,11 @@ function App() {
 
     handleRoute();
     window.addEventListener('hashchange', handleRoute);
-    return () => window.removeEventListener('hashchange', handleRoute);
+    window.addEventListener('popstate', handleRoute);
+    return () => {
+      window.removeEventListener('hashchange', handleRoute);
+      window.removeEventListener('popstate', handleRoute);
+    };
   }, []);
 
   const handleApply = () => {
@@ -37,7 +47,9 @@ function App() {
   };
 
   const handleDesk = () => {
-    window.location.hash = 'desk';
+    if (window.location.pathname !== '/brokerdesk') {
+      window.history.pushState({}, '', '/brokerdesk');
+    }
     setCurrentPage('desk');
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
@@ -49,6 +61,9 @@ function App() {
   };
 
   const handleBackHome = () => {
+    if (window.location.pathname !== '/') {
+      window.history.pushState({}, '', '/');
+    }
     window.location.hash = '';
     setCurrentPage('home');
     window.scrollTo({ top: 0, behavior: 'instant' });

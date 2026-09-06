@@ -6,6 +6,7 @@ import { useApeBrokerDesk } from '../../hooks/useApeBrokerDesk';
 import { DeskActionModal } from './DeskActionModal';
 import { DeskAdminModal } from './DeskAdminModal';
 import { DeskAdminDashboard } from './DeskAdminDashboard';
+import { DeskComingSoon } from './DeskComingSoon';
 import { fetchRecentProtocolActivity } from '../../utils/supabaseDesk';
 import { sound } from '../../utils/audio';
 
@@ -190,6 +191,19 @@ export function DeskPage({ onBackHome }) {
   const totalUserPendingEth = userDesks
     .filter((d) => d.active && d.isOwnerOfNft)
     .reduce((acc, d) => acc + d.pendingRewardsEth, 0n);
+
+  // Gate desk access to authorized admin wallets while protocol rollout is pending
+  if (!isAdmin) {
+    return (
+      <DeskComingSoon
+        onBackHome={onBackHome}
+        address={address}
+        isConnected={isConnected}
+        openConnectModal={openConnectModal}
+        disconnect={disconnect}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#070314] text-white font-pixel selection:bg-[#00FF66] selection:text-black relative pb-20">

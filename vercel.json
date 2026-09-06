@@ -2,6 +2,8 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/apply", "destination": "/apply.html" },
-    { "source": "/brokers", "destination": "/brokers.html" }
+    { "source": "/brokers", "destination": "/brokers.html" },
+    { "source": "/brokerdesk", "destination": "/index.html" },
+    { "source": "/desk", "destination": "/index.html" }
   ]
 }
