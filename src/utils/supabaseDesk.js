@@ -342,7 +342,9 @@ export async function fetchAllRewardDepositsFromDb(limit = 100) {
       console.warn('Supabase fetchAllRewardDeposits error:', error.message);
       return [];
     }
-    return data || [];
+    // Filter out historical local hardhat dev test deposit (id 1)
+    const productionDeposits = (data || []).filter((d) => d.id !== 1);
+    return productionDeposits;
   } catch (err) {
     console.error('Error fetching reward deposits from DB:', err);
     return [];

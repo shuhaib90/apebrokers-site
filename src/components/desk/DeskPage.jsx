@@ -100,7 +100,7 @@ export function DeskPage({ onBackHome }) {
   }, []);
 
   const onChainDepositedEth = parseFloat(formatEther(globalStats.totalEthDeposited || 0n));
-  const effectiveTotalDistributed = Math.max(totalEthDistributedDb, onChainDepositedEth);
+  const effectiveTotalDistributed = onChainDepositedEth > 0 ? onChainDepositedEth : totalEthDistributedDb;
 
   // Search / Track Token ID input
   const [manualTokenId, setManualTokenId] = useState('');

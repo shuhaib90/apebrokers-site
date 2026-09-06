@@ -594,7 +594,7 @@ export function DeskAdminDashboard({
     0
   );
   const onChainDepositedEth = parseFloat(formatEther(globalStats.totalEthDeposited || 0n));
-  const effectiveTotalDistributed = Math.max(totalEthDistributedDb, onChainDepositedEth);
+  const effectiveTotalDistributed = onChainDepositedEth > 0 ? onChainDepositedEth : totalEthDistributedDb;
 
   return (
     <div className="space-y-6 select-none font-pixel text-white">
