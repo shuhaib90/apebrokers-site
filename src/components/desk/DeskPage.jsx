@@ -400,11 +400,8 @@ export function DeskPage({ onBackHome }) {
                 LIVE PROTOCOL METRICS
               </span>
             </div>
-            {/* 5-Hour Epoch Countdown & Safe 5% Drip */}
+            {/* 5-Hour Epoch Countdown */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="hidden sm:inline-block px-2 py-1 bg-[#0f233a] border border-[#00F0FF]/60 text-[10px] text-[#00F0FF] rounded font-bold">
-                ⚡ 5% / 5h SAFE DRIP
-              </span>
               <div className="flex items-center gap-2 bg-[#1b0a40] px-3 py-1.5 border border-[#00F0FF] rounded-lg text-xs">
                 <span className="text-gray-400 text-[10px]">EPOCH #{globalStats.currentEpoch.toString()} ENDS IN:</span>
                 <span className="text-[#00F0FF] font-mono font-bold tracking-wider">
@@ -414,7 +411,7 @@ export function DeskPage({ onBackHome }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 pt-4 font-mono text-center">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 font-mono text-center">
             {/* Total Active Desks */}
             <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
               <div className="text-[10px] text-gray-400 font-pixel">TOTAL WEIGHT</div>
@@ -433,26 +430,8 @@ export function DeskPage({ onBackHome }) {
               <div className="text-[9px] text-gray-500 mt-0.5">Available To Claim</div>
             </div>
 
-            {/* Total ETH Distributed */}
-            <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
-              <div className="text-[10px] text-gray-400 font-pixel">TOTAL DISTRIBUTED</div>
-              <div className="text-base sm:text-xl font-bold text-[#FFD700] mt-1">
-                {Number(formatEther(globalStats.totalEthDeposited)).toFixed(4)} ETH
-              </div>
-              <div className="text-[9px] text-gray-500 mt-0.5">Pool Funded</div>
-            </div>
-
-            {/* Protocol Fees Collected */}
-            <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
-              <div className="text-[10px] text-gray-400 font-pixel">PROTOCOL FEES</div>
-              <div className="text-base sm:text-xl font-bold text-[#A855F7] mt-1">
-                {Number(formatEther(globalStats.protocolFeeBalance)).toLocaleString()}
-              </div>
-              <div className="text-[9px] text-gray-500 mt-0.5">$APEBROKE Collected</div>
-            </div>
-
             {/* Wallet Limit Note */}
-            <div className="col-span-2 lg:col-span-1 bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40 flex flex-col justify-center">
+            <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40 flex flex-col justify-center">
               <div className="text-[10px] text-gray-400 font-pixel">DESK CAPACITY</div>
               <div className="text-sm font-bold text-white mt-1">MAX 5 / WALLET</div>
               <div className="text-[9px] text-[#00FF66] mt-0.5">5 Boosts / Desk</div>
