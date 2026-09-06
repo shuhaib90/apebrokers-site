@@ -46,7 +46,7 @@ export const Header = ({ onDeskClick }) => {
             >
               <span className="w-1.5 h-1.5 rounded-full bg-[#00FF66] animate-ping" />
               <span className="sm:hidden">[ DESK ]</span>
-              <span className="hidden sm:inline">[ BROKER DESK ]</span>
+              <span className="hidden sm:inline">[ BROKERDESK ]</span>
             </button>
           )}
 

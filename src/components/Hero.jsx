@@ -34,14 +34,14 @@ export const Hero = ({ onDeskClick }) => {
 
         {/* Headline */}
         <div className="space-y-3 w-full px-1 sm:px-2 flex flex-col items-center">
-          <h1 className="font-pixel text-[clamp(1.15rem,6.6vw,4.5rem)] pixel-text-3d-lime tracking-tight font-extrabold leading-tight whitespace-nowrap select-none max-w-full text-center">
-            APE BROKER DESK
+          <h1 className="font-pixel text-[clamp(1.5rem,8vw,4.5rem)] pixel-text-3d-lime tracking-tight font-extrabold leading-tight whitespace-nowrap select-none max-w-full text-center">
+            BROKERDESK
           </h1>
           <div className="inline-block max-w-full bg-[#120729]/95 border-2 border-[#00F0FF] px-2.5 sm:px-4 py-2 sm:py-2.5 shadow-[4px_4px_0px_0px_#FF007F] rounded-lg">
             <h2 className="font-pixel text-[8px] min-[360px]:text-[9px] min-[400px]:text-[10px] sm:text-base md:text-xl text-[#00F0FF] tracking-tight font-extrabold min-h-[26px] sm:min-h-[32px] flex items-center justify-center">
               <TypewriterText
                 text={[
-                  '1 NFT = 1 OPERATING BROKER DESK.',
+                  '1 NFT = 1 OPERATING BROKERDESK.',
                   'AUTOMATED 5-HOUR ETH YIELDS.',
                   'SCALE UP TO 600 WGT WITH $APEBROKE.',
                   'ROBINHOOD CHAIN MAINNET.',
@@ -61,7 +61,7 @@ export const Hero = ({ onDeskClick }) => {
         <div className="bg-[#12082b]/95 backdrop-blur-md p-3.5 sm:p-5 border-3 border-[#A855F7] shadow-[5px_5px_0px_0px_#000] max-w-xl mx-auto min-h-[85px] sm:min-h-[80px] flex items-center justify-center rounded-lg">
           <p className="font-mono text-xs sm:text-sm md:text-base text-gray-100 font-semibold leading-relaxed">
             <TypewriterText
-              text="Welcome to Ape Broker Desk, the premier decentralized NFT revenue protocol on Robinhood Chain. Activate your Ape Broker NFT as an active trading desk, amplify your yields with deflationary $APEBROKE boosts, and claim continuous 5-hour ETH distributions."
+              text="Welcome to BrokerDesk, the premier decentralized NFT revenue protocol on Robinhood Chain. Activate your NFT as an active trading desk, amplify your yields with deflationary $APEBROKE boosts, and claim continuous 5-hour ETH distributions."
               speed={12}
               delay={500}
               playSound={false}
@@ -75,17 +75,17 @@ export const Hero = ({ onDeskClick }) => {
           <button
             type="button"
             onClick={handleLaunchDesk}
-            className="w-full sm:w-auto min-h-[48px] sm:min-h-[52px] pixel-btn pixel-btn-vibrant-lime px-6 sm:px-8 py-3 sm:py-3.5 font-pixel text-xs sm:text-sm font-extrabold rounded-lg shadow-[4px_4px_0px_0px_#000] flex items-center justify-center gap-2"
+            className="w-full sm:w-auto min-h-[48px] sm:min-h-[52px] pixel-btn pixel-btn-vibrant-lime px-6 sm:px-8 py-3 sm:py-3.5 font-pixel text-xs sm:text-sm font-extrabold rounded-lg shadow-[4px_4px_0px_0px_#000] flex items-center justify-center gap-2 whitespace-nowrap"
           >
-            <span className="w-2 h-2 rounded-full bg-black animate-ping" />
-            <span>[ ⚡ ENTER BROKER DESK ]</span>
+            <span className="w-2 h-2 rounded-full bg-black animate-ping shrink-0" />
+            <span className="whitespace-nowrap">[ ⚡ BROKERDESK ]</span>
           </button>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={handleOpenSea}
-              className="flex-1 sm:flex-none min-h-[44px] sm:min-h-[52px] pixel-btn pixel-btn-vibrant-cyan px-4 sm:px-6 py-2.5 sm:py-3.5 font-pixel text-[11px] sm:text-sm font-bold rounded-lg shadow-[3px_3px_0px_0px_#000]"
+              className="flex-1 sm:flex-none min-h-[44px] sm:min-h-[52px] pixel-btn pixel-btn-vibrant-cyan px-4 sm:px-6 py-2.5 sm:py-3.5 font-pixel text-[11px] sm:text-sm font-bold rounded-lg shadow-[3px_3px_0px_0px_#000] whitespace-nowrap"
             >
               [ OPENSEA ]
             </button>
@@ -93,7 +93,7 @@ export const Hero = ({ onDeskClick }) => {
             <button
               type="button"
               onClick={handleApebroke}
-              className="flex-1 sm:flex-none min-h-[44px] sm:min-h-[52px] pixel-btn pixel-btn-vibrant-gold px-4 sm:px-6 py-2.5 sm:py-3.5 font-pixel text-[11px] sm:text-sm font-bold rounded-lg shadow-[3px_3px_0px_0px_#000]"
+              className="flex-1 sm:flex-none min-h-[44px] sm:min-h-[52px] pixel-btn pixel-btn-vibrant-gold px-4 sm:px-6 py-2.5 sm:py-3.5 font-pixel text-[11px] sm:text-sm font-bold rounded-lg shadow-[3px_3px_0px_0px_#000] whitespace-nowrap"
             >
               [ $APEBROKE ]
             </button>
@@ -134,13 +134,13 @@ export const Hero = ({ onDeskClick }) => {
             </div>
           </div>
 
-          {/* Stat 4: Neon Pink / 1 NFT = 1 Desk Monitor */}
-          <div className="bg-[#260517]/90 backdrop-blur-md p-3 sm:p-4 text-center shadow-[6px_6px_0px_0px_#000] border-2 border-[#FF007F] rounded-lg min-h-[85px] sm:min-h-[95px] flex flex-col justify-center items-center">
-            <div className="font-pixel text-xs sm:text-base md:text-lg text-[#FF007F] font-extrabold whitespace-nowrap tracking-tight drop-shadow-[0_0_8px_rgba(255,0,127,0.4)]">
-              1 NFT = 1 DESK
+          {/* Stat 4: Neon Pink / BrokerDesk Monitor */}
+          <div className="bg-[#260517]/90 backdrop-blur-md p-2.5 sm:p-4 text-center shadow-[6px_6px_0px_0px_#000] border-2 border-[#FF007F] rounded-lg min-h-[85px] sm:min-h-[95px] flex flex-col justify-center items-center overflow-hidden">
+            <div className="font-pixel text-[11px] sm:text-sm md:text-base text-[#FF007F] font-extrabold whitespace-nowrap tracking-tight drop-shadow-[0_0_8px_rgba(255,0,127,0.4)]">
+              BROKERDESK
             </div>
             <div className="font-pixel text-[8px] sm:text-[9px] text-[#ff80be] mt-1 whitespace-nowrap font-bold">
-              YIELD TERMINAL
+              1 NFT = 1 DESK
             </div>
           </div>
         </div>
