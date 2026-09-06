@@ -26,3 +26,9 @@ dist-ssr
 # Hardhat
 artifacts
 cache
+
+# Secrets & Private Keys
+.secret*
+*.secret*
+*.key
+*deployer*
