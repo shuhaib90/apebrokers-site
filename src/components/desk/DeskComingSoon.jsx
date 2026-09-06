@@ -88,10 +88,10 @@ export function DeskComingSoon({
       {/* Main Coming Soon Container */}
       <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-8 py-10 sm:py-16 text-center space-y-8 flex-grow flex flex-col justify-center items-center">
         {/* Status Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#170a36]/90 border-2 border-[#FFD700] rounded-full shadow-[0_0_20px_rgba(255,215,0,0.3)] animate-pulse">
-          <span className="w-2 h-2 rounded-full bg-[#FFD700]" />
-          <span className="text-[10px] sm:text-xs font-bold text-[#FFD700] tracking-wider font-mono uppercase">
-            {isConnected ? 'RESTRICTED PREVIEW • ADMIN ACCESS ONLY' : 'COMING SOON • ADMIN PREVIEW'}
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#170a36]/90 border-2 border-[#00FF66] rounded-full shadow-[0_0_20px_rgba(0,255,102,0.25)]">
+          <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-ping" />
+          <span className="text-[10px] sm:text-xs font-bold text-[#00FF66] tracking-wider font-mono uppercase">
+            ● COMING SOON
           </span>
         </div>
 
@@ -141,74 +141,51 @@ export function DeskComingSoon({
           </div>
         </div>
 
-        {/* Action / Authorization Card */}
-        <div className="w-full max-w-lg bg-[#140833] border-3 border-[#00FF66] p-6 rounded-xl shadow-[0_0_30px_rgba(0,255,102,0.2)] space-y-4">
-          {!isConnected ? (
-            <div className="space-y-3">
-              <div className="text-xs sm:text-sm font-bold text-[#00FF66]">
-                [ ADMIN EARLY ACCESS ]
-              </div>
-              <p className="text-[11px] font-mono text-gray-300">
-                Are you an administrator? Connect your authorized wallet below to unlock full protocol controls and desk management.
-              </p>
-              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    sound?.playClick?.();
-                    openConnectModal?.();
-                  }}
-                  className="w-full sm:w-auto pixel-btn pixel-btn-vibrant-lime px-6 py-3 text-xs font-extrabold rounded-lg shadow-[3px_3px_0px_#000]"
-                >
-                  [ CONNECT ADMIN WALLET ]
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    sound?.playClick?.();
-                    onBackHome();
-                  }}
-                  className="w-full sm:w-auto pixel-btn pixel-btn-vibrant-cyan px-5 py-3 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000]"
-                >
-                  [ RETURN HOME ]
-                </button>
-              </div>
+        {/* Action Card */}
+        <div className="w-full max-w-md bg-[#140833] border-3 border-[#00FF66] p-6 rounded-xl shadow-[0_0_30px_rgba(0,255,102,0.2)] space-y-4">
+          <div className="space-y-2">
+            <div className="text-xs sm:text-sm font-bold text-[#00FF66]">
+              [ ACCESS TERMINAL ]
             </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="inline-block bg-red-950/80 border border-[#FF2247] px-3 py-1 rounded text-[10px] text-[#FF2247] font-mono">
-                CONNECTED: {address.slice(0, 8)}...{address.slice(-6)}
-              </div>
-              <div className="text-xs sm:text-sm font-bold text-[#FFD700]">
-                PUBLIC ACCESS OPENS SOON
-              </div>
-              <p className="text-[11px] font-mono text-gray-300">
-                This wallet is not on the admin early-access whitelist. The Ape Broker Desk terminal will open to all NFT holders shortly!
-              </p>
-              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    sound?.playClick?.();
-                    disconnect?.();
-                  }}
-                  className="w-full sm:w-auto pixel-btn pixel-btn-vibrant-gold px-5 py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000]"
-                >
-                  [ SWITCH / DISCONNECT ]
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    sound?.playClick?.();
-                    onBackHome();
-                  }}
-                  className="w-full sm:w-auto pixel-btn pixel-btn-vibrant-lime px-5 py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000]"
-                >
-                  [ RETURN HOME ]
-                </button>
-              </div>
-            </div>
-          )}
+            <p className="text-[11px] font-mono text-gray-300">
+              Connect your wallet to launch and interact with the Ape Broker Desk terminal.
+            </p>
+          </div>
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            {!isConnected ? (
+              <button
+                type="button"
+                onClick={() => {
+                  sound?.playClick?.();
+                  openConnectModal?.();
+                }}
+                className="w-full sm:w-auto pixel-btn pixel-btn-vibrant-lime px-6 py-3 text-xs font-extrabold rounded-lg shadow-[3px_3px_0px_#000]"
+              >
+                [ CONNECT WALLET ]
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  sound?.playClick?.();
+                  disconnect?.();
+                }}
+                className="w-full sm:w-auto pixel-btn pixel-btn-vibrant-gold px-5 py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000]"
+              >
+                [ DISCONNECT ]
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                sound?.playClick?.();
+                onBackHome();
+              }}
+              className="w-full sm:w-auto pixel-btn pixel-btn-vibrant-cyan px-5 py-3 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000]"
+            >
+              [ RETURN HOME ]
+            </button>
+          </div>
         </div>
       </main>
 
