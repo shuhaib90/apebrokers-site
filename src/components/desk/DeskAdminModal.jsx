@@ -9,11 +9,18 @@ export function DeskAdminModal({
   globalStats,
   onClaimFees,
   onDepositRewards,
+  onDistributeImmediateRewards,
+  onSetBaseBoostCost,
+  onSetActivationFee,
 }) {
   const [activeTab, setActiveTab] = useState('deposit'); // 'deposit' | 'fees' | 'config'
   const [ethAmount, setEthAmount] = useState('');
   const [feeAmount, setFeeAmount] = useState('');
+  const [boostCostInput, setBoostCostInput] = useState('');
+  const [activationFeeInput, setActivationFeeInput] = useState('');
+  const [immediateEthInput, setImmediateEthInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDistributingImmediate, setIsDistributingImmediate] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
 
@@ -47,6 +54,30 @@ export function DeskAdminModal({
     }
   };
 
+  const handleDistributeImmediate = async (amountEth) => {
+    if (!onDistributeImmediateRewards) return;
+    sound?.playClick?.();
+    setIsDistributingImmediate(true);
+    setStatusMessage(null);
+    setErrorMessage(null);
+    try {
+      await onDistributeImmediateRewards({ amountEth });
+      const label = amountEth && parseFloat(amountEth) > 0 ? `${amountEth} ETH` : 'all available pool';
+      setStatusMessage(`Successfully executed marketing instant distribution of ${label} to active desks!`);
+      setImmediateEthInput('');
+      sound?.playSuccess?.();
+      try {
+        confetti({ particleCount: 70, spread: 70, origin: { y: 0.5 } });
+      } catch (e) {}
+    } catch (err) {
+      console.error('Immediate distribution failed:', err);
+      sound?.playError?.();
+      setErrorMessage(err.shortMessage || err.message || 'Immediate distribution failed.');
+    } finally {
+      setIsDistributingImmediate(false);
+    }
+  };
+
   const handleClaimFees = async (e) => {
     e.preventDefault();
     sound?.playClick?.();
@@ -64,6 +95,48 @@ export function DeskAdminModal({
       console.error('Fee claim failed:', err);
       sound?.playError?.();
       setErrorMessage(err.shortMessage || err.message || 'Fee claim failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateBoostCost = async (e) => {
+    e?.preventDefault?.();
+    if (!boostCostInput || isNaN(Number(boostCostInput)) || Number(boostCostInput) <= 0) return;
+    sound?.playClick?.();
+    setIsSubmitting(true);
+    setStatusMessage(null);
+    setErrorMessage(null);
+    try {
+      await onSetBaseBoostCost(boostCostInput);
+      setStatusMessage(`Successfully updated base boost fee to ${Number(boostCostInput).toLocaleString()} $APEBROKE.`);
+      setBoostCostInput('');
+      sound?.playSuccess?.();
+    } catch (err) {
+      console.error('Update base boost cost failed:', err);
+      sound?.playError?.();
+      setErrorMessage(err.shortMessage || err.message || 'Update base boost cost failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateActivationFee = async (e) => {
+    e?.preventDefault?.();
+    if (!activationFeeInput || isNaN(Number(activationFeeInput)) || Number(activationFeeInput) <= 0) return;
+    sound?.playClick?.();
+    setIsSubmitting(true);
+    setStatusMessage(null);
+    setErrorMessage(null);
+    try {
+      await onSetActivationFee(activationFeeInput);
+      setStatusMessage(`Successfully updated desk activation fee to ${Number(activationFeeInput).toLocaleString()} $APEBROKE.`);
+      setActivationFeeInput('');
+      sound?.playSuccess?.();
+    } catch (err) {
+      console.error('Update activation fee failed:', err);
+      sound?.playError?.();
+      setErrorMessage(err.shortMessage || err.message || 'Update activation fee failed.');
     } finally {
       setIsSubmitting(false);
     }
@@ -197,6 +270,54 @@ export function DeskAdminModal({
               >
                 {isSubmitting ? '[ DEPOSITING ETH... ]' : '[ DEPOSIT ETH TO REWARD POOL ]'}
               </button>
+
+              {/* Marketing Instant Distribution (Launch Promos) */}
+              <div className="bg-[#12072b] p-3.5 border-2 border-[#FF007F] rounded-lg space-y-3 pt-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-[#FF007F] font-bold">🚀 MARKETING / LAUNCH INSTANT DRIP:</span>
+                  <span className="text-[10px] text-gray-400">100% Weight Split</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={isDistributingImmediate || (globalStats.availableRewardPool || 0n) === 0n}
+                    onClick={() => handleDistributeImmediate('0')}
+                    className="flex-1 pixel-btn pixel-btn-vibrant-crimson py-2 text-[10px] font-bold rounded shadow-[2px_2px_0px_#000] disabled:opacity-40 whitespace-nowrap"
+                  >
+                    {isDistributingImmediate ? '[ EXECUTING... ]' : '[ ⚡ DISTRIBUTE 100% OF POOL ]'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isDistributingImmediate || (globalStats.availableRewardPool || 0n) === 0n}
+                    onClick={() => {
+                      const poolEth = Number(formatEther(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 0n));
+                      const half = (poolEth / 2).toFixed(4);
+                      handleDistributeImmediate(half);
+                    }}
+                    className="pixel-btn pixel-btn-vibrant-gold px-3 py-2 text-[10px] font-bold rounded shadow-[2px_2px_0px_#000] disabled:opacity-40 whitespace-nowrap"
+                  >
+                    [ 50% ]
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    step="0.001"
+                    placeholder="Custom ETH amount"
+                    value={immediateEthInput}
+                    onChange={(e) => setImmediateEthInput(e.target.value)}
+                    className="flex-1 bg-black/70 border border-purple-700 px-3 py-1.5 text-xs text-white rounded outline-none"
+                  />
+                  <button
+                    type="button"
+                    disabled={isDistributingImmediate || !immediateEthInput || parseFloat(immediateEthInput) <= 0}
+                    onClick={() => handleDistributeImmediate(immediateEthInput)}
+                    className="pixel-btn pixel-btn-vibrant-cyan px-3 py-1.5 text-xs font-bold rounded shadow-[2px_2px_0px_#000] disabled:opacity-40"
+                  >
+                    [ DISTRIBUTE ]
+                  </button>
+                </div>
+              </div>
             </form>
           )}
 
@@ -260,31 +381,123 @@ export function DeskAdminModal({
             </form>
           )}
 
-          {/* Tab 3: Config */}
+          {/* Tab 3: Config & Fee Controls */}
           {activeTab === 'config' && (
-            <div className="space-y-3 font-mono text-xs">
+            <div className="space-y-4 font-mono text-xs max-h-[420px] overflow-y-auto pr-1">
+              {/* Dynamic Fee Quantity Controls */}
+              <div className="bg-[#12072b] p-3.5 border-2 border-[#FFD700] rounded-lg space-y-3">
+                <div className="border-b border-purple-900/60 pb-2">
+                  <span className="text-[#FFD700] font-bold text-xs">🪙 TOKEN PRICE SCALING CONTROLS:</span>
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    Lower token quantities when $APEBROKE token price surges.
+                  </p>
+                </div>
+
+                {/* Adjust Base Boost Cost */}
+                <form onSubmit={handleUpdateBoostCost} className="space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-300">Base Boost Cost:</span>
+                    <span className="text-[#FFD700] font-bold">
+                      {Number(formatEther(globalStats.baseBoostCost || 349693n * 10n ** 18n)).toLocaleString()} $APE
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="e.g. 50000"
+                      value={boostCostInput}
+                      onChange={(e) => setBoostCostInput(e.target.value)}
+                      className="flex-1 bg-black/70 border border-purple-700 px-3 py-1.5 text-xs text-white rounded outline-none"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || !boostCostInput}
+                      className="pixel-btn pixel-btn-vibrant-gold px-3 py-1.5 text-xs font-bold whitespace-nowrap disabled:opacity-40"
+                    >
+                      [ SET BOOST ]
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1.5 pt-0.5">
+                    <span className="text-[9px] text-gray-500">Chips:</span>
+                    {['35000', '70000', '150000', '349693'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setBoostCostInput(preset)}
+                        className="px-1.5 py-0.5 bg-purple-950/60 hover:bg-purple-900 text-[9px] text-[#FFD700] rounded border border-purple-800/80"
+                      >
+                        {Number(preset).toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                </form>
+
+                {/* Adjust Activation Fee */}
+                <form onSubmit={handleUpdateActivationFee} className="space-y-1.5 border-t border-purple-900/40 pt-2.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-300">Desk Activation Fee:</span>
+                    <span className="text-[#00FF66] font-bold">
+                      {Number(formatEther(globalStats.activationFee || 349693n * 10n ** 18n)).toLocaleString()} $APE
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="e.g. 35000"
+                      value={activationFeeInput}
+                      onChange={(e) => setActivationFeeInput(e.target.value)}
+                      className="flex-1 bg-black/70 border border-purple-700 px-3 py-1.5 text-xs text-white rounded outline-none"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || !activationFeeInput}
+                      className="pixel-btn pixel-btn-vibrant-green px-3 py-1.5 text-xs font-bold whitespace-nowrap disabled:opacity-40"
+                    >
+                      [ SET ACTIVATE ]
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1.5 pt-0.5">
+                    <span className="text-[9px] text-gray-500">Chips:</span>
+                    {['25000', '50000', '100000', '349693'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setActivationFeeInput(preset)}
+                        className="px-1.5 py-0.5 bg-purple-950/60 hover:bg-purple-900 text-[9px] text-[#00FF66] rounded border border-purple-800/80"
+                      >
+                        {Number(preset).toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                </form>
+              </div>
+
               <div className="bg-[#160833] p-3.5 border border-purple-900/60 rounded-lg space-y-2">
                 <div className="flex justify-between text-gray-400">
                   <span>Base Desk Weight:</span>
-                  <span className="text-white font-bold">{globalStats.baseDeskWeight.toString()}</span>
+                  <span className="text-white font-bold">{globalStats.baseDeskWeight.toString()} WGT</span>
                 </div>
                 <div className="flex justify-between text-gray-400">
-                  <span>Base Boost Cost:</span>
-                  <span className="text-white font-bold">
-                    {Number(formatEther(globalStats.baseBoostCost)).toLocaleString()} $APE
+                  <span>Safe Epoch Emission:</span>
+                  <span className="text-[#00FF66] font-bold">
+                    {((Number(globalStats.epochEmissionBps || 500)) / 100).toFixed(2)}% / Epoch
+                  </span>
+                </div>
+                <div className="flex justify-between text-gray-400">
+                  <span>Benchmark Floor:</span>
+                  <span className="text-[#00F0FF] font-bold">
+                    {Number(globalStats.benchmarkWeightFloor || 2000).toLocaleString()} WGT
                   </span>
                 </div>
                 <div className="flex justify-between text-gray-400">
                   <span>Max Desks Per Wallet:</span>
-                  <span className="text-[#00FF66] font-bold">5 Desks</span>
+                  <span className="text-white font-bold">5 Desks</span>
                 </div>
                 <div className="flex justify-between text-gray-400">
                   <span>Max Boosts Per Desk:</span>
-                  <span className="text-[#00FF66] font-bold">5 Boosts</span>
-                </div>
-                <div className="flex justify-between text-gray-400">
-                  <span>Boost Scaling Schedule:</span>
-                  <span className="text-[#00F0FF] font-bold">Linear 2x ➔ 10x Max</span>
+                  <span className="text-white font-bold">5 Boosts (Linear 2x ➔ 10x)</span>
                 </div>
                 <div className="flex justify-between text-gray-400">
                   <span>Epoch Duration:</span>

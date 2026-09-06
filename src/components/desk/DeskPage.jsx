@@ -245,6 +245,17 @@ export function DeskPage({ onBackHome }) {
                 >
                   ⚙️ ADMIN DASHBOARD
                 </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound?.playClick?.();
+                    setIsAdminModalOpen(true);
+                  }}
+                  className="px-2.5 py-1 text-[9px] sm:text-xs font-bold text-[#00F0FF] hover:bg-[#00F0FF]/20 rounded transition-colors"
+                  title="Quick Admin Popup Console"
+                >
+                  ⚡ QUICK CONTROLS
+                </button>
               </div>
             )}
 
@@ -793,6 +804,9 @@ export function DeskPage({ onBackHome }) {
         globalStats={globalStats}
         onClaimFees={adminClaimFees}
         onDepositRewards={adminDepositRewards}
+        onDistributeImmediateRewards={adminDistributeImmediateRewards}
+        onSetBaseBoostCost={adminSetBaseBoostCost}
+        onSetActivationFee={adminSetActivationFee}
       />
     </div>
   );

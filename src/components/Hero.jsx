@@ -3,7 +3,7 @@ import { sound } from '../utils/audio';
 import { TypewriterText } from './TypewriterText';
 
 export const Hero = ({ onApplyClick }) => {
-  const mintPrice = '0.0016 ETH';
+  const mintPrice = 'FREE';
 
   const handleOpenSea = () => {
     sound?.playClick?.();
@@ -139,7 +139,7 @@ export const Hero = ({ onApplyClick }) => {
           {/* Stat 4: Neon Pink / Magenta Monitor */}
           <div className="bg-[#260517]/90 backdrop-blur-md p-3 sm:p-4 text-center shadow-[6px_6px_0px_0px_#000] border-2 border-[#FF007F] rounded-lg min-h-[85px] sm:min-h-[95px] flex flex-col justify-center items-center">
             <div className="font-pixel text-xs sm:text-base md:text-lg text-[#FF007F] font-extrabold whitespace-nowrap tracking-tight drop-shadow-[0_0_8px_rgba(255,0,127,0.4)]">
-              SEP 3RD
+              SEP 6TH
             </div>
             <div className="font-pixel text-[8px] sm:text-[9px] text-[#ff80be] mt-1 whitespace-nowrap font-bold">
               MINT DATE

@@ -88,7 +88,7 @@ function App() {
 
       {/* Top Header */}
       <div className="relative z-50">
-        <Header onApplyClick={handleApply} onAdminClick={handleAdmin} />
+        <Header onApplyClick={handleApply} />
       </div>
 
       {/* Hero Content with Stats */}

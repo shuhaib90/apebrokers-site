@@ -625,6 +625,170 @@ export function DeskAdminDashboard({
                 {isSubmitting ? '[ CLAIMING TO TREASURY... ]' : '[ CLAIM ALL $APEBROKE TO TREASURY ]'}
               </button>
             </div>
+
+            {/* CARD 3: TOKEN PRICE SCALING - BOOST & ACTIVATION FEE QUANTITY */}
+            <div className="bg-[#10072b] border-2 border-[#FFD700] rounded-xl p-5 shadow-[4px_4px_0px_#000] space-y-4">
+              <div className="flex items-center justify-between border-b border-purple-900/60 pb-2">
+                <div>
+                  <h3 className="text-xs sm:text-sm font-extrabold text-[#FFD700] uppercase">
+                    🪙 ADJUST BOOST & ACTIVATION FEE QUANTITY
+                  </h3>
+                  <p className="text-[10px] text-gray-400 font-mono mt-0.5">
+                    If $APEBROKE price increases, lower token fee quantities so boosts remain affordable.
+                  </p>
+                </div>
+                <span className="px-2 py-0.5 bg-[#FFD700]/20 border border-[#FFD700] text-[9px] text-[#FFD700] rounded font-bold">
+                  TOKEN SCALING
+                </span>
+              </div>
+
+              {/* Boost Cost Form */}
+              <form onSubmit={handleUpdateBaseBoostCost} className="space-y-2 font-mono">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-300 font-bold">Base Boost Cost:</span>
+                  <span className="text-[#FFD700] font-bold">
+                    Current: {Number(formatEther(globalStats?.baseBoostCost || 349693n * 10n ** 18n)).toLocaleString()} $APE
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 50000"
+                    value={boostCostInput}
+                    onChange={(e) => setBoostCostInput(e.target.value)}
+                    className="flex-1 bg-black/80 border border-purple-700 rounded px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !boostCostInput}
+                    className="pixel-btn pixel-btn-vibrant-gold px-3 py-2 text-xs font-bold whitespace-nowrap disabled:opacity-40"
+                  >
+                    [ SET BOOST ]
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5 pt-0.5">
+                  <span className="text-[9px] text-gray-500">Quick:</span>
+                  {['35000', '70000', '150000', '349693'].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setBoostCostInput(preset)}
+                      className="px-1.5 py-0.5 bg-purple-950/60 hover:bg-purple-900 text-[9px] text-[#FFD700] rounded border border-purple-800/80"
+                    >
+                      {Number(preset).toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+              </form>
+
+              {/* Activation Fee Form */}
+              <form onSubmit={handleUpdateActivationFee} className="space-y-2 font-mono border-t border-purple-900/40 pt-2.5">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-300 font-bold">Activation Fee:</span>
+                  <span className="text-[#00FF66] font-bold">
+                    Current: {Number(formatEther(globalStats?.activationFee || 349693n * 10n ** 18n)).toLocaleString()} $APE
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 35000"
+                    value={activationFeeInput}
+                    onChange={(e) => setActivationFeeInput(e.target.value)}
+                    className="flex-1 bg-black/80 border border-purple-700 rounded px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#00FF66]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !activationFeeInput}
+                    className="pixel-btn pixel-btn-vibrant-green px-3 py-2 text-xs font-bold whitespace-nowrap disabled:opacity-40"
+                  >
+                    [ SET ACTIVATE ]
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5 pt-0.5">
+                  <span className="text-[9px] text-gray-500">Quick:</span>
+                  {['25000', '50000', '100000', '349693'].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setActivationFeeInput(preset)}
+                      className="px-1.5 py-0.5 bg-purple-950/60 hover:bg-purple-900 text-[9px] text-[#00FF66] rounded border border-purple-800/80"
+                    >
+                      {Number(preset).toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+              </form>
+            </div>
+
+            {/* CARD 4: MARKETING / LAUNCH INSTANT DISTRIBUTION */}
+            <div className="bg-[#10072b] border-2 border-[#FF007F] rounded-xl p-5 shadow-[4px_4px_0px_#000] space-y-3 font-mono">
+              <div className="flex items-center justify-between border-b border-purple-900/60 pb-2">
+                <div>
+                  <h3 className="text-xs sm:text-sm font-extrabold text-[#FF007F] uppercase">
+                    🚀 MARKETING / LAUNCH INSTANT DISTRIBUTION
+                  </h3>
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    Distribute 100% of pool or adjusted custom ETH directly to active desks right now.
+                  </p>
+                </div>
+                <span className="px-2 py-0.5 bg-[#FF007F]/20 border border-[#FF007F] text-[9px] text-[#FF007F] rounded font-bold">
+                  INSTANT
+                </span>
+              </div>
+
+              <div className="bg-black/40 p-2.5 rounded border border-purple-900/50 text-xs flex justify-between">
+                <span className="text-gray-400">Available Reward Pool:</span>
+                <span className="text-[#FFD700] font-bold">
+                  {Number(formatEther(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 0n)).toFixed(4)} ETH
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={isDistributingImmediate || (globalStats.availableRewardPool || 0n) === 0n || (globalStats.totalEligibleWeight || 0n) === 0n}
+                  onClick={() => handleDistributeImmediate('0')}
+                  className="flex-1 min-h-[40px] pixel-btn pixel-btn-vibrant-crimson py-2 text-[11px] font-bold rounded shadow-[2px_2px_0px_#000] disabled:opacity-40 whitespace-nowrap"
+                >
+                  {isDistributingImmediate ? '[ EXECUTING... ]' : '[ ⚡ DISTRIBUTE 100% OF POOL ]'}
+                </button>
+                <button
+                  type="button"
+                  disabled={isDistributingImmediate || (globalStats.availableRewardPool || 0n) === 0n || (globalStats.totalEligibleWeight || 0n) === 0n}
+                  onClick={() => {
+                    const poolEth = Number(formatEther(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 0n));
+                    const half = (poolEth / 2).toFixed(4);
+                    handleDistributeImmediate(half);
+                  }}
+                  className="px-3 min-h-[40px] pixel-btn pixel-btn-vibrant-gold py-2 text-[11px] font-bold rounded shadow-[2px_2px_0px_#000] disabled:opacity-40 whitespace-nowrap"
+                >
+                  [ 50% ]
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  placeholder="Custom ETH amount"
+                  value={immediateEthInput}
+                  onChange={(e) => setImmediateEthInput(e.target.value)}
+                  className="flex-1 bg-black/80 border border-purple-700 focus:border-[#FF007F] px-3 py-2 text-xs text-white rounded outline-none"
+                />
+                <button
+                  type="button"
+                  disabled={isDistributingImmediate || !immediateEthInput || parseFloat(immediateEthInput) <= 0 || (globalStats.totalEligibleWeight || 0n) === 0n}
+                  onClick={() => handleDistributeImmediate(immediateEthInput)}
+                  className="pixel-btn pixel-btn-vibrant-cyan px-3 py-2 text-xs font-bold rounded shadow-[2px_2px_0px_#000] disabled:opacity-40 whitespace-nowrap"
+                >
+                  [ DISTRIBUTE ]
+                </button>
+              </div>
+            </div>
           </div>
         </section>
       )}
