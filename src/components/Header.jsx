@@ -1,7 +1,7 @@
 import React from 'react';
 import { sound } from '../utils/audio';
 
-export const Header = ({ onApplyClick }) => {
+export const Header = ({ onApplyClick, onDeskClick }) => {
   const handleFollowX = () => {
     sound?.playClick?.();
     window.open('https://x.com/Apesyndicates', '_blank', 'noopener,noreferrer');
@@ -34,6 +34,22 @@ export const Header = ({ onApplyClick }) => {
 
         {/* Right: Clean Responsive Navigation Buttons */}
         <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
+          {onDeskClick && (
+            <button
+              type="button"
+              onClick={() => {
+                sound?.playClick?.();
+                onDeskClick();
+              }}
+              aria-label="Ape Broker Desk"
+              className="pixel-btn pixel-btn-black px-2 sm:px-3.5 py-1.5 sm:py-2 text-[8px] sm:text-xs whitespace-nowrap font-extrabold text-[#00FF66] bg-black hover:bg-[#111] shadow-[2px_2px_0px_#000] sm:shadow-[3px_3px_0px_#000] border-2 border-black flex items-center gap-1.5 rounded-md sm:rounded-lg"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00FF66] animate-ping" />
+              <span className="sm:hidden">[ DESK ]</span>
+              <span className="hidden sm:inline">[ BROKER DESK ]</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={handleOpenSea}
