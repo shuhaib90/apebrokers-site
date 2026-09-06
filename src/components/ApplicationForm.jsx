@@ -110,7 +110,7 @@ export const ApplicationForm = ({ onSubmitSuccess }) => {
         {/* Section Header */}
         <div className="border-b-4 border-black pb-5 mb-6 text-center space-y-2">
           <div className="inline-block bg-black text-[#00FF66] font-pixel text-[9px] sm:text-[10px] px-3 py-1 border-2 border-black">
-            ROBINHOOD CHAIN • 2,222 ALLOCATION
+            ROBINHOOD CHAIN • 10,000 ALLOCATION
           </div>
           <h2 className="font-pixel text-xl sm:text-2xl md:text-3xl text-black font-extrabold tracking-tight">
             APEBROKERS WL APPLICATION

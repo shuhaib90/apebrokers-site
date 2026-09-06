@@ -166,7 +166,7 @@ export const BrokersGallery = ({ onBackHome, onApplyClick }) => {
                     {selectedBroker.tag}
                   </span>
                   <span className="font-mono text-xs text-gray-600 font-bold">
-                    ROBINHOOD CHAIN • 5,555 SUPPLY
+                    ROBINHOOD CHAIN • 10,000 SUPPLY
                   </span>
                 </div>
 
@@ -286,7 +286,7 @@ export const BrokersGallery = ({ onBackHome, onApplyClick }) => {
       {/* Footer */}
       <footer className="w-full bg-black text-white border-t-4 border-black px-4 py-6 text-center select-none mt-12">
         <div className="font-pixel text-xs text-[#00FF66]">
-          APESYNDICATE // 10 REVEALED PIXEL COLLECTION • 5,555 TOTAL SUPPLY
+          APESYNDICATE // 10 REVEALED PIXEL COLLECTION • 10,000 TOTAL SUPPLY
         </div>
         <div className="font-mono text-[10px] text-gray-400 mt-1">
           Follow <a href="https://x.com/Apesyndicates" target="_blank" rel="noopener noreferrer" className="text-[#00FF66] underline">@Apesyndicates</a> on X

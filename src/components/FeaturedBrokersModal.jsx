@@ -67,7 +67,7 @@ export const FeaturedBrokersModal = ({ onClose, onOpenTerminal }) => {
           <div className="md:col-span-7 space-y-3">
             <div className="font-pixel text-[10px] text-gray-300 flex justify-between items-center">
               <span>SELECT A BROKER TO INSPECT</span>
-              <span className="text-neon-lime">10 / 5,555 SUPPLY</span>
+              <span className="text-neon-lime">10 / 10,000 SUPPLY</span>
             </div>
 
             <div className="grid grid-cols-5 gap-2">

@@ -5,8 +5,8 @@ const PHASES = [
     phase: 'PHASE 01',
     title: 'Genesis Mint',
     color: '#00FF66',
-    desc: '2,222 unique pixel ApeBrokers minted exclusively on Robinhood Chain with token-bound verified accounts.',
-    bullets: ['Guaranteed WL Mint Window', '2,222 Fixed Supply', 'Unique 16-Bit Pixel Traits'],
+    desc: '10,000 unique pixel ApeBrokers minted exclusively on Robinhood Chain with token-bound verified accounts.',
+    bullets: ['Guaranteed WL Mint Window', '10,000 Fixed Supply', 'Unique 16-Bit Pixel Traits'],
   },
   {
     phase: 'PHASE 02',

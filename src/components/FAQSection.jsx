@@ -4,7 +4,7 @@ import { sound } from '../utils/audio';
 const FAQ_DATA = [
   {
     q: 'What is ApeBrokers?',
-    a: 'ApeBrokers is a collection of 2,222 unique pixel apes on Robinhood Chain, representing token-bound memberships on the premier onchain trading floor.',
+    a: 'ApeBrokers is a collection of 10,000 unique pixel apes on Robinhood Chain, representing token-bound memberships on the premier onchain trading floor.',
   },
   {
     q: 'How do I apply for the Whitelist?',

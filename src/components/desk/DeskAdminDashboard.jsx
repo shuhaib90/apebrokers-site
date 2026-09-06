@@ -537,7 +537,7 @@ export function DeskAdminDashboard({
             <div className="bg-[#140833] border border-purple-800 p-4 rounded-xl shadow-[4px_4px_0px_#000]">
               <div className="text-[10px] text-gray-400">TOTAL ACTIVE DESKS</div>
               <div className="text-lg sm:text-2xl font-extrabold text-white mt-1">
-                {activeDesksCount} <span className="text-xs text-gray-400">/ 5,555</span>
+                {activeDesksCount} <span className="text-xs text-gray-400">/ 10,000</span>
               </div>
               <div className="text-[9px] text-[#00FF66] mt-1 font-mono">1 NFT = 1 Desk System</div>
             </div>
@@ -857,7 +857,7 @@ export function DeskAdminDashboard({
                 <form onSubmit={handleManualSync} className="flex items-center gap-2">
                   <input
                     type="number"
-                    placeholder="Token ID (#1-5555)"
+                    placeholder="Token ID (#1-10000)"
                     value={syncTokenId}
                     onChange={(e) => setSyncTokenId(e.target.value)}
                     className="w-32 bg-black/80 border border-purple-800 px-3 py-1.5 text-xs text-white rounded outline-none"

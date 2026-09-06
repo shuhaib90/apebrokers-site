@@ -4,7 +4,7 @@ import { sound } from '../utils/audio';
 const FAQ_ITEMS = [
   {
     q: 'What is ApeSyndicate?',
-    a: 'ApeSyndicate is a high-conviction collection of 5,555 unique pixel apes operating an onchain syndicate on Robinhood Chain.',
+    a: 'ApeSyndicate is a high-conviction collection of 10,000 unique pixel apes operating an onchain syndicate on Robinhood Chain.',
   },
   {
     q: 'How do I apply for WL?',

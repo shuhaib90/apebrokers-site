@@ -21,7 +21,7 @@ export const Footer = () => {
             APESYNDICATE
           </div>
           <div className="font-pixel text-[10px] sm:text-xs text-gray-400">
-            5,555 PIXEL APES • COMING SOON ON ROBINHOOD CHAIN
+            10,000 PIXEL APES • COMING SOON ON ROBINHOOD CHAIN
           </div>
         </div>
 

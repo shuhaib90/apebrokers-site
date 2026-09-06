@@ -54,7 +54,7 @@ export const AboutBrokersModal = ({ onClose, onOpenTerminal }) => {
             </div>
             
             <p className="font-mono-code text-xs sm:text-sm text-gray-200 leading-relaxed bg-broker-card p-3 border border-broker-card-light">
-              "A high-conviction collection of 5,555 unique 16-bit pixel apes operating the most exclusive trading desk on Robinhood Chain."
+              "A high-conviction collection of 10,000 unique 16-bit pixel apes operating the most exclusive trading desk on Robinhood Chain."
             </p>
           </div>
         </div>
@@ -70,7 +70,7 @@ export const AboutBrokersModal = ({ onClose, onOpenTerminal }) => {
             {/* Total Supply */}
             <div className="bg-broker-card p-2.5 border-2 border-black space-y-1">
               <div className="text-gray-400 text-[8px]">TOTAL SUPPLY</div>
-              <div className="text-neon-lime text-xs font-bold">5,555 APES</div>
+              <div className="text-neon-lime text-xs font-bold">10,000 APES</div>
             </div>
 
             {/* Mint Price */}

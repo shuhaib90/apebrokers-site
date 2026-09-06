@@ -48,7 +48,7 @@ export const VaultLockedModal = ({ isOpen, onClose, onApplyClick }) => {
         {/* Body Description */}
         <div className="bg-black/60 border-2 border-[#3d2e54] p-4 text-left space-y-2.5 font-mono">
           <p className="text-xs sm:text-sm text-[#00FF66] font-semibold leading-relaxed">
-            &gt; 5,555 unique pixel ape brokers are currently sealed in cold storage on Robinhood Chain.
+            &gt; 10,000 unique pixel ape brokers are currently sealed in cold storage on Robinhood Chain.
           </p>
           <p className="text-xs text-gray-300 leading-relaxed">
             The collection gallery and floor preview will unlock exclusively on <strong className="text-[#FFD700]">MINT DATE</strong>.

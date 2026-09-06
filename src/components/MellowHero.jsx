@@ -28,7 +28,7 @@ export const MellowHero = ({ onOpenWhitelist }) => {
 
         {/* Hero Copy */}
         <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed font-normal">
-          <strong className="text-white font-semibold">2,222 ApeBrokers are built to conquer Robinhood Chain.</strong> Each Broker carries exclusive trading floor access, priority execution, community alpha, and future ecosystem utility.
+          <strong className="text-white font-semibold">10,000 ApeBrokers are built to conquer Robinhood Chain.</strong> Each Broker carries exclusive trading floor access, priority execution, community alpha, and future ecosystem utility.
         </p>
 
         {/* Action Buttons */}
@@ -63,7 +63,7 @@ export const MellowHero = ({ onOpenWhitelist }) => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[#2e3e4f]/60 rounded-2xl p-1 border border-[#2e3e4f] shadow-2xl backdrop-blur-md overflow-hidden">
             {/* Stat 1 */}
             <div className="bg-[#0b1219]/90 p-5 text-center flex flex-col justify-center">
-              <b className="text-2xl sm:text-3xl font-black text-white tracking-tight">2,222</b>
+              <b className="text-2xl sm:text-3xl font-black text-white tracking-tight">10,000</b>
               <span className="text-[11px] font-bold text-gray-400 tracking-[2px] mt-1 uppercase">APEBROKERS</span>
             </div>
 

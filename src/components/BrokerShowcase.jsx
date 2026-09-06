@@ -58,7 +58,7 @@ export const BrokerShowcase = ({ onOpenWhitelist }) => {
         Not a picture.<br />A beginning.
       </h2>
       <p className="text-gray-400 text-base max-w-xl mx-auto mb-12">
-        2,222 Brokers designed to grow into identities with assets, achievements, progression and a story on Robinhood Chain.
+        10,000 Brokers designed to grow into identities with assets, achievements, progression and a story on Robinhood Chain.
       </p>
 
       {/* Stage Card */}

@@ -118,7 +118,7 @@ export const SubmissionSuccess = ({ submissionData, onReturnToOffice }) => {
                     RECEIVED
                   </div>
                   <div className="font-pixel text-[8px] text-broker-crimson-dark tracking-widest mt-0.5">
-                    UNDER REVIEW • 5,555
+                    UNDER REVIEW • 10,000
                   </div>
                 </div>
               </div>

@@ -23,7 +23,7 @@ export const SiteFooter = ({ onOpenWhitelist }) => {
             </div>
 
             <p className="text-xs text-gray-400 max-w-sm leading-relaxed">
-              2,222 unique pixel apes operating the most exclusive trading floor on Robinhood Chain.
+              10,000 unique pixel apes operating the most exclusive trading floor on Robinhood Chain.
             </p>
           </div>
 

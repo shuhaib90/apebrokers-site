@@ -19,7 +19,7 @@ export const PixelHUD = ({ currentView, onNavigateOffice, onNavigateTerminal, on
         <div className="animate-ticker flex space-x-6">
           <span>● APEBROKERS OFFICE</span>
           <span>•</span>
-          <span className="text-broker-gold">SUPPLY: 2,222 PIXEL APES</span>
+          <span className="text-broker-gold">SUPPLY: 10,000 PIXEL APES</span>
           <span>•</span>
           <span className="text-broker-cyan">NETWORK: ROBINHOOD CHAIN</span>
           <span>•</span>
@@ -29,7 +29,7 @@ export const PixelHUD = ({ currentView, onNavigateOffice, onNavigateTerminal, on
           <span>•</span>
           <span>● APEBROKERS OFFICE</span>
           <span>•</span>
-          <span className="text-broker-gold">SUPPLY: 2,222 PIXEL APES</span>
+          <span className="text-broker-gold">SUPPLY: 10,000 PIXEL APES</span>
           <span>•</span>
           <span className="text-broker-cyan">NETWORK: ROBINHOOD CHAIN</span>
           <span>•</span>

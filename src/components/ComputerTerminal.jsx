@@ -129,7 +129,7 @@ export const ComputerTerminal = ({ onBackToOffice, onSubmitSuccess }) => {
             </p>
           </div>
           <div className="bg-broker-black text-broker-gold font-pixel text-[9px] px-2.5 py-1 border border-broker-gold self-start sm:self-auto">
-            5,555 SUPPLY
+            10,000 SUPPLY
           </div>
         </div>
 

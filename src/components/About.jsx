@@ -13,7 +13,7 @@ export const About = () => {
             WHAT IS APESYNDICATE?
           </h2>
           <p className="font-mono text-sm sm:text-base text-gray-800 font-semibold max-w-2xl mx-auto leading-relaxed">
-            A collection of 5,555 unique pixel apes built around syndicate culture, conviction, community and digital collectibles on Robinhood Chain.
+            A collection of 10,000 unique pixel apes built around syndicate culture, conviction, community and digital collectibles on Robinhood Chain.
           </p>
         </div>
 
@@ -25,7 +25,7 @@ export const About = () => {
               ★
             </div>
             <div className="font-pixel text-2xl sm:text-3xl text-[#00FF66] font-extrabold">
-              5,555
+              10,000
             </div>
             <div className="font-pixel text-[10px] text-gray-300 tracking-wider">
               SUPPLY

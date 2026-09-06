@@ -106,8 +106,8 @@ export function DeskPage({ onBackHome }) {
     sound?.playClick?.();
     setSearchError('');
     const id = parseInt(manualTokenId.trim(), 10);
-    if (isNaN(id) || id <= 0 || id > 5555) {
-      setSearchError('Please enter a valid Ape Broker ID (1 - 5555).');
+    if (isNaN(id) || id <= 0 || id > 10000) {
+      setSearchError('Please enter a valid Ape Broker ID (1 - 10000).');
       return;
     }
     addTokenToTrack(id);
@@ -495,8 +495,8 @@ export function DeskPage({ onBackHome }) {
               <input
                 type="number"
                 min="1"
-                max="5555"
-                placeholder="ENTER APE BROKER NFT TOKEN ID (1 - 5555)..."
+                max="10000"
+                placeholder="ENTER APE BROKER NFT TOKEN ID (1 - 10000)..."
                 value={manualTokenId}
                 onChange={(e) => setManualTokenId(e.target.value)}
                 className="w-full bg-black/60 border-2 border-purple-800 focus:border-[#00FF66] px-4 py-2.5 text-xs font-mono text-white rounded-lg outline-none"
@@ -579,7 +579,7 @@ export function DeskPage({ onBackHome }) {
               <p className="text-xs font-mono text-gray-400 max-w-lg mx-auto">
                 {isScanningNfts
                   ? 'Scanning Robinhood EVM blockchain records...'
-                  : 'If you recently received your NFT, enter its Token ID (#1 - #5555) in the search box above to load it directly.'}
+                  : 'If you recently received your NFT, enter its Token ID (#1 - #10000) in the search box above to load it directly.'}
               </p>
             </div>
           ) : (

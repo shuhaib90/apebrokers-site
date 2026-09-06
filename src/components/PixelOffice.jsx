@@ -214,7 +214,7 @@ export const PixelOffice = ({ onOpenTerminal, onOpenAbout, onOpenGallery, onOpen
             <line x1="4" y1="16" x2="356" y2="16" stroke="#04260D" strokeWidth="1" />
             <line x1="4" y1="28" x2="356" y2="28" stroke="#04260D" strokeWidth="1" />
             <text x="14" y="26" fill="#00FF66" fontSize="11" fontFamily="monospace" fontWeight="bold" letterSpacing="1">
-              $APE ▲ +420.69% • 5,555 APES • RH_CHAIN
+              $APE ▲ +420.69% • 10,000 APES • RH_CHAIN
             </text>
             <circle cx="342" cy="22" r="4" fill="#00FF66" className="animate-pulse" />
           </g>
@@ -423,7 +423,7 @@ export const PixelOffice = ({ onOpenTerminal, onOpenAbout, onOpenGallery, onOpen
               ABOUT APEBROKERS
             </text>
             <text x="878" y="256" fill="#00FF66" fontSize="9" fontFamily="monospace">
-              5,555 SUPPLY • [READ]
+              10,000 SUPPLY • [READ]
             </text>
           </g>
 
@@ -638,7 +638,7 @@ export const PixelOffice = ({ onOpenTerminal, onOpenAbout, onOpenGallery, onOpen
             <rect x="1040" y="310" width="56" height="8" fill="#00FF66" />
 
             <text x="940" y="346" fill="#00F0FF" fontSize="11" fontFamily="monospace" fontWeight="bold">
-              RH_CHAIN: 5555
+              RH_CHAIN: 10000
             </text>
             <text x="940" y="370" fill="#00FF66" fontSize="9.5" fontFamily="monospace" fontWeight="bold">
               [ APPLY FOR WL ]

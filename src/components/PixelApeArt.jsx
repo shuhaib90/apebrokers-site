@@ -122,7 +122,7 @@ export const HeroBrokerDeskArt = () => {
             <span className="w-2.5 h-2.5 bg-neon-lime border border-black inline-block animate-blink" />
             <span className="font-pixel text-[9px] text-neon-lime">TERMINAL_01 // APE_DESK</span>
           </div>
-          <span className="font-pixel text-[8px] text-broker-gold">SUPPLY: 2,222</span>
+          <span className="font-pixel text-[8px] text-broker-gold">SUPPLY: 10,000</span>
         </div>
 
         {/* The Broker Scene Graphic */}
@@ -243,7 +243,7 @@ export const HeroBrokerDeskArt = () => {
           <rect x="260" y="100" width="24" height="3" fill="#FF2247" />
           <rect x="226" y="106" width="28" height="3" fill="#00F0FF" />
           <rect x="260" y="106" width="20" height="3" fill="#00FF66" />
-          <text x="226" y="118" fill="#00F0FF" fontSize="5" fontFamily="monospace">RH_CHAIN: 2222</text>
+          <text x="226" y="118" fill="#00F0FF" fontSize="5" fontFamily="monospace">RH_CHAIN: 10000</text>
 
           {/* Retro Red Desk Phone */}
           <rect x="100" y="132" width="22" height="16" fill="#FF2247" stroke="#000000" strokeWidth="2" />
@@ -279,7 +279,7 @@ export const HeroBrokerDeskArt = () => {
             <span className="text-neon-lime">STATUS:</span>
             <span className="text-broker-white">APPLICATIONS OPEN</span>
           </div>
-          <div className="text-broker-cyan">2,222 PIXEL APES</div>
+          <div className="text-broker-cyan">10,000 PIXEL APES</div>
         </div>
       </div>
     </div>
@@ -336,7 +336,7 @@ export const StampDocumentPreview = ({ applicant, ticketId }) => {
             UNDER REVIEW
           </div>
           <div className="font-pixel text-[9px] text-broker-crimson-dark tracking-widest mt-0.5">
-            APEBROKERS DESK • 2,222
+            APEBROKERS DESK • 10,000
           </div>
         </div>
       </div>

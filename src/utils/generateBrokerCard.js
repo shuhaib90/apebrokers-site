@@ -301,7 +301,7 @@ export async function generateBrokerCardDataUrl({ brokerId, xUsername, walletAdd
 
         // Row 1: CHAIN | SUPPLY | STATUS
         renderCell('CHAIN:', 'ROBINHOOD', col1X, row1Y, '#00F0FF');
-        renderCell('SUPPLY:', '5,555', col2X, row1Y, '#00FF66');
+        renderCell('SUPPLY:', '10,000', col2X, row1Y, '#00FF66');
         renderCell('STATUS:', isGtd ? 'GTD APPROVED' : 'UNDER REVIEW', col3X, row1Y, '#FFD700');
 
         // Row 2: WALLET (spanning col 1 & 2) | ALLOCATION
@@ -327,8 +327,8 @@ export async function generateBrokerCardDataUrl({ brokerId, xUsername, walletAdd
         ctx.fillStyle = isGtd ? '#aa8c52' : '#8c7b60';
         ctx.fillText(
           isGtd
-            ? `AUTHENTICATED • RH-GTD-5555 • #${cleanBrokerId}`
-            : `APE-RH-5555 • #${cleanBrokerId}`,
+            ? `AUTHENTICATED • RH-GTD-10000 • #${cleanBrokerId}`
+            : `APE-RH-10000 • #${cleanBrokerId}`,
           infoX,
           footerY + 16
         );

@@ -35,7 +35,7 @@ export const HeroBrokerDesk = () => {
           <div className="flex flex-wrap gap-2 pt-1 font-pixel text-[8px] sm:text-[9px]">
             <div className="flex items-center gap-1.5 bg-broker-card text-broker-gold px-2.5 py-1.5 border-2 border-black shadow-pixel-sm">
               <span>●</span>
-              <span>2,222 SUPPLY</span>
+              <span>10,000 SUPPLY</span>
             </div>
             <div className="flex items-center gap-1.5 bg-broker-card text-neon-lime px-2.5 py-1.5 border-2 border-black shadow-pixel-sm">
               <RobinhoodPixelBadge className="w-3.5 h-3.5" />
