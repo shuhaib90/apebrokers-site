@@ -157,15 +157,95 @@ export function decodeDeskError(err) {
   return err?.shortMessage || err?.message || 'Transaction reverted on-chain.';
 }
 
+export const OFFICIAL_BROKERDESK_NFT_ART =
+  'https://gateway.pinata.cloud/ipfs/bafybeicwhp57hmbskcqzvoeu4ru4no4omffi6s4yw5yzbatbz34cjsblgi';
+
 /**
- * Helper to convert ipfs:// URI to HTTP gateway URL
+ * Helper to convert ipfs:// URI to robust HTTP gateway URL
  */
 export function resolveIpfsUrl(url) {
   if (!url || typeof url !== 'string') return '';
   if (url.startsWith('ipfs://')) {
-    return url.replace('ipfs://', 'https://ipfs.io/ipfs/');
+    const cleanPath = url.replace(/^ipfs:\/\/?/, '');
+    return `https://gateway.pinata.cloud/ipfs/${cleanPath}`;
+  }
+  if (url.includes('ipfs.io/ipfs/')) {
+    return url.replace('https://ipfs.io/ipfs/', 'https://gateway.pinata.cloud/ipfs/');
   }
   return url;
+}
+
+/**
+ * Reads NFT metadata directly from the smart contract on-chain.
+ * 1. Queries tokenURI(tokenId) from the smart contract.
+ * 2. Queries baseURI() as fallback.
+ * 3. Fetches IPFS metadata JSON to extract the exact artwork.
+ */
+export async function fetchNftMetadataFromContract(tokenId, publicClient) {
+  if (tokenId === undefined || tokenId === null) return null;
+
+  let tokenUri = null;
+  if (publicClient) {
+    try {
+      tokenUri = await publicClient.readContract({
+        address: APE_BROKER_NFT_ADDRESS,
+        abi: ERC721_ABI,
+        functionName: 'tokenURI',
+        args: [BigInt(tokenId)],
+      });
+    } catch (e) {
+      try {
+        tokenUri = await publicClient.readContract({
+          address: APE_BROKER_NFT_ADDRESS,
+          abi: [
+            {
+              name: 'baseURI',
+              type: 'function',
+              stateMutability: 'view',
+              inputs: [],
+              outputs: [{ type: 'string' }],
+            },
+          ],
+          functionName: 'baseURI',
+        });
+      } catch (err) {
+        // Fallback
+      }
+    }
+  }
+
+  if (!tokenUri) {
+    tokenUri = 'ipfs://bafkreid72lakcttk7mqsruosts276qybzmk5t5auisgvxod2axqbtqg4ya';
+  }
+
+  try {
+    const httpUri = resolveIpfsUrl(tokenUri);
+    if (httpUri.startsWith('http')) {
+      const metadata = await fetch(httpUri, { signal: AbortSignal.timeout(6000) }).then((r) =>
+        r.json()
+      );
+      if (metadata && (metadata.image || metadata.image_url)) {
+        const rawImg = metadata.image || metadata.image_url;
+        return {
+          tokenId: Number(tokenId),
+          name: metadata.name ? `${metadata.name} #${tokenId}` : `Broker Desk #${tokenId}`,
+          image: resolveIpfsUrl(rawImg) || '/brokerdesk-art.png',
+          description: metadata.description || '',
+          attributes: metadata.attributes || [],
+        };
+      }
+    }
+  } catch (err) {
+    console.warn(`Contract metadata JSON fetch error for #${tokenId}:`, err);
+  }
+
+  return {
+    tokenId: Number(tokenId),
+    name: `Broker Desk #${tokenId}`,
+    image: OFFICIAL_BROKERDESK_NFT_ART,
+    description: 'BrokerDesk Operating NFT on Robinhood Chain',
+    attributes: [],
+  };
 }
 
 /**
@@ -185,7 +265,7 @@ export async function fetchOwnedNftsFromAlchemy(ownerAddress) {
           n.image?.originalUrl ||
           n.raw?.metadata?.image ||
           n.raw?.metadata?.image_url;
-        const image = resolveIpfsUrl(rawImg) || `/gifs/${(Number(n.tokenId) % 100) + 1}.gif`;
+        const image = resolveIpfsUrl(rawImg) || '/brokerdesk-art.png';
         return {
           tokenId: Number(n.tokenId),
           name: n.name || n.title || `Broker Desk #${n.tokenId}`,
@@ -217,7 +297,7 @@ export async function fetchSingleNftMetadataFromAlchemy(tokenId) {
         n.image?.originalUrl ||
         n.raw?.metadata?.image ||
         n.raw?.metadata?.image_url;
-      const image = resolveIpfsUrl(rawImg) || `/gifs/${(Number(tokenId) % 100) + 1}.gif`;
+      const image = resolveIpfsUrl(rawImg) || '/brokerdesk-art.png';
       return {
         tokenId: Number(tokenId),
         name: n.name || n.title || `Broker Desk #${tokenId}`,
@@ -651,6 +731,21 @@ export function useApeBrokerDesk() {
         nftMetadataMap.set(n.tokenId, n);
       });
 
+      // Direct on-chain NFT balance check as guaranteed fallback
+      let onChainNftBalance = 0n;
+      if (publicClient && address) {
+        try {
+          onChainNftBalance = await publicClient.readContract({
+            address: APE_BROKER_NFT_ADDRESS,
+            abi: ERC721_ABI,
+            functionName: 'balanceOf',
+            args: [address],
+          });
+        } catch (e) {
+          // Ignore
+        }
+      }
+
       // Fetch indexed desks from Supabase
       const dbDesks = await fetchUserDesksFromDb(address);
 
@@ -658,6 +753,7 @@ export function useApeBrokerDesk() {
       // Priority 1: User-tracked token ID
       // Priority 2: Known active desks in DB
       // Priority 3: Owned NFTs from Alchemy up to 5 total
+      // Priority 4: On-chain detected token IDs if balance > 0
       const selectedTokenIds = new Set();
 
       trackedTokenIds.forEach((id) => {
@@ -678,6 +774,31 @@ export function useApeBrokerDesk() {
       for (const d of dbDesks) {
         if (selectedTokenIds.size >= 5) break;
         selectedTokenIds.add(Number(d.token_id));
+      }
+
+      // If user owns NFTs on-chain but Alchemy had an indexing lag, scan token IDs
+      if (onChainNftBalance > 0n && selectedTokenIds.size === 0 && publicClient) {
+        const checkRange = Array.from({ length: 50 }, (_, i) => i + 1);
+        const ownerChecks = await Promise.allSettled(
+          checkRange.map((id) =>
+            publicClient.readContract({
+              address: APE_BROKER_NFT_ADDRESS,
+              abi: ERC721_ABI,
+              functionName: 'ownerOf',
+              args: [BigInt(id)],
+            })
+          )
+        );
+        ownerChecks.forEach((res, idx) => {
+          if (
+            selectedTokenIds.size < 5 &&
+            res.status === 'fulfilled' &&
+            res.value &&
+            res.value.toLowerCase() === address.toLowerCase()
+          ) {
+            selectedTokenIds.add(checkRange[idx]);
+          }
+        });
       }
 
       // 3. For the selected token IDs (max 5), read on-chain Desk status
@@ -793,18 +914,24 @@ export function useApeBrokerDesk() {
         if (!meta) {
           try {
             meta = await fetchSingleNftMetadataFromAlchemy(tid);
+            if (!meta || !meta.image || meta.image.includes('/gifs/')) {
+              meta = await fetchNftMetadataFromContract(tid, publicClient);
+            }
             if (meta) {
               nftMetadataMap.set(tid, meta);
             }
           } catch (e) {
-            // Keep fallback
+            meta = await fetchNftMetadataFromContract(tid, publicClient);
+            if (meta) {
+              nftMetadataMap.set(tid, meta);
+            }
           }
         }
 
         desksList.push({
           tokenId: tid,
           name: meta?.name || `Broker Desk #${tid}`,
-          image: meta?.image || `/gifs/${(tid % 100) + 1}.gif`,
+          image: meta?.image || '/brokerdesk-art.png',
           active: isActive,
           onChainActive,
           boostCount: currentBoosts,

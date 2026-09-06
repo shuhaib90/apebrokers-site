@@ -908,14 +908,14 @@ export function DeskAdminDashboard({
                       <tr key={d.token_id} className="hover:bg-purple-950/30 transition-colors">
                         <td className="py-2.5 px-3 font-bold text-white flex items-center gap-2">
                           <img
-                            src={`/gifs/${(d.token_id % 100) + 1}.gif`}
+                            src={d.image || '/brokerdesk-art.png'}
                             alt={`#${d.token_id}`}
                             className="w-7 h-7 rounded border border-purple-700 object-cover bg-black"
                             onError={(e) => {
-                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.src = '/brokerdesk-art.png';
                             }}
                           />
-                          <span>Ape Broker #{d.token_id}</span>
+                          <span>Broker Desk #{d.token_id}</span>
                         </td>
                         <td className="py-2.5 px-3 font-mono text-gray-300">
                           <span title={d.owner}>

@@ -173,10 +173,10 @@ export function DeskRunningVisual({ desk, globalStats, timeLeft }) {
           className={`relative p-1.5 rounded-lg border-2 transition-all z-10 bg-black/50 ${getBoostAuraStyle()}`}
         >
           <img
-            src={desk?.image || `/gifs/${((tokenId || 1) % 100) + 1}.gif`}
+            src={desk?.image || '/brokerdesk-art.png'}
             alt={desk?.name || `Broker Desk #${tokenId}`}
             onError={(e) => {
-              e.target.src = '/logo.png';
+              e.currentTarget.src = '/brokerdesk-art.png';
             }}
             className={`h-28 w-28 object-contain pixelated transition-transform duration-300 ${
               isActive ? 'hover:scale-105' : 'grayscale-[40%]'
