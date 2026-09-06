@@ -1,7 +1,7 @@
 import React from 'react';
 import { sound } from '../utils/audio';
 
-export const Header = ({ onApplyClick, onDeskClick }) => {
+export const Header = ({ onDeskClick }) => {
   const handleFollowX = () => {
     sound?.playClick?.();
     window.open('https://x.com/Apesyndicates', '_blank', 'noopener,noreferrer');

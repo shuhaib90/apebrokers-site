@@ -47,7 +47,11 @@ function App() {
   };
 
   const handleDesk = () => {
-    window.location.href = '/brokerdesk';
+    if (window.location.pathname !== '/brokerdesk') {
+      window.history.pushState({}, '', '/brokerdesk');
+    }
+    setCurrentPage('desk');
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   const handleAdmin = () => {
@@ -99,12 +103,12 @@ function App() {
 
       {/* Top Header */}
       <div className="relative z-50">
-        <Header onApplyClick={handleApply} onDeskClick={handleDesk} />
+        <Header onDeskClick={handleDesk} />
       </div>
 
       {/* Hero Content with Stats */}
       <main className="flex-grow flex flex-col items-center justify-center w-full relative z-10">
-        <Hero onApplyClick={handleApply} />
+        <Hero onDeskClick={handleDesk} />
       </main>
 
       {/* Vercel Analytics */}
