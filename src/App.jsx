@@ -6,6 +6,8 @@ import { ApplicationPage } from './components/ApplicationPage';
 import { AdminDashboard } from './components/AdminDashboard';
 import { DeskPage } from './components/desk/DeskPage';
 import { PixelFluidBackground } from './components/PixelFluidBackground';
+import { BrokerDeskSections } from './components/BrokerDeskSections';
+import { Footer } from './components/Footer';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'apply' | 'admin' | 'desk'
@@ -97,7 +99,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen text-black flex flex-col justify-between font-pixel selection:bg-black selection:text-[#00FF66] relative overflow-hidden">
+    <div className="min-h-screen text-black flex flex-col justify-between font-pixel selection:bg-black selection:text-[#00FF66] relative overflow-x-hidden">
       {/* Vibrant Light Interactive Pixel Fluid Background */}
       <PixelFluidBackground />
 
@@ -106,10 +108,14 @@ function App() {
         <Header onDeskClick={handleDesk} />
       </div>
 
-      {/* Hero Content with Stats */}
+      {/* Hero Content with Protocol Sections */}
       <main className="flex-grow flex flex-col items-center justify-center w-full relative z-10">
         <Hero onDeskClick={handleDesk} />
+        <BrokerDeskSections onDeskClick={handleDesk} />
       </main>
+
+      {/* Retro BrokerDesk Footer */}
+      <Footer onDeskClick={handleDesk} />
 
       {/* Vercel Analytics */}
       <Analytics />

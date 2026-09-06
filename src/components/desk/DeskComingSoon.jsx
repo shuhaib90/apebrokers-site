@@ -32,7 +32,7 @@ export function DeskComingSoon({
                 className="w-8 h-8 object-contain pixelated"
               />
               <span className="text-sm sm:text-base font-extrabold text-[#00FF66] tracking-wider">
-                APE BROKER DESK
+                BROKERDESK
               </span>
             </button>
             <span className="hidden md:inline-block px-2 py-0.5 bg-[#170a36] border border-purple-800 text-[9px] text-[#00F0FF] rounded font-mono">
@@ -98,7 +98,7 @@ export function DeskComingSoon({
         {/* Hero Title */}
         <div className="space-y-3 max-w-3xl">
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-[#00FF66] tracking-wider drop-shadow-[0_0_25px_rgba(0,255,102,0.45)]">
-            APE BROKER DESK
+            BROKERDESK
           </h1>
           <div className="text-xl sm:text-3xl md:text-4xl font-extrabold text-[#FFD700] tracking-wide drop-shadow-[0_0_15px_rgba(255,215,0,0.4)]">
             COMING SOON
