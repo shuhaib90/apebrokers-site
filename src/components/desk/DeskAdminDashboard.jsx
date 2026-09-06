@@ -19,6 +19,7 @@ import {
   ADMIN_ADDRESS,
   TREASURY_ADDRESS,
 } from '../../hooks/useApeBrokerDesk';
+import { formatEthOrUsdt } from '../../hooks/useEthPrice';
 
 export function DeskAdminDashboard({
   globalStats,
@@ -32,8 +33,22 @@ export function DeskAdminDashboard({
   onSetActivationFee,
   onBackToTerminal,
   refetchGlobalStats,
+  isUsdt = false,
+  setIsUsdt,
+  ethPrice = 2495,
 }) {
   const publicClient = usePublicClient();
+
+  const handleToggleCurrency = () => {
+    sound?.playClick?.();
+    if (setIsUsdt) {
+      const next = !isUsdt;
+      setIsUsdt(next);
+      try {
+        localStorage.setItem('apebroker_currency_mode', next ? 'USDT' : 'ETH');
+      } catch (e) {}
+    }
+  };
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'desks' | 'distributions' | 'logs' | 'actions'
   const [ethDepositInput, setEthDepositInput] = useState('');
   const [feeClaimInput, setFeeClaimInput] = useState('');
@@ -506,19 +521,31 @@ export function DeskAdminDashboard({
   const handleExportCsv = () => {
     sound?.playClick?.();
     if (enrichedDesks.length === 0) return;
+    const currencySuffix = isUsdt ? ` (USDT @ $${Number(ethPrice || 2495).toFixed(2)})` : ' (ETH)';
     const headers =
-      'Token ID,Owner,Active,Boost Count,Current Weight,Available To Claim (ETH),User Claimed (ETH),User Total Earned (ETH),Est Next 5H (ETH),Updated At\n';
+      `Token ID,Owner,Active,Boost Count,Current Weight,Available To Claim${currencySuffix},User Claimed${currencySuffix},User Total Earned${currencySuffix},Est Next 5H${currencySuffix},Updated At\n`;
     const rows = enrichedDesks
-      .map(
-        (d) =>
-          `${d.token_id},"${d.owner}",${d.active},${d.boost_count},${d.current_weight},${d.availableToClaimEth.toFixed(6)},${d.claimedEth.toFixed(6)},${d.totalEarnedEth.toFixed(6)},${d.estEth.toFixed(6)},"${d.updated_at || ''}"`
-      )
+      .map((d) => {
+        const avail = isUsdt
+          ? (d.availableToClaimEth * (ethPrice || 2495)).toFixed(2)
+          : d.availableToClaimEth.toFixed(6);
+        const clm = isUsdt
+          ? (d.claimedEth * (ethPrice || 2495)).toFixed(2)
+          : d.claimedEth.toFixed(6);
+        const tot = isUsdt
+          ? (d.totalEarnedEth * (ethPrice || 2495)).toFixed(2)
+          : d.totalEarnedEth.toFixed(6);
+        const est = isUsdt
+          ? (d.estEth * (ethPrice || 2495)).toFixed(2)
+          : d.estEth.toFixed(6);
+        return `${d.token_id},"${d.owner}",${d.active},${d.boost_count},${d.current_weight},${avail},${clm},${tot},${est},"${d.updated_at || ''}"`;
+      })
       .join('\n');
     const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `apebroker_desks_full_audit_${Date.now()}.csv`);
+    link.setAttribute('download', `apebroker_desks_full_audit_${isUsdt ? 'usdt_' : 'eth_'}${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -602,7 +629,30 @@ export function DeskAdminDashboard({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {/* Currency Mode Toggle & ETH Price badge */}
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#0a0418] border border-cyan-800 text-[10px] font-mono text-cyan-300 shadow-[2px_2px_0px_#000]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#00FF66] animate-pulse" />
+                <span>1 ETH = ${Number(ethPrice || 2495).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleCurrency}
+                className={`pixel-btn px-2.5 sm:px-3 py-1.5 text-[10px] font-bold border-2 rounded-lg shadow-[2px_2px_0px_#000] flex items-center gap-1.5 transition-all ${
+                  isUsdt
+                    ? 'bg-[#00F0FF] text-black border-[#00F0FF]'
+                    : 'bg-[#1b0a3a] text-yellow-400 border-yellow-500'
+                }`}
+                title="Toggle between Native ETH and Live USDT valuation"
+              >
+                <span className="text-[9px] text-gray-400">CURRENCY:</span>
+                <span className={!isUsdt ? 'text-white font-extrabold underline' : 'text-gray-400'}>ETH</span>
+                <span className="text-gray-500">|</span>
+                <span className={isUsdt ? 'text-black font-extrabold underline' : 'text-gray-400'}>USDT</span>
+              </button>
+            </div>
+
             <button
               type="button"
               onClick={() => {
@@ -687,9 +737,11 @@ export function DeskAdminDashboard({
         <section className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
             <div className="bg-[#140833] border-2 border-[#FFD700] p-4 rounded-xl shadow-[4px_4px_0px_#000]">
-              <div className="text-[10px] text-gray-400">TOTAL ETH DISTRIBUTED</div>
+              <div className="text-[10px] text-gray-400 uppercase">
+                {isUsdt ? 'TOTAL DISTRIBUTED (USDT)' : 'TOTAL ETH DISTRIBUTED'}
+              </div>
               <div className="text-lg sm:text-2xl font-extrabold text-[#FFD700] mt-1 drop-shadow-[0_0_8px_rgba(255,215,0,0.3)]">
-                {effectiveTotalDistributed.toFixed(4)} ETH
+                {formatEthOrUsdt(effectiveTotalDistributed, isUsdt, ethPrice)}
               </div>
               <div className="text-[9px] text-[#00FF66] mt-1 font-mono">
                 {rewardDeposits.length} Deposit Epochs Funded
@@ -697,9 +749,15 @@ export function DeskAdminDashboard({
             </div>
 
             <div className="bg-[#140833] border-2 border-[#00F0FF] p-4 rounded-xl shadow-[4px_4px_0px_#000]">
-              <div className="text-[10px] text-gray-400">TOTAL USER CLAIMED</div>
+              <div className="text-[10px] text-gray-400 uppercase">
+                {isUsdt ? 'TOTAL USER CLAIMED (USDT)' : 'TOTAL USER CLAIMED'}
+              </div>
               <div className="text-lg sm:text-2xl font-extrabold text-[#00F0FF] mt-1 drop-shadow-[0_0_8px_rgba(0,240,255,0.3)]">
-                {Math.max(Number(formatEther(globalStats.totalEthClaimed || 0n)), totalClaimedAllDesks).toFixed(4)} ETH
+                {formatEthOrUsdt(
+                  Math.max(Number(formatEther(globalStats.totalEthClaimed || 0n)), totalClaimedAllDesks),
+                  isUsdt,
+                  ethPrice
+                )}
               </div>
               <div className="text-[9px] text-gray-400 mt-1 font-mono">
                 {rewardClaims.length} User Claims Executed
@@ -707,9 +765,11 @@ export function DeskAdminDashboard({
             </div>
 
             <div className="bg-[#140833] border-2 border-[#00FF66] p-4 rounded-xl shadow-[4px_4px_0px_#000]">
-              <div className="text-[10px] text-gray-400">AVAILABLE TO CLAIM (PENDING)</div>
+              <div className="text-[10px] text-gray-400 uppercase">
+                {isUsdt ? 'AVAILABLE TO CLAIM (USDT)' : 'AVAILABLE TO CLAIM (PENDING)'}
+              </div>
               <div className="text-lg sm:text-2xl font-extrabold text-[#00FF66] mt-1 drop-shadow-[0_0_8px_rgba(0,255,102,0.3)]">
-                {totalAvailableToClaimAllDesks.toFixed(4)} ETH
+                {formatEthOrUsdt(totalAvailableToClaimAllDesks, isUsdt, ethPrice)}
               </div>
               <div className="text-[9px] text-[#00FF66] mt-1 font-mono">
                 {desksWithClaimableCount} Desks Ready To Claim
@@ -717,9 +777,11 @@ export function DeskAdminDashboard({
             </div>
 
             <div className="bg-[#140833] border-2 border-[#FF007F] p-4 rounded-xl shadow-[4px_4px_0px_#000]">
-              <div className="text-[10px] text-gray-400">TOTAL USER EARNED</div>
+              <div className="text-[10px] text-gray-400 uppercase">
+                {isUsdt ? 'TOTAL USER EARNED (USDT)' : 'TOTAL USER EARNED'}
+              </div>
               <div className="text-lg sm:text-2xl font-extrabold text-[#FF007F] mt-1 drop-shadow-[0_0_8px_rgba(255,0,127,0.3)]">
-                {totalUserEarnedAllDesks.toFixed(4)} ETH
+                {formatEthOrUsdt(totalUserEarnedAllDesks, isUsdt, ethPrice)}
               </div>
               <div className="text-[9px] text-pink-400 mt-1 font-mono">
                 Claimed + Unclaimed Balance
@@ -727,9 +789,11 @@ export function DeskAdminDashboard({
             </div>
 
             <div className="bg-[#140833] border-2 border-[#A855F7] p-4 rounded-xl shadow-[4px_4px_0px_#000]">
-              <div className="text-[10px] text-gray-400">CURRENT REWARD POOL</div>
+              <div className="text-[10px] text-gray-400 uppercase">
+                {isUsdt ? 'CURRENT REWARD POOL (USDT)' : 'CURRENT REWARD POOL'}
+              </div>
               <div className="text-lg sm:text-2xl font-extrabold text-[#A855F7] mt-1 drop-shadow-[0_0_8px_rgba(168,85,247,0.3)]">
-                {Number(formatEther(globalStats.rewardPoolBalance || 0n)).toFixed(4)} ETH
+                {formatEthOrUsdt(globalStats.rewardPoolBalance || 0n, isUsdt, ethPrice)}
               </div>
               <div className="text-[9px] text-purple-400 mt-1 font-mono">Ready for 5-Hour Claims</div>
             </div>
@@ -1017,9 +1081,11 @@ export function DeskAdminDashboard({
             </div>
 
             <div className="bg-[#140833] border-2 border-[#00F0FF] p-3.5 rounded-xl shadow-[3px_3px_0px_#000]">
-              <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">AVAILABLE TO CLAIM (PENDING)</div>
+              <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                {isUsdt ? 'AVAILABLE TO CLAIM (USDT)' : 'AVAILABLE TO CLAIM (PENDING)'}
+              </div>
               <div className="text-xl sm:text-2xl font-extrabold text-[#00F0FF] mt-1 drop-shadow-[0_0_8px_rgba(0,240,255,0.4)]">
-                {totalAvailableToClaimAllDesks.toFixed(6)} ETH
+                {formatEthOrUsdt(totalAvailableToClaimAllDesks, isUsdt, ethPrice)}
               </div>
               <div className="text-[9px] text-cyan-300 mt-1 font-mono">
                 {desksWithClaimableCount} Desks Ready To Claim
@@ -1027,9 +1093,11 @@ export function DeskAdminDashboard({
             </div>
 
             <div className="bg-[#140833] border-2 border-[#FFD700] p-3.5 rounded-xl shadow-[3px_3px_0px_#000]">
-              <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">TOTAL USER REWARDS CLAIMED</div>
+              <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                {isUsdt ? 'TOTAL USER REWARDS CLAIMED (USDT)' : 'TOTAL USER REWARDS CLAIMED'}
+              </div>
               <div className="text-xl sm:text-2xl font-extrabold text-[#FFD700] mt-1 drop-shadow-[0_0_8px_rgba(255,215,0,0.4)]">
-                {totalClaimedAllDesks.toFixed(6)} ETH
+                {formatEthOrUsdt(totalClaimedAllDesks, isUsdt, ethPrice)}
               </div>
               <div className="text-[9px] text-yellow-300 mt-1 font-mono">
                 {rewardClaims.length} Claims Executed
@@ -1037,9 +1105,11 @@ export function DeskAdminDashboard({
             </div>
 
             <div className="bg-[#140833] border-2 border-[#FF007F] p-3.5 rounded-xl shadow-[3px_3px_0px_#000]">
-              <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">TOTAL USER EARNED (LIFETIME)</div>
+              <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                {isUsdt ? 'TOTAL USER EARNED (USDT)' : 'TOTAL USER EARNED (LIFETIME)'}
+              </div>
               <div className="text-xl sm:text-2xl font-extrabold text-[#FF007F] mt-1 drop-shadow-[0_0_8px_rgba(255,0,127,0.4)]">
-                {totalUserEarnedAllDesks.toFixed(6)} ETH
+                {formatEthOrUsdt(totalUserEarnedAllDesks, isUsdt, ethPrice)}
               </div>
               <div className="text-[9px] text-pink-300 mt-1 font-mono">
                 Cumulative Operator Yield
@@ -1141,10 +1211,18 @@ export function DeskAdminDashboard({
                     <th className="py-2.5 px-3">Owner</th>
                     <th className="py-2.5 px-3">Status</th>
                     <th className="py-2.5 px-3">Weight & Boost</th>
-                    <th className="py-2.5 px-3 text-[#00F0FF]">Available To Claim</th>
-                    <th className="py-2.5 px-3 text-[#FFD700]">User Claimed</th>
-                    <th className="py-2.5 px-3 text-[#FF007F]">User Total Earn</th>
-                    <th className="py-2.5 px-3">Est. Next 5H</th>
+                    <th className="py-2.5 px-3 text-[#00F0FF]">
+                      {isUsdt ? 'Available (USDT)' : 'Available To Claim'}
+                    </th>
+                    <th className="py-2.5 px-3 text-[#FFD700]">
+                      {isUsdt ? 'Claimed (USDT)' : 'User Claimed'}
+                    </th>
+                    <th className="py-2.5 px-3 text-[#FF007F]">
+                      {isUsdt ? 'Total Earn (USDT)' : 'User Total Earn'}
+                    </th>
+                    <th className="py-2.5 px-3">
+                      {isUsdt ? 'Est. Next 5H (USDT)' : 'Est. Next 5H'}
+                    </th>
                     <th className="py-2.5 px-3">Updated</th>
                   </tr>
                 </thead>
@@ -1248,8 +1326,7 @@ export function DeskAdminDashboard({
                                 : 'text-gray-400'
                             }`}
                           >
-                            <span>{d.availableToClaimEth.toFixed(6)}</span>
-                            <span className="text-[9px]">ETH</span>
+                            <span>{formatEthOrUsdt(d.availableToClaimEth, isUsdt, ethPrice)}</span>
                           </div>
                         </td>
 
@@ -1262,8 +1339,7 @@ export function DeskAdminDashboard({
                                 : 'text-gray-500'
                             }`}
                           >
-                            <span>{d.claimedEth.toFixed(6)}</span>
-                            <span className="text-[9px]">ETH</span>
+                            <span>{formatEthOrUsdt(d.claimedEth, isUsdt, ethPrice)}</span>
                           </div>
                         </td>
 
@@ -1276,14 +1352,13 @@ export function DeskAdminDashboard({
                                 : 'text-gray-500'
                             }`}
                           >
-                            <span>{d.totalEarnedEth.toFixed(6)}</span>
-                            <span className="text-[9px]">ETH</span>
+                            <span>{formatEthOrUsdt(d.totalEarnedEth, isUsdt, ethPrice)}</span>
                           </div>
                         </td>
 
                         {/* Est Next 5H */}
                         <td className="py-2.5 px-3 font-mono text-[11px] text-gray-300">
-                          ~{d.estEth.toFixed(6)} ETH
+                          ~{formatEthOrUsdt(d.estEth, isUsdt, ethPrice)}
                         </td>
 
                         {/* Updated */}
@@ -1343,9 +1418,11 @@ export function DeskAdminDashboard({
               </p>
             </div>
             <div className="bg-[#190938] px-4 py-2 rounded-lg border border-purple-700 text-right">
-              <div className="text-[9px] text-gray-400">TOTAL ETH DISTRIBUTED</div>
+              <div className="text-[9px] text-gray-400">
+                {isUsdt ? 'TOTAL DISTRIBUTED (USDT)' : 'TOTAL ETH DISTRIBUTED'}
+              </div>
               <div className="text-base sm:text-lg font-extrabold text-[#FFD700]">
-                {effectiveTotalDistributed.toFixed(4)} ETH
+                {formatEthOrUsdt(effectiveTotalDistributed, isUsdt, ethPrice)}
               </div>
             </div>
           </div>
@@ -1390,7 +1467,7 @@ export function DeskAdminDashboard({
               <div className="text-[10px] text-gray-300 mt-1 flex flex-wrap gap-x-4 gap-y-1">
                 <span>Benchmark Floor: <strong className="text-white">{Number(globalStats.benchmarkWeightFloor || 2000)} WGT</strong></span>
                 <span>Active Weight: <strong className="text-[#00FF66]">{Number(globalStats.totalEligibleWeight || 0)} WGT</strong></span>
-                <span>Available Pool: <strong className="text-[#FFD700]">{Number(formatEther(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 0n)).toFixed(4)} ETH</strong></span>
+                <span>Available Pool: <strong className="text-[#FFD700]">{formatEthOrUsdt(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 0n, isUsdt, ethPrice)}</strong></span>
               </div>
             </div>
             <button
@@ -1418,9 +1495,11 @@ export function DeskAdminDashboard({
                 </p>
               </div>
               <div className="text-right">
-                <span className="text-[9px] text-gray-400 block uppercase">Available Unallocated Pool</span>
+                <span className="text-[9px] text-gray-400 block uppercase">
+                  {isUsdt ? 'Available Pool (USDT)' : 'Available Unallocated Pool'}
+                </span>
                 <span className="text-sm font-extrabold text-[#FFD700]">
-                  {Number(formatEther(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 0n)).toFixed(4)} ETH
+                  {formatEthOrUsdt(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 0n, isUsdt, ethPrice)}
                 </span>
               </div>
             </div>
@@ -1503,7 +1582,7 @@ export function DeskAdminDashboard({
                 <thead>
                   <tr className="border-b-2 border-purple-900/60 bg-[#160838] text-gray-400 text-[10px] uppercase">
                     <th className="py-2.5 px-3">Epoch #</th>
-                    <th className="py-2.5 px-3">Amount Distributed</th>
+                    <th className="py-2.5 px-3">{isUsdt ? 'Amount (USDT)' : 'Amount Distributed'}</th>
                     <th className="py-2.5 px-3">Depositor</th>
                     <th className="py-2.5 px-3">Tx Hash</th>
                     <th className="py-2.5 px-3">Timestamp</th>
@@ -1516,7 +1595,7 @@ export function DeskAdminDashboard({
                         Epoch #{dep.epoch}
                       </td>
                       <td className="py-2.5 px-3 font-extrabold text-[#FFD700] text-sm">
-                        {dep.amount_eth} ETH
+                        {formatEthOrUsdt(dep.amount_eth, isUsdt, ethPrice)}
                       </td>
                       <td className="py-2.5 px-3 font-mono text-gray-300">
                         {dep.depositor ? `${dep.depositor.slice(0, 6)}...${dep.depositor.slice(-4)}` : 'Admin'}
@@ -1584,7 +1663,7 @@ export function DeskAdminDashboard({
                     <tr className="border-b border-purple-900/60 text-gray-400 text-[10px] uppercase">
                       <th className="py-2 px-3">Token ID</th>
                       <th className="py-2 px-3">Claimer</th>
-                      <th className="py-2 px-3">Amount ETH</th>
+                      <th className="py-2 px-3">{isUsdt ? 'Amount (USDT)' : 'Amount ETH'}</th>
                       <th className="py-2 px-3">Claim Type</th>
                       <th className="py-2 px-3">Tx Hash</th>
                       <th className="py-2 px-3">Time</th>
@@ -1595,7 +1674,9 @@ export function DeskAdminDashboard({
                       <tr key={c.id} className="hover:bg-purple-950/30">
                         <td className="py-2 px-3 font-bold text-white">#{c.token_id || 'Batch'}</td>
                         <td className="py-2 px-3 text-gray-300">{c.claimer.slice(0, 6)}...{c.claimer.slice(-4)}</td>
-                        <td className="py-2 px-3 font-bold text-[#00F0FF]">{c.amount_eth} ETH</td>
+                        <td className="py-2 px-3 font-bold text-[#00F0FF]">
+                          {formatEthOrUsdt(c.amount_eth, isUsdt, ethPrice)}
+                        </td>
                         <td className="py-2 px-3 uppercase text-[9px] text-gray-400">{c.claim_type}</td>
                         <td className="py-2 px-3 text-[#00FF66]">
                           {c.tx_hash ? `${c.tx_hash.slice(0, 6)}...` : '-'}
@@ -1758,9 +1839,17 @@ export function DeskAdminDashboard({
                 </div>
               </div>
               <div className="bg-black/50 p-3 rounded-lg border border-purple-900/50">
-                <span className="text-gray-400 text-[10px]">Available Drip Pool:</span>
+                <span className="text-gray-400 text-[10px]">
+                  {isUsdt ? 'Available Drip Pool (USDT):' : 'Available Drip Pool:'}
+                </span>
                 <div className="text-sm font-bold text-[#FFD700] mt-0.5">
-                  {formatEther(globalStats?.availableRewardPool !== undefined ? globalStats.availableRewardPool : (globalStats?.rewardPoolBalance || 0n))} ETH
+                  {formatEthOrUsdt(
+                    globalStats?.availableRewardPool !== undefined
+                      ? globalStats.availableRewardPool
+                      : (globalStats?.rewardPoolBalance || 0n),
+                    isUsdt,
+                    ethPrice
+                  )}
                 </div>
               </div>
             </div>

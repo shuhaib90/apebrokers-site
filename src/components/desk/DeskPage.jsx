@@ -3,17 +3,37 @@ import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useDisconnect } from 'wagmi';
 import { formatEther } from 'viem';
 import { useApeBrokerDesk } from '../../hooks/useApeBrokerDesk';
+import { useEthPrice, formatEthOrUsdt } from '../../hooks/useEthPrice';
 import { DeskRunningVisual } from './DeskRunningVisual';
 import { DeskActionModal } from './DeskActionModal';
 import { DeskPnlModal } from './DeskPnlModal';
 import { DeskAdminModal } from './DeskAdminModal';
 import { DeskAdminDashboard } from './DeskAdminDashboard';
-import { fetchRecentProtocolActivity } from '../../utils/supabaseDesk';
+import { fetchRecentProtocolActivity, fetchAllRewardDepositsFromDb } from '../../utils/supabaseDesk';
 import { sound } from '../../utils/audio';
 
 export function DeskPage({ onBackHome }) {
   const { openConnectModal } = useConnectModal();
   const { disconnect } = useDisconnect();
+  const { ethPrice } = useEthPrice();
+
+  // Currency Toggle State (ETH vs USDT) with localStorage persistence
+  const [isUsdt, setIsUsdt] = useState(() => {
+    try {
+      return localStorage.getItem('apebroker_currency_mode') === 'USDT';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const toggleCurrency = (toUsdt) => {
+    sound?.playClick?.();
+    const nextVal = typeof toUsdt === 'boolean' ? toUsdt : !isUsdt;
+    setIsUsdt(nextVal);
+    try {
+      localStorage.setItem('apebroker_currency_mode', nextVal ? 'USDT' : 'ETH');
+    } catch (e) {}
+  };
 
   const {
     address,
@@ -67,6 +87,21 @@ export function DeskPage({ onBackHome }) {
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [activeView, setActiveView] = useState('terminal'); // 'terminal' | 'admin'
 
+  // Total Distributed: Combine on-chain totalEthRewardsDeposited and DB deposits
+  const [totalEthDistributedDb, setTotalEthDistributedDb] = useState(0);
+
+  useEffect(() => {
+    fetchAllRewardDepositsFromDb(100)
+      .then((deps) => {
+        const total = (deps || []).reduce((sum, d) => sum + parseFloat(d.amount_eth || 0), 0);
+        setTotalEthDistributedDb(total);
+      })
+      .catch(() => {});
+  }, []);
+
+  const onChainDepositedEth = parseFloat(formatEther(globalStats.totalEthDeposited || 0n));
+  const effectiveTotalDistributed = Math.max(totalEthDistributedDb, onChainDepositedEth);
+
   // Search / Track Token ID input
   const [manualTokenId, setManualTokenId] = useState('');
   const [searchError, setSearchError] = useState('');
@@ -75,13 +110,9 @@ export function DeskPage({ onBackHome }) {
   // Live countdown timer for 5-hour epoch
   const [timeLeft, setTimeLeft] = useState(Number(globalStats.secondsUntilNextEpoch || 0));
 
-  // Helper to format small ETH reward amounts cleanly (6-7 decimals)
+  // Helper to format ETH or USDT reward amounts
   const formatEthReward = (weiAmount) => {
-    if (!weiAmount || weiAmount === 0n) return '0.000000';
-    const num = Number(formatEther(weiAmount));
-    if (num < 0.000001) return num.toFixed(7);
-    if (num < 0.001) return num.toFixed(6);
-    return num.toFixed(5);
+    return formatEthOrUsdt(weiAmount, isUsdt, ethPrice, { includeUnit: false });
   };
 
   // Activity feed
@@ -357,6 +388,34 @@ export function DeskPage({ onBackHome }) {
               </div>
             )}
 
+            {/* Currency Toggle (ETH / USDT) */}
+            <div className="flex items-center bg-[#150a33] border border-purple-800 rounded-lg p-0.5 shadow-[1px_1px_0px_#000]">
+              <button
+                type="button"
+                onClick={() => toggleCurrency(false)}
+                className={`px-2 py-1 text-[9px] font-bold rounded transition-colors ${
+                  !isUsdt
+                    ? 'bg-[#00F0FF] text-black shadow-[0_0_6px_rgba(0,240,255,0.4)]'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                title="Display amounts in native ETH"
+              >
+                ETH
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleCurrency(true)}
+                className={`px-2 py-1 text-[9px] font-bold rounded transition-colors ${
+                  isUsdt
+                    ? 'bg-[#00FF66] text-black shadow-[0_0_6px_rgba(0,255,102,0.4)]'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                title={`Display amounts converted to USDT (1 ETH = $${ethPrice.toFixed(2)})`}
+              >
+                USDT
+              </button>
+            </div>
+
             <button
               type="button"
               onClick={() => {
@@ -437,6 +496,9 @@ export function DeskPage({ onBackHome }) {
             onSetActivationFee={adminSetActivationFee}
             onBackToTerminal={() => setActiveView('terminal')}
             refetchGlobalStats={refetchGlobalStats}
+            isUsdt={isUsdt}
+            setIsUsdt={setIsUsdt}
+            ethPrice={ethPrice}
           />
         ) : (
           <>
@@ -482,60 +544,109 @@ export function DeskPage({ onBackHome }) {
 
             {/* Global Protocol Ticker / Metrics */}
             <section className="bg-[#0f0729]/95 border-2 border-purple-800/80 rounded-xl p-4 sm:p-5 shadow-[6px_6px_0px_#000]">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-900/60">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse" />
-              <span className="text-xs text-gray-300 font-bold uppercase tracking-wider">
-                LIVE PROTOCOL METRICS
-              </span>
-            </div>
-            {/* 5-Hour Epoch Countdown */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 bg-[#1b0a40] px-3 py-1.5 border border-[#00F0FF] rounded-lg text-xs">
-                <span className="text-gray-400 text-[10px]">EPOCH #{globalStats.currentEpoch.toString()} ENDS IN:</span>
-                <span className="text-[#00F0FF] font-mono font-bold tracking-wider">
-                  {formatCountdown(timeLeft)}
-                </span>
-              </div>
-            </div>
-          </div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-900/60">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse" />
+                  <span className="text-xs text-gray-300 font-bold uppercase tracking-wider">
+                    LIVE PROTOCOL METRICS
+                  </span>
+                </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-4 font-mono text-center">
-            {/* Total Active Desks */}
-            <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
-              <div className="text-[10px] text-gray-400 font-pixel">TOTAL WEIGHT</div>
-              <div className="text-base sm:text-xl font-bold text-[#00FF66] mt-1">
-                {globalStats.totalEligibleWeight.toString()} WGT
-              </div>
-              <div className="text-[9px] text-gray-500 mt-0.5">Eligible Distribution</div>
-            </div>
+                {/* Live ETH/USDT Price Indicator, Currency Toggle, and Epoch Countdown */}
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  {/* Currency Switcher + Live Price */}
+                  <div className="flex items-center gap-2 bg-[#12072b] px-2.5 py-1 border border-purple-800 rounded-lg">
+                    <span className="text-[9px] text-gray-400 font-mono hidden md:inline">1 ETH =</span>
+                    <span className="text-[10px] text-[#00FF66] font-mono font-bold">
+                      ${ethPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
+                    </span>
+                    <div className="h-3 w-[1px] bg-purple-800" />
+                    <div className="flex items-center bg-black/60 rounded p-0.5 border border-purple-900">
+                      <button
+                        type="button"
+                        onClick={() => toggleCurrency(false)}
+                        className={`px-2 py-0.5 text-[9px] font-bold rounded transition-colors ${
+                          !isUsdt
+                            ? 'bg-[#00F0FF] text-black shadow-[0_0_8px_rgba(0,240,255,0.4)]'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
+                        title="Show amounts in native ETH"
+                      >
+                        ETH
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleCurrency(true)}
+                        className={`px-2 py-0.5 text-[9px] font-bold rounded transition-colors ${
+                          isUsdt
+                            ? 'bg-[#00FF66] text-black shadow-[0_0_8px_rgba(0,255,102,0.4)]'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
+                        title="Convert all amounts to USDT at live ETH price"
+                      >
+                        USDT
+                      </button>
+                    </div>
+                  </div>
 
-            {/* Reward Pool Balance */}
-            <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
-              <div className="text-[10px] text-gray-400 font-pixel">ETH REWARD POOL</div>
-              <div className="text-base sm:text-xl font-bold text-[#00F0FF] mt-1">
-                {Number(formatEther(globalStats.rewardPoolBalance)).toFixed(4)} ETH
+                  {/* 5-Hour Epoch Countdown */}
+                  <div className="flex items-center gap-2 bg-[#1b0a40] px-3 py-1.5 border border-[#00F0FF] rounded-lg text-xs">
+                    <span className="text-gray-400 text-[10px]">EPOCH #{globalStats.currentEpoch.toString()} ENDS IN:</span>
+                    <span className="text-[#00F0FF] font-mono font-bold tracking-wider">
+                      {formatCountdown(timeLeft)}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="text-[9px] text-gray-500 mt-0.5">Available To Mine</div>
-            </div>
 
-            {/* Total Rewards Claimed Protocol-wide */}
-            <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
-              <div className="text-[10px] text-gray-400 font-pixel">TOTAL REWARDS CLAIMED</div>
-              <div className="text-base sm:text-xl font-bold text-[#FFD700] mt-1">
-                {Number(formatEther(globalStats.totalEthClaimed || 0n)).toFixed(4)} ETH
+              {/* 5-Column Responsive Protocol Metrics Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-4 font-mono text-center">
+                {/* 1. Total Weight */}
+                <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
+                  <div className="text-[10px] text-gray-400 font-pixel">TOTAL WEIGHT</div>
+                  <div className="text-base sm:text-xl font-bold text-[#00FF66] mt-1">
+                    {globalStats.totalEligibleWeight.toString()} WGT
+                  </div>
+                  <div className="text-[9px] text-gray-500 mt-0.5">Eligible Distribution</div>
+                </div>
+
+                {/* 2. Reward Pool Balance */}
+                <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
+                  <div className="text-[10px] text-gray-400 font-pixel">
+                    {isUsdt ? 'USDT REWARD POOL' : 'ETH REWARD POOL'}
+                  </div>
+                  <div className="text-base sm:text-xl font-bold text-[#00F0FF] mt-1">
+                    {formatEthOrUsdt(globalStats.rewardPoolBalance, isUsdt, ethPrice)}
+                  </div>
+                  <div className="text-[9px] text-cyan-400 mt-0.5">Available To Mine</div>
+                </div>
+
+                {/* 3. Total Reward Distributed (Requested by user) */}
+                <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
+                  <div className="text-[10px] text-gray-400 font-pixel">TOTAL DISTRIBUTED</div>
+                  <div className="text-base sm:text-xl font-bold text-[#FF80BE] mt-1">
+                    {formatEthOrUsdt(effectiveTotalDistributed, isUsdt, ethPrice)}
+                  </div>
+                  <div className="text-[9px] text-pink-400 mt-0.5">Funded into Pool</div>
+                </div>
+
+                {/* 4. Total Rewards Claimed Protocol-wide */}
+                <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
+                  <div className="text-[10px] text-gray-400 font-pixel">TOTAL CLAIMED</div>
+                  <div className="text-base sm:text-xl font-bold text-[#FFD700] mt-1">
+                    {formatEthOrUsdt(globalStats.totalEthClaimed || 0n, isUsdt, ethPrice)}
+                  </div>
+                  <div className="text-[9px] text-yellow-400 mt-0.5">Distributed to Desks</div>
+                </div>
+
+                {/* 5. Desk Capacity */}
+                <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40 flex flex-col justify-center col-span-2 sm:col-span-1">
+                  <div className="text-[10px] text-gray-400 font-pixel">DESK CAPACITY</div>
+                  <div className="text-sm font-bold text-white mt-1">MAX 5 / WALLET</div>
+                  <div className="text-[9px] text-[#00FF66] mt-0.5">5 Boosts / Desk</div>
+                </div>
               </div>
-              <div className="text-[9px] text-gray-500 mt-0.5">Distributed to Desks</div>
-            </div>
-
-            {/* Wallet Limit Note */}
-            <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40 flex flex-col justify-center">
-              <div className="text-[10px] text-gray-400 font-pixel">DESK CAPACITY</div>
-              <div className="text-sm font-bold text-white mt-1">MAX 5 / WALLET</div>
-              <div className="text-[9px] text-[#00FF66] mt-0.5">5 Boosts / Desk</div>
-            </div>
-          </div>
-        </section>
+            </section>
 
         {/* User Portfolio HUD (When Connected) */}
         {isConnected && (
@@ -566,7 +677,7 @@ export function DeskPage({ onBackHome }) {
                   )}
                 </span>
                 <span className="bg-black/60 px-3 py-1.5 border border-purple-800 rounded">
-                  ETH: <span className="text-[#00F0FF] font-bold">{Number(formatEther(userBalances.ethBalance)).toFixed(4)}</span>
+                  {isUsdt ? 'WALLET USDT:' : 'WALLET ETH:'} <span className="text-[#00F0FF] font-bold">{formatEthOrUsdt(userBalances.ethBalance, isUsdt, ethPrice, { decimals: 4 })}</span>
                 </span>
               </div>
             </div>
@@ -590,14 +701,14 @@ export function DeskPage({ onBackHome }) {
               <div className="bg-black/40 p-3 rounded-lg border border-[#00F0FF]/40 flex flex-col justify-between bg-cyan-950/20">
                 <span className="text-[10px] text-cyan-300">Est. Next 5H Epoch:</span>
                 <span className="text-sm font-bold text-[#00F0FF] mt-1">
-                  ~{formatEthReward(totalUserEstNextEth)} ETH
+                  ~{formatEthOrUsdt(totalUserEstNextEth, isUsdt, ethPrice, { decimals: 6 })}
                 </span>
               </div>
 
               <div className="bg-black/40 p-3 rounded-lg border border-purple-900/50 flex flex-col justify-between">
-                <span className="text-[10px] text-gray-400">Total Pending ETH:</span>
+                <span className="text-[10px] text-gray-400">Total Pending {isUsdt ? 'USDT' : 'ETH'}:</span>
                 <span className="text-sm font-bold text-[#00FF66] mt-1">
-                  {Number(formatEther(totalUserPendingEth)).toFixed(6)} ETH
+                  {formatEthOrUsdt(totalUserPendingEth, isUsdt, ethPrice, { decimals: 6 })}
                 </span>
               </div>
             </div>
@@ -611,8 +722,8 @@ export function DeskPage({ onBackHome }) {
                 className="pixel-btn pixel-btn-vibrant-lime px-4 py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000] disabled:opacity-40"
               >
                 {isClaimingAll
-                  ? '[ CLAIMING ALL ETH... ]'
-                  : `[ CLAIM ALL REWARDS (${Number(formatEther(totalUserPendingEth)).toFixed(4)} ETH) ]`}
+                  ? `[ CLAIMING ALL ${isUsdt ? 'REWARDS' : 'ETH'}... ]`
+                  : `[ CLAIM ALL REWARDS (${formatEthOrUsdt(totalUserPendingEth, isUsdt, ethPrice, { decimals: 4 })}) ]`}
               </button>
 
               {userBalances.historicalClaimableEth > 0n && (
@@ -623,8 +734,8 @@ export function DeskPage({ onBackHome }) {
                   className="pixel-btn pixel-btn-vibrant-gold px-4 py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000] disabled:opacity-40"
                 >
                   {isClaimingHistorical
-                    ? '[ CLAIMING HISTORICAL ETH... ]'
-                    : `[ CLAIM ACCRUED HISTORICAL REWARDS (${Number(formatEther(userBalances.historicalClaimableEth)).toFixed(4)} ETH) ]`}
+                    ? `[ CLAIMING HISTORICAL ${isUsdt ? 'REWARDS' : 'ETH'}... ]`
+                    : `[ CLAIM ACCRUED HISTORICAL REWARDS (${formatEthOrUsdt(userBalances.historicalClaimableEth, isUsdt, ethPrice, { decimals: 4 })}) ]`}
                 </button>
               )}
             </div>
@@ -776,10 +887,10 @@ export function DeskPage({ onBackHome }) {
                           <div className="flex items-baseline justify-between pt-0.5">
                             <div>
                               <div className="text-base sm:text-lg font-extrabold text-[#00FF66] tracking-tight">
-                                ~{formatEthReward(desk.estimatedEpochRewardEth)} ETH
+                                ~{formatEthOrUsdt(desk.estimatedEpochRewardEth, isUsdt, ethPrice, { decimals: 6 })}
                               </div>
                               <div className="text-[9px] text-gray-400 mt-0.5">
-                                Projected: <span className="text-gray-200">~{formatEthReward(desk.estimatedDailyRewardEth)} ETH</span> / 24H
+                                Projected: <span className="text-gray-200">~{formatEthOrUsdt(desk.estimatedDailyRewardEth, isUsdt, ethPrice, { decimals: 6 })}</span> / 24H
                               </div>
                             </div>
 
@@ -812,11 +923,11 @@ export function DeskPage({ onBackHome }) {
                             {expandedCalcTokenId === desk.tokenId && (
                               <div className="mt-2 p-2 rounded bg-black/90 border border-cyan-900/80 text-[9px] text-gray-300 space-y-1 animate-fadeIn">
                                 <div className="text-[#00FF66] font-bold">Smart Contract Math (ApeBrokerDesk.sol):</div>
-                                <div className="text-[8px] text-gray-400">• Pool Balance: <span className="text-white">{Number(formatEther(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 1000000000000000n)).toFixed(4)} ETH</span></div>
-                                <div className="text-[8px] text-gray-400">• 5H Emission: <span className="text-white">{Number(globalStats.epochEmissionBps || 500n) / 100}%</span> (~{Number(formatEther(((globalStats.availableRewardPool || globalStats.rewardPoolBalance || 1000000000000000n) * (globalStats.epochEmissionBps || 500n)) / 10000n)).toFixed(6)} ETH)</div>
+                                <div className="text-[8px] text-gray-400">• Pool Balance: <span className="text-white">{formatEthOrUsdt(globalStats.availableRewardPool || globalStats.rewardPoolBalance || 1000000000000000n, isUsdt, ethPrice, { decimals: 4 })}</span></div>
+                                <div className="text-[8px] text-gray-400">• 5H Emission: <span className="text-white">{Number(globalStats.epochEmissionBps || 500n) / 100}%</span> (~{formatEthOrUsdt(((globalStats.availableRewardPool || globalStats.rewardPoolBalance || 1000000000000000n) * (globalStats.epochEmissionBps || 500n)) / 10000n, isUsdt, ethPrice, { decimals: 6 })})</div>
                                 <div className="text-[8px] text-gray-400">• Desk Weight: <span className="text-white">{weight} WGT</span> ÷ Divisor: <span className="text-white">{desk.effectiveDivisor || 2000}</span></div>
                                 <div className="text-[8px] text-[#FFD700] pt-1 border-t border-gray-800 font-bold">
-                                  = {formatEthReward(desk.estimatedEpochRewardEth)} ETH per 5-Hour Epoch
+                                  = {formatEthOrUsdt(desk.estimatedEpochRewardEth, isUsdt, ethPrice, { decimals: 6 })} per 5-Hour Epoch
                                 </div>
                               </div>
                             )}
@@ -864,9 +975,9 @@ export function DeskPage({ onBackHome }) {
 
                         {/* Pending Rewards */}
                         <div className="flex justify-between items-center text-gray-400 border-t border-purple-900/40 pt-1.5">
-                          <span>Claimable Pending ETH:</span>
+                          <span>Claimable Pending {isUsdt ? 'USDT' : 'ETH'}:</span>
                           <span className="text-[#00FF66] font-bold">
-                            {pendingEthFormatted} ETH
+                            {formatEthOrUsdt(desk.pendingRewardsEth || 0n, isUsdt, ethPrice, { decimals: 6 })}
                           </span>
                         </div>
                       </div>
@@ -938,7 +1049,7 @@ export function DeskPage({ onBackHome }) {
                               onClick={() => handleClaimSingle(desk)}
                               className="flex-1 min-h-[42px] pixel-btn pixel-btn-vibrant-cyan py-2 text-[11px] font-bold rounded-lg shadow-[2px_2px_0px_#000] disabled:opacity-40"
                             >
-                              [ CLAIM ETH ]
+                              [ CLAIM {isUsdt ? (desk.pendingRewardsEth > 0n ? `(${formatEthOrUsdt(desk.pendingRewardsEth, true, ethPrice, { decimals: 2 })})` : 'USDT') : 'ETH'} ]
                             </button>
                           </div>
                           {boostCount < 5 && !hasRequiredBoostBalance && (
