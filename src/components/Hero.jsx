@@ -36,12 +36,12 @@ export const Hero = ({ onApplyClick }) => {
         </div>
 
         {/* Headline */}
-        <div className="space-y-3 w-full px-2">
-          <h1 className="font-pixel text-2xl min-[380px]:text-3xl min-[480px]:text-4xl sm:text-6xl md:text-7xl pixel-text-3d-lime tracking-tight font-extrabold leading-tight break-words">
+        <div className="space-y-3 w-full px-1 sm:px-2 flex flex-col items-center">
+          <h1 className="font-pixel text-[clamp(1.15rem,6.6vw,4.5rem)] pixel-text-3d-lime tracking-tight font-extrabold leading-tight whitespace-nowrap select-none max-w-full text-center">
             APESYNDICATE
           </h1>
-          <div className="inline-block max-w-full bg-[#120729]/95 border-2 border-[#00F0FF] px-3 sm:px-4 py-2 sm:py-2.5 shadow-[4px_4px_0px_0px_#FF007F] rounded-lg">
-            <h2 className="font-pixel text-[10px] min-[360px]:text-xs sm:text-lg md:text-xl text-[#00F0FF] tracking-tight font-extrabold min-h-[26px] sm:min-h-[32px] flex items-center justify-center">
+          <div className="inline-block max-w-full bg-[#120729]/95 border-2 border-[#00F0FF] px-2.5 sm:px-4 py-2 sm:py-2.5 shadow-[4px_4px_0px_0px_#FF007F] rounded-lg">
+            <h2 className="font-pixel text-[8px] min-[360px]:text-[9px] min-[400px]:text-[10px] sm:text-base md:text-xl text-[#00F0FF] tracking-tight font-extrabold min-h-[26px] sm:min-h-[32px] flex items-center justify-center">
               <TypewriterText
                 text={[
                   'OPEN FOR EVERYONE.',
