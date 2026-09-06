@@ -631,8 +631,8 @@ export function DeskPage({ onBackHome }) {
                     {/* Desk Visual Avatar / Graphic */}
                     <div className="w-full h-32 bg-black/50 border border-purple-900/50 rounded-lg flex items-center justify-center relative overflow-hidden">
                       <img
-                        src={`/gifs/${(desk.tokenId % 100) + 1}.gif`}
-                        alt={`Ape #${desk.tokenId}`}
+                        src={desk.image || `/gifs/${(desk.tokenId % 100) + 1}.gif`}
+                        alt={desk.name || `Broker Desk #${desk.tokenId}`}
                         onError={(e) => {
                           e.target.src = '/logo.png';
                         }}

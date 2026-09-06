@@ -4,7 +4,7 @@
 // Standard WL: Non-holders or holding < $1.00 USD and 0 NFTs.
 
 export const TOKEN_CONTRACT = '0xe0F384ebCede975342c5431aCad515b4A1B862cc';
-export const NFT_CONTRACT = '0x5b9ca37d499eace8f526320d6edea10fb73d4ec6';
+export const NFT_CONTRACT = '0xd3b030e9281fcd8797af6dc437636b24bdfe7902';
 
 export const TOTAL_SPOTS = 9000;
 

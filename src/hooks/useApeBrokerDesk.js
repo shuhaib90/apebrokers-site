@@ -23,7 +23,7 @@ export const APEBROKE_TOKEN_ADDRESS =
 export const APE_BROKER_NFT_ADDRESS =
   import.meta.env.VITE_APE_BROKER_NFT_ADDRESS ||
   deskDeployConfig.apeBrokerNftAddress ||
-  '0x5b9ca37d499eace8f526320d6edea10fb73d4ec6';
+  '0xd3b030e9281fcd8797af6dc437636b24bdfe7902';
 
 export const ADMIN_ADDRESS =
   import.meta.env.VITE_ADMIN_ADDRESS ||
@@ -85,6 +85,27 @@ export const ERC721_ABI = [
     outputs: [{ type: 'address' }],
   },
   {
+    name: 'tokenURI',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'tokenId', type: 'uint256' }],
+    outputs: [{ type: 'string' }],
+  },
+  {
+    name: 'name',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'string' }],
+  },
+  {
+    name: 'symbol',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'string' }],
+  },
+  {
     name: 'tokenOfOwnerByIndex',
     type: 'function',
     stateMutability: 'view',
@@ -97,6 +118,17 @@ export const ERC721_ABI = [
 ];
 
 /**
+ * Helper to convert ipfs:// URI to HTTP gateway URL
+ */
+export function resolveIpfsUrl(url) {
+  if (!url || typeof url !== 'string') return '';
+  if (url.startsWith('ipfs://')) {
+    return url.replace('ipfs://', 'https://ipfs.io/ipfs/');
+  }
+  return url;
+}
+
+/**
  * Auto-detect user's Ape Broker NFTs using Alchemy NFT API on Robinhood Chain
  */
 export async function fetchOwnedNftsFromAlchemy(ownerAddress) {
@@ -105,19 +137,59 @@ export async function fetchOwnedNftsFromAlchemy(ownerAddress) {
     const url = `https://robinhood-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_API_KEY}/getNFTsForOwner?owner=${ownerAddress}&contractAddresses[]=${APE_BROKER_NFT_ADDRESS}&withMetadata=true`;
     const res = await fetch(url).then((r) => r.json());
     if (res && res.ownedNfts && Array.isArray(res.ownedNfts)) {
-      return res.ownedNfts.map((n) => ({
-        tokenId: Number(n.tokenId),
-        name: n.name || `Ape Broker #${n.tokenId}`,
-        image:
+      return res.ownedNfts.map((n) => {
+        const rawImg =
           n.image?.cachedUrl ||
           n.image?.thumbnailUrl ||
-          `/gifs/${(Number(n.tokenId) % 100) + 1}.gif`,
-      }));
+          n.image?.pngUrl ||
+          n.image?.originalUrl ||
+          n.raw?.metadata?.image ||
+          n.raw?.metadata?.image_url;
+        const image = resolveIpfsUrl(rawImg) || `/gifs/${(Number(n.tokenId) % 100) + 1}.gif`;
+        return {
+          tokenId: Number(n.tokenId),
+          name: n.name || n.title || `Broker Desk #${n.tokenId}`,
+          image,
+          description: n.description || '',
+          attributes: n.raw?.metadata?.attributes || [],
+        };
+      });
     }
   } catch (err) {
     console.warn('Alchemy NFT fetch note:', err);
   }
   return [];
+}
+
+/**
+ * Fetch metadata for an individual NFT token ID from Alchemy on Robinhood Chain
+ */
+export async function fetchSingleNftMetadataFromAlchemy(tokenId) {
+  if (tokenId === undefined || tokenId === null) return null;
+  try {
+    const url = `https://robinhood-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_API_KEY}/getNFTMetadata?contractAddress=${APE_BROKER_NFT_ADDRESS}&tokenId=${tokenId}&refreshCache=false`;
+    const n = await fetch(url).then((r) => r.json());
+    if (n && (n.tokenId !== undefined || n.name || n.image)) {
+      const rawImg =
+        n.image?.cachedUrl ||
+        n.image?.thumbnailUrl ||
+        n.image?.pngUrl ||
+        n.image?.originalUrl ||
+        n.raw?.metadata?.image ||
+        n.raw?.metadata?.image_url;
+      const image = resolveIpfsUrl(rawImg) || `/gifs/${(Number(tokenId) % 100) + 1}.gif`;
+      return {
+        tokenId: Number(tokenId),
+        name: n.name || n.title || `Broker Desk #${tokenId}`,
+        image,
+        description: n.description || '',
+        attributes: n.raw?.metadata?.attributes || [],
+      };
+    }
+  } catch (err) {
+    console.warn(`Single NFT metadata fetch note for #${tokenId}:`, err);
+  }
+  return null;
 }
 
 /**
@@ -653,11 +725,21 @@ export function useApeBrokerDesk() {
           !nftOwner ||
           nftOwner.toLowerCase() === address.toLowerCase();
 
-        const meta = nftMetadataMap.get(tid);
+        let meta = nftMetadataMap.get(tid);
+        if (!meta) {
+          try {
+            meta = await fetchSingleNftMetadataFromAlchemy(tid);
+            if (meta) {
+              nftMetadataMap.set(tid, meta);
+            }
+          } catch (e) {
+            // Keep fallback
+          }
+        }
 
         desksList.push({
           tokenId: tid,
-          name: meta?.name || `Ape Broker #${tid}`,
+          name: meta?.name || `Broker Desk #${tid}`,
           image: meta?.image || `/gifs/${(tid % 100) + 1}.gif`,
           active: isActive,
           boostCount: currentBoosts,
