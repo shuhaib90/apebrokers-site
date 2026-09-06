@@ -1154,6 +1154,13 @@ export function useApeBrokerDesk() {
       if (!walletClient) throw new Error('Wallet not connected.');
       if (!address) throw new Error('Account not connected.');
 
+      // Pre-flight check: required $APEBROKE balance must be available
+      if (costRaw && (userBalances?.apeBrokeBalance || 0n) < costRaw) {
+        throw new Error(
+          `Insufficient $APEBROKE balance. You need ${formatEther(costRaw)} $APEBROKE to apply this boost.`
+        );
+      }
+
       // 1. Pre-flight simulation
       if (publicClient) {
         try {
@@ -1211,7 +1218,7 @@ export function useApeBrokerDesk() {
       await refetchUserData();
       return { hash: tx, receipt };
     },
-    [walletClient, publicClient, address, refetchGlobalStats, refetchUserData]
+    [walletClient, publicClient, address, userBalances, refetchGlobalStats, refetchUserData]
   );
 
   /**

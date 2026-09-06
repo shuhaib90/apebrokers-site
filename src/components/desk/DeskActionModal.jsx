@@ -212,8 +212,8 @@ export function DeskActionModal({
 
               {/* Not Verified NFT Owner Alert */}
               {!isOwner && (
-                <div className="bg-red-950/80 border border-[#FF2247] p-3 rounded text-[10px] text-[#FF2247] flex items-center gap-2">
-                  <span>⚠</span>
+                <div className="bg-red-950/80 border border-[#FF2247] p-3 rounded text-[10px] text-[#FF2247] flex items-center gap-2 font-mono">
+                  <span className="font-bold text-[#FF2247]">[ ! ]</span>
                   <span>
                     You are not verified as the on-chain owner of NFT #{tokenId}. Only the owner of this NFT can {isActivate ? 'activate' : 'boost'} this Desk.
                   </span>
@@ -222,8 +222,8 @@ export function DeskActionModal({
 
               {/* Desk Not Active on Chain Alert */}
               {!isActivate && !isDeskActiveOnChain && (
-                <div className="bg-amber-950/80 border border-[#FFD700] p-3 rounded text-[10px] text-[#FFD700] flex items-center gap-2">
-                  <span>⚠</span>
+                <div className="bg-amber-950/80 border border-[#FFD700] p-3 rounded text-[10px] text-[#FFD700] flex items-center gap-2 font-mono">
+                  <span className="font-bold text-[#FFD700]">[ ! ]</span>
                   <span>
                     Desk #{tokenId} is not active on-chain yet. Please activate the desk before boosting.
                   </span>
@@ -233,8 +233,8 @@ export function DeskActionModal({
               {/* Insufficient Balance Alert */}
               {!hasEnoughBalance && (
                 <div className="bg-red-950/80 border border-[#FF2247] p-3 rounded text-[10px] text-[#FF2247] space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span>⚠</span>
+                  <div className="flex items-center gap-2 font-mono">
+                    <span className="font-bold text-[#FF2247]">[ ! ]</span>
                     <span>
                       Insufficient $APEBROKE balance. You need {costTokens} $APEBROKE to proceed.
                     </span>
@@ -247,7 +247,7 @@ export function DeskActionModal({
                       rel="noopener noreferrer"
                       className="font-pixel text-[9px] text-[#FFD700] hover:text-white underline inline-flex items-center gap-1 font-bold"
                     >
-                      <span>► BUY NOW: letscash.fun</span>
+                      <span>[ BUY NOW: letscash.fun ]</span>
                     </a>
                   </div>
                 </div>
@@ -260,12 +260,21 @@ export function DeskActionModal({
                 </div>
               )}
 
-              {/* Two-Step Execution Buttons */}
+              {/* Two-Step Execution Buttons - Only works after balance is available */}
               <div className="space-y-2 pt-2">
-                {!hasEnoughAllowance ? (
+                {!hasEnoughBalance ? (
+                  <a
+                    href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full min-h-[46px] pixel-btn pixel-btn-vibrant-gold px-4 py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000] flex items-center justify-center text-center gap-2"
+                  >
+                    [ BUY {costTokens} $APEBROKE ON LETSCASH.FUN ]
+                  </a>
+                ) : !hasEnoughAllowance ? (
                   <button
                     type="button"
-                    disabled={!hasEnoughBalance || step === 'approving' || !isOwner}
+                    disabled={step === 'approving' || !isOwner}
                     onClick={handleApprove}
                     className="w-full min-h-[46px] pixel-btn pixel-btn-vibrant-gold px-4 py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000] disabled:opacity-50"
                   >

@@ -662,9 +662,17 @@ export function DeskPage({ onBackHome }) {
                   const isActive = desk.active;
                   const boostCount = desk.boostCount || 0;
                   const weight = desk.currentWeight || 100;
+                  const baseBoost = globalStats.baseBoostCost || 349693n * 10n ** 18n;
+                  const reqBoostCost =
+                    desk.nextBoostCost && desk.nextBoostCost > 0n
+                      ? desk.nextBoostCost
+                      : baseBoost * (2n * BigInt(Math.min(5, Math.max(1, boostCount + 1))));
+                  const hasRequiredBoostBalance =
+                    (userBalances?.apeBrokeBalance || 0n) >= reqBoostCost;
+                  const formattedReqBoostCost = Number(formatEther(reqBoostCost)).toLocaleString();
                   const nextCostFormatted = desk.nextBoostCost
                     ? Number(formatEther(desk.nextBoostCost)).toLocaleString()
-                    : '0';
+                    : formattedReqBoostCost;
                   const pendingEthFormatted = Number(
                     formatEther(desk.pendingRewardsEth || 0n)
                   ).toFixed(6);
@@ -809,13 +817,13 @@ export function DeskPage({ onBackHome }) {
                           >
                             [ ACTIVATE ({Number(formatEther(globalStats.activationFee || 349693n * 10n ** 18n)).toLocaleString()} $APE) ]
                           </button>
-                          {userBalances.apeBrokeBalance < (globalStats.activationFee || 349693n * 10n ** 18n) && (
+                          {(userBalances?.apeBrokeBalance || 0n) < (globalStats.activationFee || 349693n * 10n ** 18n) && (
                             <div className="text-center pt-0.5">
                               <a
                                 href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="font-mono text-[9px] text-[#FFD700] hover:text-white underline font-semibold"
+                                className="font-mono text-[9px] text-[#FFD700] hover:text-white underline font-semibold inline-flex items-center gap-1"
                               >
                                 Need $APEBROKE? Buy Now: letscash.fun
                               </a>
@@ -826,13 +834,25 @@ export function DeskPage({ onBackHome }) {
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             {boostCount < 5 ? (
-                              <button
-                                type="button"
-                                onClick={() => openActionModal(desk, 'boost')}
-                                className="flex-1 min-h-[42px] pixel-btn pixel-btn-vibrant-gold py-2 text-[11px] font-bold rounded-lg shadow-[2px_2px_0px_#000]"
-                              >
-                                [ BOOST (+100 WGT) ]
-                              </button>
+                              hasRequiredBoostBalance ? (
+                                <button
+                                  type="button"
+                                  onClick={() => openActionModal(desk, 'boost')}
+                                  className="flex-1 min-h-[42px] pixel-btn pixel-btn-vibrant-gold py-2 text-[11px] font-bold rounded-lg shadow-[2px_2px_0px_#000]"
+                                >
+                                  [ BOOST (+100 WGT) ]
+                                </button>
+                              ) : (
+                                <a
+                                  href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title={`Requires ${formattedReqBoostCost} $APEBROKE balance to boost. Click to buy on letscash.fun`}
+                                  className="flex-1 min-h-[42px] bg-[#221002] hover:bg-[#381a03] text-[#FF9900] hover:text-[#FFD700] border border-[#FF8800]/60 py-2 px-1 text-[10px] font-bold rounded-lg shadow-[2px_2px_0px_#000] flex items-center justify-center text-center transition-colors"
+                                >
+                                  [ NEED {formattedReqBoostCost} $APE ]
+                                </a>
+                              )
                             ) : (
                               <button
                                 type="button"
@@ -852,13 +872,13 @@ export function DeskPage({ onBackHome }) {
                               [ CLAIM ETH ]
                             </button>
                           </div>
-                          {boostCount < 5 && userBalances.apeBrokeBalance === 0n && (
+                          {boostCount < 5 && !hasRequiredBoostBalance && (
                             <div className="text-center pt-0.5">
                               <a
                                 href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="font-mono text-[9px] text-[#FFD700] hover:text-white underline font-semibold"
+                                className="font-mono text-[9px] text-[#FFD700] hover:text-white underline font-semibold inline-flex items-center gap-1"
                               >
                                 Need $APEBROKE for Boost? Buy Now: letscash.fun
                               </a>
@@ -926,8 +946,8 @@ export function DeskPage({ onBackHome }) {
         onClose={() => setActionModal({ isOpen: false, actionType: 'activate', desk: null })}
         actionType={actionModal.actionType}
         desk={actionModal.desk}
-        apeBrokeBalance={userBalances.apeBrokeBalance}
-        allowance={userBalances.allowance}
+        apeBrokeBalance={userBalances?.apeBrokeBalance || 0n}
+        allowance={userBalances?.allowance || 0n}
         activationFee={globalStats.activationFee}
         onApprove={approveApebroke}
         onExecute={actionModal.actionType === 'activate' ? activateDesk : boostDesk}
