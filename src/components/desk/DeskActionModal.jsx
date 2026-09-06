@@ -214,11 +214,24 @@ export function DeskActionModal({
 
               {/* Insufficient Balance Alert */}
               {!hasEnoughBalance && (
-                <div className="bg-red-950/80 border border-[#FF2247] p-3 rounded text-[10px] text-[#FF2247] flex items-center gap-2">
-                  <span>⚠</span>
-                  <span>
-                    Insufficient $APEBROKE balance. You need {costTokens} $APE to proceed.
-                  </span>
+                <div className="bg-red-950/80 border border-[#FF2247] p-3 rounded text-[10px] text-[#FF2247] space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span>⚠</span>
+                    <span>
+                      Insufficient $APEBROKE balance. You need {costTokens} $APEBROKE to proceed.
+                    </span>
+                  </div>
+                  <div className="pt-1.5 border-t border-red-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[9px] font-mono">
+                    <span className="text-gray-300">Need $APEBROKE for {isActivate ? 'activation' : 'boost'}?</span>
+                    <a
+                      href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-pixel text-[9px] text-[#FFD700] hover:text-white underline inline-flex items-center gap-1 font-bold"
+                    >
+                      <span>► BUY NOW: letscash.fun</span>
+                    </a>
+                  </div>
                 </div>
               )}
 

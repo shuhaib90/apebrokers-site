@@ -483,8 +483,18 @@ export function DeskPage({ onBackHome }) {
 
               {/* User Balances Summary */}
               <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
-                <span className="bg-black/60 px-3 py-1.5 border border-purple-800 rounded">
-                  $APE: <span className="text-[#00FF66] font-bold">{Number(formatEther(userBalances.apeBrokeBalance)).toLocaleString()}</span>
+                <span className="bg-black/60 px-3 py-1.5 border border-purple-800 rounded flex items-center gap-2">
+                  <span>$APE: <strong className="text-[#00FF66] font-bold">{Number(formatEther(userBalances.apeBrokeBalance)).toLocaleString()}</strong></span>
+                  {userBalances.apeBrokeBalance === 0n && (
+                    <a
+                      href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[9px] text-[#FFD700] hover:underline font-pixel"
+                    >
+                      [ BUY NOW ]
+                    </a>
+                  )}
                 </span>
                 <span className="bg-black/60 px-3 py-1.5 border border-purple-800 rounded">
                   ETH: <span className="text-[#00F0FF] font-bold">{Number(formatEther(userBalances.ethBalance)).toFixed(4)}</span>
@@ -790,41 +800,69 @@ export function DeskPage({ onBackHome }) {
                           [ NOT OWNED BY WALLET ]
                         </div>
                       ) : !isActive ? (
-                        <button
-                          type="button"
-                          onClick={() => openActionModal(desk, 'activate')}
-                          className="w-full min-h-[44px] pixel-btn pixel-btn-vibrant-lime py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000]"
-                        >
-                          [ ACTIVATE ({Number(formatEther(globalStats.activationFee || 349693n * 10n ** 18n)).toLocaleString()} $APE) ]
-                        </button>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          {boostCount < 5 ? (
-                            <button
-                              type="button"
-                              onClick={() => openActionModal(desk, 'boost')}
-                              className="flex-1 min-h-[42px] pixel-btn pixel-btn-vibrant-gold py-2 text-[11px] font-bold rounded-lg shadow-[2px_2px_0px_#000]"
-                            >
-                              [ BOOST (+100 WGT) ]
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled
-                              className="flex-1 min-h-[42px] bg-[#1a0f38] text-gray-500 py-2 text-[11px] font-bold rounded-lg border border-purple-900/60 cursor-not-allowed"
-                            >
-                              [ MAX BOOST (600 WGT) ]
-                            </button>
-                          )}
-
+                        <div className="space-y-1">
                           <button
                             type="button"
-                            disabled={desk.pendingRewardsEth === 0n}
-                            onClick={() => handleClaimSingle(desk)}
-                            className="flex-1 min-h-[42px] pixel-btn pixel-btn-vibrant-cyan py-2 text-[11px] font-bold rounded-lg shadow-[2px_2px_0px_#000] disabled:opacity-40"
+                            onClick={() => openActionModal(desk, 'activate')}
+                            className="w-full min-h-[44px] pixel-btn pixel-btn-vibrant-lime py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000]"
                           >
-                            [ CLAIM ETH ]
+                            [ ACTIVATE ({Number(formatEther(globalStats.activationFee || 349693n * 10n ** 18n)).toLocaleString()} $APE) ]
                           </button>
+                          {userBalances.apeBrokeBalance < (globalStats.activationFee || 349693n * 10n ** 18n) && (
+                            <div className="text-center pt-0.5">
+                              <a
+                                href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-mono text-[9px] text-[#FFD700] hover:text-white underline font-semibold"
+                              >
+                                Need $APEBROKE? Buy Now: letscash.fun
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            {boostCount < 5 ? (
+                              <button
+                                type="button"
+                                onClick={() => openActionModal(desk, 'boost')}
+                                className="flex-1 min-h-[42px] pixel-btn pixel-btn-vibrant-gold py-2 text-[11px] font-bold rounded-lg shadow-[2px_2px_0px_#000]"
+                              >
+                                [ BOOST (+100 WGT) ]
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled
+                                className="flex-1 min-h-[42px] bg-[#1a0f38] text-gray-500 py-2 text-[11px] font-bold rounded-lg border border-purple-900/60 cursor-not-allowed"
+                              >
+                                [ MAX BOOST (600 WGT) ]
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              disabled={desk.pendingRewardsEth === 0n}
+                              onClick={() => handleClaimSingle(desk)}
+                              className="flex-1 min-h-[42px] pixel-btn pixel-btn-vibrant-cyan py-2 text-[11px] font-bold rounded-lg shadow-[2px_2px_0px_#000] disabled:opacity-40"
+                            >
+                              [ CLAIM ETH ]
+                            </button>
+                          </div>
+                          {boostCount < 5 && userBalances.apeBrokeBalance === 0n && (
+                            <div className="text-center pt-0.5">
+                              <a
+                                href="https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-mono text-[9px] text-[#FFD700] hover:text-white underline font-semibold"
+                              >
+                                Need $APEBROKE for Boost? Buy Now: letscash.fun
+                              </a>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

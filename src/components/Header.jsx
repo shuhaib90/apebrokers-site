@@ -9,7 +9,7 @@ export const Header = ({ onDeskClick }) => {
 
   const handleOpenSea = () => {
     sound?.playClick?.();
-    window.open('https://opensea.io/collection/apesyndicate-212388086', '_blank', 'noopener,noreferrer');
+    window.open('https://opensea.io/collection/brokerdesk-583588970', '_blank', 'noopener,noreferrer');
   };
 
   const handleApebroke = () => {
@@ -66,8 +66,8 @@ export const Header = ({ onDeskClick }) => {
             aria-label="Buy $APEBROKE"
             className="pixel-btn pixel-btn-black px-2 sm:px-3.5 py-1.5 sm:py-2 text-[8px] sm:text-xs whitespace-nowrap font-bold text-[#FFD700] hover:bg-[#FFD700] hover:text-black shadow-[2px_2px_0px_#000] sm:shadow-[3px_3px_0px_#000] border-2 border-black flex items-center gap-1 rounded-md sm:rounded-lg"
           >
-            <span className="sm:hidden">[ $APE ]</span>
-            <span className="hidden sm:inline">[ $APEBROKE ]</span>
+            <span className="sm:hidden">[ BUY $APE ]</span>
+            <span className="hidden sm:inline">[ BUY NOW $APEBROKE ]</span>
           </button>
 
           <button

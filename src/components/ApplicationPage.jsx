@@ -69,7 +69,7 @@ export const ApplicationPage = ({ onBackHome }) => {
 
   const handleOpenSea = () => {
     sound?.playClick?.();
-    window.open('https://opensea.io/collection/apesyndicate-212388086', '_blank', 'noopener,noreferrer');
+    window.open('https://opensea.io/collection/brokerdesk-583588970', '_blank', 'noopener,noreferrer');
   };
 
   const handleApebroke = () => {

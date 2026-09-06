@@ -5,7 +5,7 @@ import { TypewriterText } from './TypewriterText';
 export const Hero = ({ onDeskClick }) => {
   const handleOpenSea = () => {
     sound?.playClick?.();
-    window.open('https://opensea.io/collection/apesyndicate-212388086', '_blank', 'noopener,noreferrer');
+    window.open('https://opensea.io/collection/brokerdesk-583588970', '_blank', 'noopener,noreferrer');
   };
 
   const handleApebroke = () => {
@@ -95,7 +95,7 @@ export const Hero = ({ onDeskClick }) => {
               onClick={handleApebroke}
               className="flex-1 sm:flex-none min-h-[44px] sm:min-h-[52px] pixel-btn pixel-btn-vibrant-gold px-4 sm:px-6 py-2.5 sm:py-3.5 font-pixel text-[11px] sm:text-sm font-bold rounded-lg shadow-[3px_3px_0px_0px_#000] whitespace-nowrap"
             >
-              [ $APEBROKE ]
+              [ BUY NOW $APEBROKE ]
             </button>
           </div>
         </div>
