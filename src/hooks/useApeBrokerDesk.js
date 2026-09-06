@@ -23,7 +23,7 @@ export const APEBROKE_TOKEN_ADDRESS =
 export const APE_BROKER_NFT_ADDRESS =
   import.meta.env.VITE_APE_BROKER_NFT_ADDRESS ||
   deskDeployConfig.apeBrokerNftAddress ||
-  '0x5b9ca37d499eace8f526320d6edea10fb73d4ec6';
+  '0xd3b030e9281fcd8797af6dc437636b24bdfe7902';
 
 export const ADMIN_ADDRESS =
   import.meta.env.VITE_ADMIN_ADDRESS ||
