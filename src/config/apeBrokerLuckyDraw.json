@@ -69,8 +69,24 @@
       "type": "error"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "candidate",
+          "type": "address"
+        }
+      ],
+      "name": "DuplicateWinnerAddress",
+      "type": "error"
+    },
+    {
       "inputs": [],
       "name": "EnforcedPause",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ExceedsMaxWinners",
       "type": "error"
     },
     {
@@ -102,6 +118,11 @@
     {
       "inputs": [],
       "name": "InvalidPrizeStatus",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidWinnerCount",
       "type": "error"
     },
     {
@@ -544,6 +565,49 @@
       "type": "event"
     },
     {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "drawId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address[]",
+          "name": "winners",
+          "type": "address[]"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256[]",
+          "name": "winningTicketIds",
+          "type": "uint256[]"
+        },
+        {
+          "indexed": false,
+          "internalType": "enum IApeBrokerLuckyDraw.SelectionMode",
+          "name": "mode",
+          "type": "uint8"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "selectedBy",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "WinnersSelected",
+      "type": "event"
+    },
+    {
       "inputs": [],
       "name": "acceptOwnership",
       "outputs": [],
@@ -705,6 +769,11 @@
               "internalType": "uint256",
               "name": "durationSeconds",
               "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "winnerCount",
+              "type": "uint256"
             }
           ],
           "internalType": "struct IApeBrokerLuckyDraw.DrawCreateInput",
@@ -807,6 +876,11 @@
           "internalType": "enum IApeBrokerLuckyDraw.SelectionMode",
           "name": "selectionMode",
           "type": "uint8"
+        },
+        {
+          "internalType": "uint256",
+          "name": "winnerCount",
+          "type": "uint256"
         },
         {
           "internalType": "address",
@@ -948,14 +1022,29 @@
               "type": "uint8"
             },
             {
+              "internalType": "uint256",
+              "name": "winnerCount",
+              "type": "uint256"
+            },
+            {
               "internalType": "address",
               "name": "winner",
               "type": "address"
             },
             {
+              "internalType": "address[]",
+              "name": "winners",
+              "type": "address[]"
+            },
+            {
               "internalType": "uint256",
               "name": "winningTicketId",
               "type": "uint256"
+            },
+            {
+              "internalType": "uint256[]",
+              "name": "winningTicketIds",
+              "type": "uint256[]"
             },
             {
               "internalType": "uint256",
@@ -1024,6 +1113,44 @@
           "internalType": "uint256",
           "name": "",
           "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "drawId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getDrawWinners",
+      "outputs": [
+        {
+          "internalType": "address[]",
+          "name": "",
+          "type": "address[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "drawId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getDrawWinningTicketIds",
+      "outputs": [
+        {
+          "internalType": "uint256[]",
+          "name": "",
+          "type": "uint256[]"
         }
       ],
       "stateMutability": "view",
@@ -1201,16 +1328,34 @@
       "name": "selectWinnerRandom",
       "outputs": [
         {
-          "internalType": "address",
-          "name": "winner",
-          "type": "address"
+          "internalType": "address[]",
+          "name": "winners",
+          "type": "address[]"
         },
         {
-          "internalType": "uint256",
-          "name": "winningTicketId",
-          "type": "uint256"
+          "internalType": "uint256[]",
+          "name": "winningTicketIds",
+          "type": "uint256[]"
         }
       ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "drawId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address[]",
+          "name": "manualWinners",
+          "type": "address[]"
+        }
+      ],
+      "name": "selectWinnersManual",
+      "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     },

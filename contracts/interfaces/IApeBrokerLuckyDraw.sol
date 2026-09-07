@@ -60,8 +60,11 @@ interface IApeBrokerLuckyDraw {
         uint256 totalTicketsSold;
         uint256 totalRevenueCollected;
         SelectionMode selectionMode;
+        uint256 winnerCount;
         address winner;
+        address[] winners;
         uint256 winningTicketId;
+        uint256[] winningTicketIds;
         uint256 selectedTimestamp;
         address selectedByAdmin;
         PrizeStatus prizeStatus;
@@ -79,6 +82,7 @@ interface IApeBrokerLuckyDraw {
         uint256 maxTicketsPerWallet;
         uint256 minNftRequired;
         uint256 durationSeconds;
+        uint256 winnerCount;
     }
 
     // ==========================================
@@ -103,6 +107,9 @@ interface IApeBrokerLuckyDraw {
     error WinnerMustHoldTicket(address candidate);
     error InvalidDuration();
     error InvalidPrizeStatus();
+    error InvalidWinnerCount();
+    error DuplicateWinnerAddress(address candidate);
+    error ExceedsMaxWinners();
 
     // ==========================================
     // EVENTS
@@ -133,6 +140,15 @@ interface IApeBrokerLuckyDraw {
         uint256 indexed drawId,
         address indexed winner,
         uint256 winningTicketId,
+        SelectionMode mode,
+        address indexed selectedBy,
+        uint256 timestamp
+    );
+
+    event WinnersSelected(
+        uint256 indexed drawId,
+        address[] winners,
+        uint256[] winningTicketIds,
         SelectionMode mode,
         address indexed selectedBy,
         uint256 timestamp
@@ -186,7 +202,8 @@ interface IApeBrokerLuckyDraw {
     function createDraw(DrawCreateInput calldata input) external returns (uint256 drawId);
     function closeDraw(uint256 drawId) external;
     function setTicketPrice(uint256 drawId, uint256 newTicketPriceApe) external;
-    function selectWinnerRandom(uint256 drawId) external returns (address winner, uint256 winningTicketId);
+    function selectWinnerRandom(uint256 drawId) external returns (address[] memory winners, uint256[] memory winningTicketIds);
+    function selectWinnersManual(uint256 drawId, address[] calldata manualWinners) external;
     function selectWinnerManual(uint256 drawId, address winner) external;
     function updatePrizeStatus(uint256 drawId, PrizeStatus status, string calldata proofOrTxHash) external;
     function withdrawTicketRevenue(uint256 drawId, address recipient) external;
@@ -198,6 +215,8 @@ interface IApeBrokerLuckyDraw {
     // ==========================================
 
     function getDraw(uint256 drawId) external view returns (Draw memory);
+    function getDrawWinners(uint256 drawId) external view returns (address[] memory);
+    function getDrawWinningTicketIds(uint256 drawId) external view returns (uint256[] memory);
     function getUserTickets(uint256 drawId, address user) external view returns (uint256);
     function getDrawParticipants(uint256 drawId) external view returns (address[] memory);
     function getDrawUniqueParticipantCount(uint256 drawId) external view returns (uint256);

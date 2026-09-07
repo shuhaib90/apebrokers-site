@@ -67,8 +67,11 @@ const DEFAULT_SAMPLE_DRAWS = [
     totalTicketsSold: 142,
     totalRevenueCollected: 7100000n * 10n ** 18n,
     selectionMode: 0,
+    winnerCount: 1,
     winner: '0x0000000000000000000000000000000000000000',
+    winners: [],
     winningTicketId: 0,
+    winningTicketIds: [],
     selectedTimestamp: 0,
     selectedByAdmin: '0x0000000000000000000000000000000000000000',
     prizeStatus: 0,
@@ -91,8 +94,11 @@ const DEFAULT_SAMPLE_DRAWS = [
     totalTicketsSold: 68,
     totalRevenueCollected: 6800000n * 10n ** 18n,
     selectionMode: 0,
+    winnerCount: 1,
     winner: '0x0000000000000000000000000000000000000000',
+    winners: [],
     winningTicketId: 0,
+    winningTicketIds: [],
     selectedTimestamp: 0,
     selectedByAdmin: '0x0000000000000000000000000000000000000000',
     prizeStatus: 0,
@@ -115,8 +121,11 @@ const DEFAULT_SAMPLE_DRAWS = [
     totalTicketsSold: 400,
     totalRevenueCollected: 10000000n * 10n ** 18n,
     selectionMode: 1, // RANDOM
+    winnerCount: 1,
     winner: '0x12942981aF3C5E5e6003a46607B4560e6589146E',
+    winners: ['0x12942981aF3C5E5e6003a46607B4560e6589146E'],
     winningTicketId: 287,
+    winningTicketIds: [287],
     selectedTimestamp: Math.floor(Date.now() / 1000) - 3200,
     selectedByAdmin: ADMIN_ADDRESS,
     prizeStatus: 3, // COMPLETED
@@ -251,8 +260,13 @@ export function useApeBrokerLuckyDraw() {
               totalTicketsSold: Number(d.totalTicketsSold),
               totalRevenueCollected: d.totalRevenueCollected,
               selectionMode: Number(d.selectionMode),
+              winnerCount: Number(d.winnerCount || 1),
               winner: d.winner,
-              winningTicketId: Number(d.winningTicketId),
+              winners: Array.isArray(d.winners) && d.winners.length > 0
+                ? d.winners
+                : (d.winner && d.winner !== '0x0000000000000000000000000000000000000000' ? [d.winner] : []),
+              winningTicketId: Number(d.winningTicketId || 0),
+              winningTicketIds: Array.isArray(d.winningTicketIds) ? d.winningTicketIds.map(Number) : [],
               selectedTimestamp: Number(d.selectedTimestamp),
               selectedByAdmin: d.selectedByAdmin,
               prizeStatus: Number(d.prizeStatus),
@@ -412,6 +426,7 @@ export function useApeBrokerLuckyDraw() {
             maxTicketsPerWallet: BigInt(drawData.maxTicketsPerWallet || 0),
             minNftRequired: BigInt(drawData.minNftRequired || 1),
             durationSeconds: BigInt(durationSec),
+            winnerCount: BigInt(drawData.winnerCount || 1),
           },
         ],
       });
@@ -433,14 +448,18 @@ export function useApeBrokerLuckyDraw() {
       maxTickets: Number(drawData.maxTickets || 0),
       maxTicketsPerWallet: Number(drawData.maxTicketsPerWallet || 0),
       minNftRequired: Number(drawData.minNftRequired || 1),
+      durationDays: Number(drawData.durationDays || 2),
       startTime: Math.floor(Date.now() / 1000),
       endTime: Math.floor(Date.now() / 1000) + durationSec,
       status: 0,
       totalTicketsSold: 0,
       totalRevenueCollected: 0n,
       selectionMode: 0,
+      winnerCount: Number(drawData.winnerCount || 1),
       winner: '0x0000000000000000000000000000000000000000',
+      winners: [],
       winningTicketId: 0,
+      winningTicketIds: [],
       selectedTimestamp: 0,
       selectedByAdmin: '0x0000000000000000000000000000000000000000',
       prizeStatus: 0,
@@ -487,14 +506,19 @@ export function useApeBrokerLuckyDraw() {
             '0x12942981aF3C5E5e6003a46607B4560e6589146E',
             '0x2A232D1ab1226b981c35DA8B477E337952B5486F',
             '0xD706dafbDab3a7b69fc14E7CBe9b5008ca0f0A74',
+            '0x902801F504107E054D69A33f383e580a149CeCbb',
+            '0x7234E4c8b2E6bB3a5d89812C45b986F97Abe0633',
           ];
-          const randomWinner = sampleWinners[Math.floor(Math.random() * sampleWinners.length)];
+          const count = Math.min(d.winnerCount || 1, sampleWinners.length);
+          const picked = sampleWinners.slice(0, count);
           return {
             ...d,
             status: 2, // WINNER_SELECTED
             selectionMode: 1, // RANDOM
-            winner: randomWinner,
+            winner: picked[0],
+            winners: picked,
             winningTicketId: Math.floor(Math.random() * (d.totalTicketsSold || 10)) + 1,
+            winningTicketIds: picked.map(() => Math.floor(Math.random() * (d.totalTicketsSold || 10)) + 1),
             selectedTimestamp: Math.floor(Date.now() / 1000),
             selectedByAdmin: address,
             prizeStatus: 0, // PENDING
@@ -511,24 +535,26 @@ export function useApeBrokerLuckyDraw() {
     return { hash: txHash };
   };
 
-  // Admin Action: Select Winner Manually (Mode 2 - Gated to valid ticket holders)
-  const adminSelectWinnerManual = async (drawId, winnerAddress) => {
+  // Admin Action: Select Multiple Winners Manually (Mode 2 - Gated to valid ticket holders)
+  const adminSelectWinnersManual = async (drawId, winnersArray) => {
     if (!walletClient || !address) throw new Error('Wallet not connected.');
-    if (!winnerAddress) throw new Error('Please provide candidate winner address.');
+    if (!winnersArray || !Array.isArray(winnersArray) || winnersArray.length === 0) {
+      throw new Error('Please provide candidate winner address(es).');
+    }
 
     let txHash = '';
     try {
       txHash = await walletClient.writeContract({
         address: LUCKY_DRAW_CONTRACT_ADDRESS,
         abi: luckyDrawDeployConfig.abi,
-        functionName: 'selectWinnerManual',
-        args: [BigInt(drawId), winnerAddress],
+        functionName: 'selectWinnersManual',
+        args: [BigInt(drawId), winnersArray],
       });
       if (publicClient) {
         await publicClient.waitForTransactionReceipt({ hash: txHash });
       }
     } catch (err) {
-      console.warn('On-chain selectWinnerManual fallback:', err.message);
+      console.warn('On-chain selectWinnersManual fallback:', err.message);
       txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
     }
 
@@ -539,8 +565,10 @@ export function useApeBrokerLuckyDraw() {
             ...d,
             status: 2, // WINNER_SELECTED
             selectionMode: 2, // MANUAL
-            winner: winnerAddress,
+            winner: winnersArray[0],
+            winners: winnersArray,
             winningTicketId: 0,
+            winningTicketIds: new Array(winnersArray.length).fill(0),
             selectedTimestamp: Math.floor(Date.now() / 1000),
             selectedByAdmin: address,
             prizeStatus: 0,
@@ -555,6 +583,11 @@ export function useApeBrokerLuckyDraw() {
     });
 
     return { hash: txHash };
+  };
+
+  // Admin Action: Select Single Winner Manually (wrapper)
+  const adminSelectWinnerManual = async (drawId, winnerAddress) => {
+    return adminSelectWinnersManual(drawId, [winnerAddress]);
   };
 
   // Admin Action: Update Prize Status & Tracking Proof
@@ -687,6 +720,7 @@ export function useApeBrokerLuckyDraw() {
     adminSetTicketPrice,
     adminSelectWinnerRandom,
     adminSelectWinnerManual,
+    adminSelectWinnersManual,
     adminUpdatePrizeStatus,
     adminClaimAllTicketRevenue,
   };

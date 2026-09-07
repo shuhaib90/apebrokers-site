@@ -66,6 +66,7 @@ describe("ApeBrokerLuckyDraw - Comprehensive Contract Test Suite", function () {
         maxTicketsPerWallet: 10,
         minNftRequired: 1,
         durationSeconds: ONE_DAY,
+        winnerCount: 1,
       });
 
       await expect(tx).to.emit(luckyDraw, "DrawCreated");
@@ -76,6 +77,7 @@ describe("ApeBrokerLuckyDraw - Comprehensive Contract Test Suite", function () {
       expect(draw.maxTickets).to.equal(100);
       expect(draw.maxTicketsPerWallet).to.equal(10);
       expect(draw.minNftRequired).to.equal(1);
+      expect(draw.winnerCount).to.equal(1);
       expect(draw.status).to.equal(0); // ACTIVE
       expect(draw.totalTicketsSold).to.equal(0);
       expect(await luckyDraw.totalDrawsCount()).to.equal(1);
@@ -93,6 +95,7 @@ describe("ApeBrokerLuckyDraw - Comprehensive Contract Test Suite", function () {
           maxTicketsPerWallet: 10,
           minNftRequired: 1,
           durationSeconds: ONE_DAY,
+          winnerCount: 1,
         })
       ).to.be.revertedWithCustomError(luckyDraw, "OwnableUnauthorizedAccount");
     });
@@ -110,6 +113,7 @@ describe("ApeBrokerLuckyDraw - Comprehensive Contract Test Suite", function () {
         maxTicketsPerWallet: 5,
         minNftRequired: 1,
         durationSeconds: ONE_DAY,
+        winnerCount: 1,
       });
     });
 
@@ -165,6 +169,7 @@ describe("ApeBrokerLuckyDraw - Comprehensive Contract Test Suite", function () {
         maxTicketsPerWallet: 20,
         minNftRequired: 1,
         durationSeconds: ONE_DAY,
+        winnerCount: 1,
       });
 
       // Alice buys 2 tickets, Bob buys 3 tickets
@@ -174,6 +179,7 @@ describe("ApeBrokerLuckyDraw - Comprehensive Contract Test Suite", function () {
 
     it("Mode 1: Should select random winner and record permanently on-chain", async function () {
       const tx = await luckyDraw.selectWinnerRandom(1);
+      await expect(tx).to.emit(luckyDraw, "WinnersSelected");
       await expect(tx).to.emit(luckyDraw, "WinnerSelected");
 
       const draw = await luckyDraw.getDraw(1);
@@ -183,6 +189,44 @@ describe("ApeBrokerLuckyDraw - Comprehensive Contract Test Suite", function () {
       expect([alice.address, bob.address]).to.include(draw.winner);
       expect(draw.selectedByAdmin).to.equal(owner.address);
       expect(draw.prizeStatus).to.equal(0); // PENDING
+
+      const winners = await luckyDraw.getDrawWinners(1);
+      expect(winners.length).to.equal(1);
+      expect(winners[0]).to.equal(draw.winner);
+    });
+
+    it("Mode 1 (Multi-Winner): Should select multiple unique winners randomly", async function () {
+      // Create draw with winnerCount: 3
+      await luckyDraw.createDraw({
+        title: "Multi-Winner Draw",
+        prizeDescription: "Top 3 get Ledger Hardware Wallets",
+        prizeCategory: 0,
+        imageUrl: "",
+        ticketPriceApe: TICKET_PRICE,
+        maxTickets: 50,
+        maxTicketsPerWallet: 20,
+        minNftRequired: 1,
+        durationSeconds: ONE_DAY,
+        winnerCount: 3,
+      });
+
+      // Alice, Bob, and Carol all buy tickets in draw #2
+      await luckyDraw.connect(alice).buyTickets(2, 2);
+      await luckyDraw.connect(bob).buyTickets(2, 2);
+      await luckyDraw.connect(carol).buyTickets(2, 2);
+
+      const tx = await luckyDraw.selectWinnerRandom(2);
+      await expect(tx).to.emit(luckyDraw, "WinnersSelected");
+
+      const winners = await luckyDraw.getDrawWinners(2);
+      expect(winners.length).to.equal(3);
+
+      // Verify all 3 are distinct participants
+      const uniqueWinners = new Set(winners);
+      expect(uniqueWinners.size).to.equal(3);
+      expect(uniqueWinners.has(alice.address)).to.be.true;
+      expect(uniqueWinners.has(bob.address)).to.be.true;
+      expect(uniqueWinners.has(carol.address)).to.be.true;
     });
 
     it("Mode 2 (CRITICAL): Manual selection MUST revert if candidate has 0 tickets", async function () {
@@ -210,6 +254,64 @@ describe("ApeBrokerLuckyDraw - Comprehensive Contract Test Suite", function () {
       expect(draw.selectedByAdmin).to.equal(owner.address);
       expect(draw.prizeStatus).to.equal(0); // PENDING
     });
+
+    it("Mode 2 (Multi-Winner): selectWinnersManual should assign multiple winners", async function () {
+      // Create draw with winnerCount: 2
+      await luckyDraw.createDraw({
+        title: "Dual Winner Draw",
+        prizeDescription: "2 PS5s",
+        prizeCategory: 0,
+        imageUrl: "",
+        ticketPriceApe: TICKET_PRICE,
+        maxTickets: 50,
+        maxTicketsPerWallet: 20,
+        minNftRequired: 1,
+        durationSeconds: ONE_DAY,
+        winnerCount: 2,
+      });
+
+      await luckyDraw.connect(alice).buyTickets(2, 1);
+      await luckyDraw.connect(bob).buyTickets(2, 1);
+
+      await luckyDraw.selectWinnersManual(2, [alice.address, bob.address]);
+
+      const winners = await luckyDraw.getDrawWinners(2);
+      expect(winners.length).to.equal(2);
+      expect(winners[0]).to.equal(alice.address);
+      expect(winners[1]).to.equal(bob.address);
+
+      const draw = await luckyDraw.getDraw(2);
+      expect(draw.status).to.equal(2); // WINNER_SELECTED
+      expect(draw.winner).to.equal(alice.address); // First winner backwards compatibility
+    });
+
+    it("Mode 2 (Multi-Winner): MUST revert if duplicate winner addresses passed", async function () {
+      await luckyDraw.createDraw({
+        title: "Duplicate Check Draw",
+        prizeDescription: "Test",
+        prizeCategory: 0,
+        imageUrl: "",
+        ticketPriceApe: TICKET_PRICE,
+        maxTickets: 50,
+        maxTicketsPerWallet: 20,
+        minNftRequired: 1,
+        durationSeconds: ONE_DAY,
+        winnerCount: 2,
+      });
+
+      await luckyDraw.connect(alice).buyTickets(2, 2);
+
+      await expect(
+        luckyDraw.selectWinnersManual(2, [alice.address, alice.address])
+      ).to.be.revertedWithCustomError(luckyDraw, "DuplicateWinnerAddress");
+    });
+
+    it("Mode 2 (Multi-Winner): MUST revert if winners count exceeds draw.winnerCount", async function () {
+      // Draw 1 has winnerCount: 1
+      await expect(
+        luckyDraw.selectWinnersManual(1, [alice.address, bob.address])
+      ).to.be.revertedWithCustomError(luckyDraw, "ExceedsMaxWinners");
+    });
   });
 
   describe("Prize Distribution Tracking", function () {
@@ -224,6 +326,7 @@ describe("ApeBrokerLuckyDraw - Comprehensive Contract Test Suite", function () {
         maxTicketsPerWallet: 20,
         minNftRequired: 1,
         durationSeconds: ONE_DAY,
+        winnerCount: 1,
       });
 
       await luckyDraw.connect(alice).buyTickets(1, 2);
@@ -261,6 +364,7 @@ describe("ApeBrokerLuckyDraw - Comprehensive Contract Test Suite", function () {
         maxTicketsPerWallet: 20,
         minNftRequired: 1,
         durationSeconds: ONE_DAY,
+        winnerCount: 1,
       });
 
       await luckyDraw.connect(alice).buyTickets(1, 4); // 200,000 $APE collected
@@ -294,6 +398,7 @@ describe("ApeBrokerLuckyDraw - Comprehensive Contract Test Suite", function () {
         maxTicketsPerWallet: 20,
         minNftRequired: 1,
         durationSeconds: ONE_DAY,
+        winnerCount: 1,
       });
       await luckyDraw.connect(bob).buyTickets(2, 2); // 100,000 $APE
 
@@ -320,6 +425,7 @@ describe("ApeBrokerLuckyDraw - Comprehensive Contract Test Suite", function () {
         maxTicketsPerWallet: 20,
         minNftRequired: 1,
         durationSeconds: ONE_DAY,
+        winnerCount: 1,
       });
 
       await luckyDraw.connect(alice).buyTickets(1, 2); // 100,000 $APE
@@ -354,6 +460,7 @@ describe("ApeBrokerLuckyDraw - Comprehensive Contract Test Suite", function () {
         maxTicketsPerWallet: 20,
         minNftRequired: 1,
         durationSeconds: ONE_DAY,
+        winnerCount: 1,
       });
     });
 

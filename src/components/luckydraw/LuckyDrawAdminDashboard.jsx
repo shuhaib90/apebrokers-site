@@ -14,6 +14,7 @@ export function LuckyDrawAdminDashboard({
   onSetTicketPrice,
   onSelectWinnerRandom,
   onSelectWinnerManual,
+  onSelectWinnersManual,
   onUpdatePrizeStatus,
   onClaimAllRevenue,
 }) {
@@ -31,6 +32,7 @@ export function LuckyDrawAdminDashboard({
     maxTicketsPerWallet: '10',
     minNftRequired: '1',
     durationDays: '2',
+    winnerCount: '1',
   });
   const [imagePreview, setImagePreview] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,12 +46,13 @@ export function LuckyDrawAdminDashboard({
     newPriceApe: '',
   });
 
-  // Manual Winner Modal State
+  // Manual Winner Modal State (supports custom multiple winners)
   const [manualModal, setManualModal] = useState({
     isOpen: false,
     drawId: null,
     drawTitle: '',
-    winnerAddress: '',
+    winnerCount: 1,
+    winnerAddresses: [''],
   });
 
   // Prize Status Update State
@@ -206,7 +209,13 @@ export function LuckyDrawAdminDashboard({
   };
 
   const handleRandomDraw = async (drawId) => {
-    if (!confirm(`Execute on-chain RANDOM winner selection for Draw #${drawId}? Winner selection is irreversible.`)) {
+    const targetDraw = draws.find((d) => d.drawId === drawId);
+    const count = targetDraw?.winnerCount || 1;
+    if (
+      !confirm(
+        `Execute on-chain RANDOM winner selection for Draw #${drawId}? Mode 1 will pick ${count} unique winner${count > 1 ? 's' : ''} proportionally from ticket holders. Selection is irreversible.`
+      )
+    ) {
       return;
     }
     sound?.playClick?.();
@@ -214,6 +223,7 @@ export function LuckyDrawAdminDashboard({
       await onSelectWinnerRandom(drawId);
       sound?.playSuccess?.();
       confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+      alert(`Random draw executed successfully! ${count} winner${count > 1 ? 's' : ''} recorded on-chain.`);
     } catch (err) {
       sound?.playError?.();
       alert('Random selection failed: ' + err.message);
@@ -221,16 +231,49 @@ export function LuckyDrawAdminDashboard({
   };
 
   const handleManualDrawSubmit = async () => {
-    if (!manualModal.winnerAddress || !manualModal.winnerAddress.startsWith('0x')) {
-      alert('Please enter a valid EVM address that holds at least 1 ticket.');
+    // Filter and sanitize addresses
+    const cleaned = manualModal.winnerAddresses
+      .map((a) => a.trim().toLowerCase())
+      .filter((a) => a.length > 0);
+
+    if (cleaned.length === 0) {
+      alert('Please enter at least 1 valid EVM wallet address.');
       return;
     }
+
+    // Validate format
+    for (let i = 0; i < cleaned.length; i++) {
+      const addr = cleaned[i];
+      if (!addr.startsWith('0x') || addr.length !== 42) {
+        alert(`Invalid EVM address for Winner #${i + 1}: ${addr}. Must start with 0x and have 42 characters.`);
+        return;
+      }
+    }
+
+    // Check duplicate addresses
+    const set = new Set(cleaned);
+    if (set.size !== cleaned.length) {
+      alert('Duplicate winner addresses detected. Each candidate winner must have a unique wallet address.');
+      return;
+    }
+
+    // Check count against draw winnerCount
+    if (cleaned.length > manualModal.winnerCount) {
+      alert(`Cannot select more than ${manualModal.winnerCount} winners for this draw.`);
+      return;
+    }
+
     sound?.playClick?.();
     try {
-      await onSelectWinnerManual(manualModal.drawId, manualModal.winnerAddress);
+      if (onSelectWinnersManual) {
+        await onSelectWinnersManual(manualModal.drawId, cleaned);
+      } else {
+        await onSelectWinnerManual(manualModal.drawId, cleaned[0]);
+      }
       sound?.playSuccess?.();
-      setManualModal({ isOpen: false, drawId: null, drawTitle: '', winnerAddress: '' });
+      setManualModal({ isOpen: false, drawId: null, drawTitle: '', winnerCount: 1, winnerAddresses: [''] });
       confetti({ particleCount: 80, spread: 70 });
+      alert(`Manual selection confirmed! ${cleaned.length} winner${cleaned.length > 1 ? 's' : ''} recorded on-chain.`);
     } catch (err) {
       sound?.playError?.();
       alert('Manual selection failed: ' + err.message);
@@ -444,6 +487,9 @@ export function LuckyDrawAdminDashboard({
                           <span className="px-1.5 py-0.5 rounded bg-[#FFD700] text-black text-[9px] font-extrabold">
                             DRAW #{draw.drawId}
                           </span>
+                          <span className="px-1.5 py-0.5 rounded bg-purple-900/80 border border-purple-500 text-[#00F0FF] text-[9px] font-bold">
+                            {draw.winnerCount || 1} WINNER{(draw.winnerCount || 1) > 1 ? 'S' : ''}
+                          </span>
                           <span className="text-[10px] font-mono text-cyan-300">
                             {draw.prizeCategory === 0 ? 'PHYSICAL' : draw.prizeCategory === 1 ? 'ETH' : draw.prizeCategory === 2 ? 'TOKEN' : 'NFT'}
                           </span>
@@ -465,7 +511,7 @@ export function LuckyDrawAdminDashboard({
                           {sold} / {draw.maxTickets > 0 ? draw.maxTickets : '∞'} ({pct}%)
                         </span>
                       </div>
-                      <div className="w-full h-2 bg-black/60 rounded-full overflow-hidden border border-purple-900">
+                      <div className="w-full bg-black/60 rounded-full h-2 overflow-hidden border border-purple-800">
                         <div
                           className="h-full bg-gradient-to-r from-[#00F0FF] to-[#00FF66]"
                           style={{ width: `${pct}%` }}
@@ -514,25 +560,27 @@ export function LuckyDrawAdminDashboard({
                         type="button"
                         onClick={() => handleRandomDraw(draw.drawId)}
                         className="pixel-btn pixel-btn-vibrant-lime py-2 px-2 text-[10px] sm:text-xs font-extrabold rounded-lg shadow-[2px_2px_0px_#000] text-center"
-                        title="Contract selects random winner using on-chain seed"
+                        title={`Contract selects ${draw.winnerCount || 1} random unique winner(s) using on-chain seed`}
                       >
-                        [ 🎲 RANDOM DRAW ]
+                        [ 🎲 RANDOM DRAW {draw.winnerCount > 1 ? `(${draw.winnerCount})` : ''} ]
                       </button>
 
                       <button
                         type="button"
-                        onClick={() =>
+                        onClick={() => {
+                          const wCount = draw.winnerCount || 1;
                           setManualModal({
                             isOpen: true,
                             drawId: draw.drawId,
                             drawTitle: draw.title,
-                            winnerAddress: '',
-                          })
-                        }
+                            winnerCount: wCount,
+                            winnerAddresses: new Array(wCount).fill(''),
+                          });
+                        }}
                         className="pixel-btn pixel-btn-vibrant-gold py-2 px-2 text-[10px] sm:text-xs font-extrabold rounded-lg shadow-[2px_2px_0px_#000] text-center"
-                        title="Pick a specific ticket holder wallet"
+                        title={`Pick ${draw.winnerCount || 1} specific ticket holder wallet(s)`}
                       >
-                        [ ✍️ MANUAL PICK ]
+                        [ ✍️ MANUAL PICK {draw.winnerCount > 1 ? `(${draw.winnerCount})` : ''} ]
                       </button>
                     </div>
                   </div>
@@ -752,20 +800,57 @@ export function LuckyDrawAdminDashboard({
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-gray-300 font-bold mb-1 uppercase text-[10px]">
-                    Min Ape Broker NFTs Required
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={formData.minNftRequired}
-                    onChange={(e) => setFormData({ ...formData, minNftRequired: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-black/60 border border-purple-800 focus:border-[#FFD700] text-white focus:outline-none"
-                  />
-                  <span className="text-[9px] text-gray-400 mt-0.5 block">
-                    Default 1 Ape Broker NFT (Enforces exclusive holder gating)
-                  </span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-300 font-bold mb-1 uppercase text-[10px]">
+                      Min NFTs Required
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={formData.minNftRequired}
+                      onChange={(e) => setFormData({ ...formData, minNftRequired: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg bg-black/60 border border-purple-800 focus:border-[#FFD700] text-white focus:outline-none"
+                    />
+                    <span className="text-[9px] text-gray-400 mt-0.5 block">
+                      Default 1 NFT
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-300 font-bold mb-1 uppercase text-[10px] flex items-center justify-between">
+                      <span>Winners Count *</span>
+                      <span className="text-[#FFD700] font-bold">{formData.winnerCount || 1}</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="50"
+                      required
+                      value={formData.winnerCount}
+                      onChange={(e) => setFormData({ ...formData, winnerCount: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg bg-black/60 border border-purple-800 focus:border-[#FFD700] text-white focus:outline-none font-bold"
+                    />
+                    <div className="flex items-center gap-1 mt-1 flex-wrap">
+                      {['1', '2', '3', '5', '10'].map((cnt) => (
+                        <button
+                          key={cnt}
+                          type="button"
+                          onClick={() => {
+                            sound?.playClick?.();
+                            setFormData((prev) => ({ ...prev, winnerCount: cnt }));
+                          }}
+                          className={`px-1.5 py-0.5 text-[9px] rounded font-bold border ${
+                            String(formData.winnerCount) === cnt
+                              ? 'bg-[#00F0FF] text-black border-[#00F0FF]'
+                              : 'bg-black/60 text-gray-300 border-purple-800 hover:border-gray-500'
+                          }`}
+                        >
+                          {cnt}W
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -857,91 +942,127 @@ export function LuckyDrawAdminDashboard({
                       </div>
                     </div>
 
-                    {/* Winner Details Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-black/40 p-3.5 rounded-lg border border-purple-900/40">
-                      <div>
-                        <div className="text-[9px] text-gray-400 uppercase flex items-center justify-between">
-                          <span>WINNER WALLET</span>
-                          <button
-                            type="button"
-                            onClick={() => handleCopyAddress(draw.winner)}
-                            className="text-[9px] font-bold text-[#00FF66] hover:underline flex items-center gap-1"
-                          >
-                            {copiedAddress === draw.winner ? '✓ COPIED!' : '📋 COPY'}
-                          </button>
-                        </div>
-                        <div className="text-[#00FF66] font-bold font-mono break-all mt-0.5 select-all">
-                          {draw.winner}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1 text-[9px] text-gray-400">
-                          {draw.winningTicketId > 0 ? (
-                            <span>Winning Ticket: #{draw.winningTicketId}</span>
-                          ) : (
-                            <span className="text-amber-300">Ticket Holder Selected</span>
-                          )}
-                          <span>•</span>
-                          <a
-                            href={`https://explorer.testnet.robinhood.com/address/${draw.winner}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-cyan-400 hover:underline"
-                          >
-                            Explorer ↗
-                          </a>
-                        </div>
-                      </div>
+                    {/* Winner(s) List Section */}
+                    {(() => {
+                      const allWinners = (draw.winners && draw.winners.length > 0)
+                        ? draw.winners
+                        : (draw.winner && draw.winner !== '0x0000000000000000000000000000000000000000' ? [draw.winner] : []);
+                      const winningTicketIds = draw.winningTicketIds || [];
 
-                      <div>
-                        <div className="text-[9px] text-gray-400 uppercase">SELECTED BY ADMIN</div>
-                        <div className="text-gray-300 font-mono break-all mt-0.5">
-                          {draw.selectedByAdmin || 'Admin'}
-                        </div>
-                        <div className="text-[9px] text-gray-400">
-                          {draw.selectedTimestamp ? new Date(draw.selectedTimestamp * 1000).toLocaleString() : ''}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="text-[9px] text-gray-400 uppercase">DELIVERY PROOF / TRACKING</div>
-                        <div className="text-cyan-300 font-mono break-all mt-0.5">
-                          {draw.prizeFulfillmentProof || 'No proof recorded yet'}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Direct Admin Delivery Controls */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-purple-900/60">
-                      {/* Direct Send Button */}
-                      <div className="flex items-center gap-2">
-                        {(draw.prizeCategory === 1 || draw.prizeCategory === 2) ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              sound?.playClick?.();
-                              setDirectSendModal({
-                                isOpen: true,
-                                drawId: draw.drawId,
-                                winnerAddress: draw.winner,
-                                drawTitle: draw.title,
-                                prizeDescription: draw.prizeDescription,
-                                amount: '',
-                                assetType: draw.prizeCategory === 1 ? 'ETH' : 'APEBROKE',
-                                isSending: false,
-                              });
-                            }}
-                            className="pixel-btn pixel-btn-vibrant-lime px-3 py-1.5 text-[10px] font-bold rounded flex items-center gap-1.5 shadow-[2px_2px_0px_#000]"
-                            title="Directly transfer crypto prize from admin wallet to winner"
-                          >
-                            <span>💸</span>
-                            <span>DIRECT SEND {draw.prizeCategory === 1 ? 'ETH' : '$APEBROKE'} TO WINNER</span>
-                          </button>
-                        ) : (
-                          <div className="px-2.5 py-1 text-[10px] text-amber-300 bg-amber-950/40 border border-amber-700/60 rounded flex items-center gap-1">
-                            <span>📦</span>
-                            <span>Direct Physical / Courier Delivery</span>
+                      return (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between text-[11px] font-bold text-gray-300">
+                            <span className="flex items-center gap-2">
+                              <span className="text-[#FFD700]">🏆 OFFICIAL WINNERS ({allWinners.length})</span>
+                              <span className="px-1.5 py-0.5 bg-purple-900/60 border border-purple-600 text-[9px] text-cyan-300 font-normal rounded">
+                                {draw.winnerCount || allWinners.length} Winner{(draw.winnerCount || allWinners.length) > 1 ? 's' : ''} Configured
+                              </span>
+                            </span>
+                            <span className="text-[9px] text-gray-400 font-normal">
+                              Direct admin prize dispatch per winner
+                            </span>
                           </div>
-                        )}
-                      </div>
+
+                          <div className="space-y-2">
+                            {allWinners.map((winnerAddr, idx) => {
+                              const ticketId = winningTicketIds[idx] || (idx === 0 ? draw.winningTicketId : 0);
+                              return (
+                                <div
+                                  key={idx}
+                                  className="bg-black/50 p-3 rounded-lg border border-purple-900/50 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs"
+                                >
+                                  <div className="space-y-1 min-w-0 flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="px-1.5 py-0.5 bg-[#FFD700] text-black text-[9px] font-extrabold rounded">
+                                        WINNER #{idx + 1}
+                                      </span>
+                                      <span className="text-[#00FF66] font-bold font-mono break-all select-all">
+                                        {winnerAddr}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                                      {ticketId > 0 ? (
+                                        <span>Ticket ID: #{ticketId}</span>
+                                      ) : (
+                                        <span className="text-amber-300">Verified Ticket Holder</span>
+                                      )}
+                                      <span>•</span>
+                                      <a
+                                        href={`https://explorer.testnet.robinhood.com/address/${winnerAddr}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-cyan-400 hover:underline"
+                                      >
+                                        Explorer ↗
+                                      </a>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCopyAddress(winnerAddr)}
+                                      className="px-2.5 py-1 text-[10px] font-bold text-[#00FF66] bg-black/60 border border-[#00FF66]/50 rounded hover:bg-[#00FF66]/10 flex items-center gap-1"
+                                    >
+                                      {copiedAddress === winnerAddr ? '✓ COPIED!' : '📋 COPY'}
+                                    </button>
+
+                                    {(draw.prizeCategory === 1 || draw.prizeCategory === 2) ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          sound?.playClick?.();
+                                          setDirectSendModal({
+                                            isOpen: true,
+                                            drawId: draw.drawId,
+                                            winnerAddress: winnerAddr,
+                                            drawTitle: `${draw.title} (Winner #${idx + 1})`,
+                                            prizeDescription: draw.prizeDescription,
+                                            amount: '',
+                                            assetType: draw.prizeCategory === 1 ? 'ETH' : 'APEBROKE',
+                                            isSending: false,
+                                          });
+                                        }}
+                                        className="pixel-btn pixel-btn-vibrant-lime px-2.5 py-1 text-[10px] font-bold rounded flex items-center gap-1 shadow-[2px_2px_0px_#000]"
+                                        title={`Directly send crypto to Winner #${idx + 1}`}
+                                      >
+                                        <span>💸</span>
+                                        <span>SEND {draw.prizeCategory === 1 ? 'ETH' : '$APEBROKE'}</span>
+                                      </button>
+                                    ) : (
+                                      <div className="px-2 py-1 text-[9px] text-amber-300 bg-amber-950/40 border border-amber-700/60 rounded flex items-center gap-1">
+                                        <span>📦</span>
+                                        <span>Physical Delivery</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Audit & Proof Details */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-black/30 p-2.5 rounded-lg border border-purple-900/30 text-[10px]">
+                            <div>
+                              <span className="text-gray-400 uppercase">Draw Execution: </span>
+                              <span className="text-gray-300 font-mono">
+                                {draw.selectedByAdmin || 'Admin'}
+                                {draw.selectedTimestamp ? ` • ${new Date(draw.selectedTimestamp * 1000).toLocaleString()}` : ''}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-400 uppercase">Delivery Proof / Tracking: </span>
+                              <span className="text-cyan-300 font-mono break-all">
+                                {draw.prizeFulfillmentProof || 'No proof recorded yet'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Direct Admin Delivery Controls & Status Update */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3 pt-2 border-t border-purple-900/60">
 
                       {/* Status Update & Tracking Proof */}
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 sm:justify-end">
@@ -990,11 +1111,11 @@ export function LuckyDrawAdminDashboard({
           <div className="relative w-full max-w-md bg-[#12072e] border-3 border-[#FFD700] rounded-xl p-5 shadow-[0_0_30px_rgba(255,215,0,0.3)] space-y-4 font-mono text-white">
             <div className="flex items-center justify-between border-b border-purple-800 pb-3">
               <h3 className="text-xs sm:text-sm font-bold text-[#FFD700] font-pixel">
-                ✍️ SELECT MANUAL WINNER
+                ✍️ SELECT MANUAL WINNER{manualModal.winnerCount > 1 ? `S (${manualModal.winnerCount} SLOTS)` : ''}
               </h3>
               <button
                 type="button"
-                onClick={() => setManualModal({ isOpen: false, drawId: null, drawTitle: '', winnerAddress: '' })}
+                onClick={() => setManualModal({ isOpen: false, drawId: null, drawTitle: '', winnerCount: 1, winnerAddresses: [''] })}
                 className="text-gray-400 hover:text-white text-xs"
               >
                 ✕
@@ -1002,31 +1123,67 @@ export function LuckyDrawAdminDashboard({
             </div>
 
             <div className="space-y-2 text-xs">
-              <div className="text-gray-300">
-                Draw: <strong className="text-white">{manualModal.drawTitle}</strong>
+              <div className="text-gray-300 flex justify-between">
+                <span>Draw: <strong className="text-white">{manualModal.drawTitle}</strong></span>
+                <span className="text-[#00F0FF] font-bold">Max: {manualModal.winnerCount} Winner{manualModal.winnerCount > 1 ? 's' : ''}</span>
               </div>
-              <div className="bg-amber-950/80 border border-amber-600 p-2.5 rounded text-[10px] text-amber-200">
-                ⚠️ <strong>Contract Requirement:</strong> The candidate address must have purchased at least 1 ticket for this specific draw. The smart contract will strictly revert if the address owns 0 tickets.
+              <div className="bg-amber-950/80 border border-amber-600 p-2.5 rounded text-[10px] text-amber-200 leading-normal">
+                ⚠️ <strong>Strict Protocol Rule:</strong> Every candidate winner wallet must own at least 1 valid ticket for this draw. Duplicate addresses and non-ticket holders will be strictly rejected on-chain.
               </div>
 
-              <div>
-                <label className="block text-gray-300 font-bold mb-1 text-[10px] uppercase">
-                  Winner Wallet Address:
-                </label>
-                <input
-                  type="text"
-                  placeholder="0x..."
-                  value={manualModal.winnerAddress}
-                  onChange={(e) => setManualModal({ ...manualModal, winnerAddress: e.target.value.trim() })}
-                  className="w-full px-3 py-2 rounded bg-black/80 border border-purple-700 text-xs text-white focus:outline-none"
-                />
+              <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                {manualModal.winnerAddresses.map((addr, idx) => (
+                  <div key={idx}>
+                    <div className="flex items-center justify-between text-[10px] text-gray-300 font-bold mb-1">
+                      <span>WINNER #{idx + 1} WALLET:</span>
+                      {manualModal.winnerAddresses.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = manualModal.winnerAddresses.filter((_, i) => i !== idx);
+                            setManualModal({ ...manualModal, winnerAddresses: next });
+                          }}
+                          className="text-red-400 hover:text-red-300 text-[9px]"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="0x..."
+                      value={addr}
+                      onChange={(e) => {
+                        const next = [...manualModal.winnerAddresses];
+                        next[idx] = e.target.value.trim();
+                        setManualModal({ ...manualModal, winnerAddresses: next });
+                      }}
+                      className="w-full px-3 py-2 rounded bg-black/80 border border-purple-700 text-xs text-white focus:outline-none focus:border-[#FFD700] font-mono"
+                    />
+                  </div>
+                ))}
+
+                {manualModal.winnerAddresses.length < manualModal.winnerCount && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManualModal({
+                        ...manualModal,
+                        winnerAddresses: [...manualModal.winnerAddresses, ''],
+                      });
+                    }}
+                    className="w-full py-1.5 text-[10px] font-bold text-cyan-300 bg-black/50 border border-dashed border-cyan-700 hover:border-cyan-400 rounded"
+                  >
+                    + Add Winner Slot ({manualModal.winnerAddresses.length}/{manualModal.winnerCount})
+                  </button>
+                )}
               </div>
             </div>
 
             <div className="pt-2 flex items-center justify-end gap-2 border-t border-purple-800">
               <button
                 type="button"
-                onClick={() => setManualModal({ isOpen: false, drawId: null, drawTitle: '', winnerAddress: '' })}
+                onClick={() => setManualModal({ isOpen: false, drawId: null, drawTitle: '', winnerCount: 1, winnerAddresses: [''] })}
                 className="px-3 py-2 text-xs text-gray-400 hover:text-white"
               >
                 Cancel
@@ -1036,7 +1193,7 @@ export function LuckyDrawAdminDashboard({
                 onClick={handleManualDrawSubmit}
                 className="pixel-btn pixel-btn-vibrant-gold px-4 py-2 text-xs font-bold rounded"
               >
-                [ CONFIRM MANUAL WINNER ]
+                [ CONFIRM {manualModal.winnerAddresses.filter(a => a.trim().length > 0).length || 1} MANUAL WINNER{(manualModal.winnerAddresses.filter(a => a.trim().length > 0).length || 1) > 1 ? 'S' : ''} ]
               </button>
             </div>
           </div>

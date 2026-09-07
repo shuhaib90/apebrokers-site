@@ -27,6 +27,7 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
     adminSetTicketPrice,
     adminSelectWinnerRandom,
     adminSelectWinnerManual,
+    adminSelectWinnersManual,
     adminUpdatePrizeStatus,
     adminClaimAllTicketRevenue,
   } = useApeBrokerLuckyDraw();
@@ -231,6 +232,7 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
             onSetTicketPrice={adminSetTicketPrice}
             onSelectWinnerRandom={adminSelectWinnerRandom}
             onSelectWinnerManual={adminSelectWinnerManual}
+            onSelectWinnersManual={adminSelectWinnersManual}
             onUpdatePrizeStatus={adminUpdatePrizeStatus}
             onClaimAllRevenue={adminClaimAllTicketRevenue}
           />
@@ -326,9 +328,12 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                           alt={draw.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
-                        <div className="absolute top-2.5 left-2.5">
+                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
                           <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-white shadow-md ${categoryColors[draw.prizeCategory || 0]}`}>
                             {categoryLabels[draw.prizeCategory || 0]}
+                          </span>
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-purple-950/90 text-[#FFD700] border border-[#FFD700]/60 shadow-md">
+                            {draw.winnerCount || 1} WINNER{(draw.winnerCount || 1) > 1 ? 'S' : ''}
                           </span>
                         </div>
                         <div className="absolute top-2.5 right-2.5 bg-black/80 px-2 py-0.5 rounded text-[9px] font-mono font-bold text-[#FFD700] border border-[#FFD700]/50">
@@ -434,12 +439,29 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                       </div>
 
                       <div className="bg-black/50 p-3 rounded-lg border border-purple-900/60 space-y-1.5 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Official Winner:</span>
-                          <span className="font-bold text-[#00FF66] font-mono">
-                            {draw.winner ? `${draw.winner.slice(0, 6)}...${draw.winner.slice(-4)}` : 'Unassigned'}
-                          </span>
-                        </div>
+                        {(() => {
+                          const allWinners = (draw.winners && draw.winners.length > 0)
+                            ? draw.winners
+                            : (draw.winner && draw.winner !== '0x0000000000000000000000000000000000000000' ? [draw.winner] : []);
+                          return (
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-gray-400 text-[11px]">
+                                <span>Official Winner{allWinners.length > 1 ? 's' : ''}:</span>
+                                <span className="text-[#FFD700] font-bold">{allWinners.length} Winner{allWinners.length > 1 ? 's' : ''}</span>
+                              </div>
+                              <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
+                                {allWinners.map((w, idx) => (
+                                  <div key={idx} className="flex justify-between items-center text-[11px] bg-black/40 px-2 py-0.5 rounded border border-purple-900/30">
+                                    <span className="text-gray-400 font-mono text-[9px]">#{idx + 1}</span>
+                                    <span className="font-bold text-[#00FF66] font-mono">
+                                      {w ? `${w.slice(0, 6)}...${w.slice(-4)}` : 'Unassigned'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
                         <div className="flex justify-between">
                           <span className="text-gray-400">Prize Description:</span>
                           <span className="text-gray-200">{draw.prizeDescription}</span>

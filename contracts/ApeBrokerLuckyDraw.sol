@@ -182,6 +182,9 @@ contract ApeBrokerLuckyDraw is IApeBrokerLuckyDraw, Ownable2Step, ReentrancyGuar
     function createDraw(DrawCreateInput calldata input) external onlyOwner returns (uint256 drawId) {
         if (input.durationSeconds == 0) revert InvalidDuration();
 
+        uint256 winnersToSelect = input.winnerCount > 0 ? input.winnerCount : 1;
+        if (winnersToSelect > 50) revert ExceedsMaxWinners();
+
         drawId = ++nextDrawId;
         uint256 startTime = block.timestamp;
         uint256 endTime = startTime + input.durationSeconds;
@@ -203,8 +206,11 @@ contract ApeBrokerLuckyDraw is IApeBrokerLuckyDraw, Ownable2Step, ReentrancyGuar
             totalTicketsSold: 0,
             totalRevenueCollected: 0,
             selectionMode: SelectionMode.NONE,
+            winnerCount: winnersToSelect,
             winner: address(0),
+            winners: new address[](0),
             winningTicketId: 0,
+            winningTicketIds: new uint256[](0),
             selectedTimestamp: 0,
             selectedByAdmin: address(0),
             prizeStatus: PrizeStatus.PENDING,
@@ -256,13 +262,13 @@ contract ApeBrokerLuckyDraw is IApeBrokerLuckyDraw, Ownable2Step, ReentrancyGuar
     }
 
     /**
-     * @notice Mode 1: Selects a winner randomly using on-chain secure pseudo-randomness.
-     * @dev Selection is final and recorded permanently on-chain.
+     * @notice Mode 1: Selects winners randomly using on-chain secure pseudo-randomness.
+     * @dev Selection is final and recorded permanently on-chain. Ensures unique winning wallets up to unique participant count.
      * @param drawId The ID of the draw.
-     * @return winner The chosen winner address.
-     * @return winningTicketId The chosen winning ticket number (1-indexed).
+     * @return winners Array of winning wallet addresses.
+     * @return winningTicketIds Array of winning ticket IDs.
      */
-    function selectWinnerRandom(uint256 drawId) external onlyOwner nonReentrant returns (address winner, uint256 winningTicketId) {
+    function selectWinnerRandom(uint256 drawId) external onlyOwner nonReentrant returns (address[] memory winners, uint256[] memory winningTicketIds) {
         Draw storage draw = draws[drawId];
         if (draw.drawId == 0) revert DrawNotFound();
         if (draw.status != DrawStatus.ACTIVE && draw.status != DrawStatus.CLOSED) {
@@ -272,43 +278,108 @@ contract ApeBrokerLuckyDraw is IApeBrokerLuckyDraw, Ownable2Step, ReentrancyGuar
             revert DrawHasZeroTickets();
         }
 
-        // Verifiable on-chain pseudo-randomness seed
-        uint256 randomSeed = uint256(
-            keccak256(
-                abi.encodePacked(
-                    block.prevrandao,
-                    block.timestamp,
-                    blockhash(block.number - 1),
-                    drawId,
-                    draw.totalTicketsSold,
-                    msg.sender
+        uint256 uniqueCount = _uniqueParticipants[drawId].length;
+        uint256 countToPick = draw.winnerCount > 0 ? draw.winnerCount : 1;
+        if (countToPick > uniqueCount) {
+            countToPick = uniqueCount;
+        }
+
+        winners = new address[](countToPick);
+        winningTicketIds = new uint256[](countToPick);
+
+        for (uint256 i = 0; i < countToPick; ) {
+            uint256 randomSeed = uint256(
+                keccak256(
+                    abi.encodePacked(
+                        block.prevrandao,
+                        block.timestamp,
+                        blockhash(block.number - 1),
+                        drawId,
+                        draw.totalTicketsSold,
+                        i,
+                        msg.sender
+                    )
                 )
-            )
-        );
+            );
 
-        uint256 winningIndex = randomSeed % draw.totalTicketsSold;
-        winner = _drawTickets[drawId][winningIndex];
-        winningTicketId = winningIndex + 1;
+            uint256 ticketIndex = randomSeed % draw.totalTicketsSold;
+            address candidate = _drawTickets[drawId][ticketIndex];
 
-        draw.winner = winner;
-        draw.winningTicketId = winningTicketId;
+            // Ensure no duplicate winner in multi-winner draws
+            bool alreadyWon = false;
+            for (uint256 j = 0; j < i; ) {
+                if (winners[j] == candidate) {
+                    alreadyWon = true;
+                    break;
+                }
+                unchecked { ++j; }
+            }
+
+            // Probe linearly if candidate was already selected
+            if (alreadyWon) {
+                for (uint256 step = 1; step < draw.totalTicketsSold; ) {
+                    uint256 nextIndex = (ticketIndex + step) % draw.totalTicketsSold;
+                    address nextCandidate = _drawTickets[drawId][nextIndex];
+                    bool nextAlreadyWon = false;
+                    for (uint256 k = 0; k < i; ) {
+                        if (winners[k] == nextCandidate) {
+                            nextAlreadyWon = true;
+                            break;
+                        }
+                        unchecked { ++k; }
+                    }
+                    if (!nextAlreadyWon) {
+                        candidate = nextCandidate;
+                        ticketIndex = nextIndex;
+                        break;
+                    }
+                    unchecked { ++step; }
+                }
+            }
+
+            winners[i] = candidate;
+            winningTicketIds[i] = ticketIndex + 1;
+
+            unchecked { ++i; }
+        }
+
+        draw.winners = winners;
+        draw.winningTicketIds = winningTicketIds;
+        draw.winner = winners[0];
+        draw.winningTicketId = winningTicketIds[0];
         draw.selectionMode = SelectionMode.RANDOM;
         draw.selectedTimestamp = block.timestamp;
         draw.selectedByAdmin = msg.sender;
         draw.status = DrawStatus.WINNER_SELECTED;
         draw.prizeStatus = PrizeStatus.PENDING;
 
-        emit WinnerSelected(drawId, winner, winningTicketId, SelectionMode.RANDOM, msg.sender, block.timestamp);
+        emit WinnersSelected(drawId, winners, winningTicketIds, SelectionMode.RANDOM, msg.sender, block.timestamp);
+        emit WinnerSelected(drawId, winners[0], winningTicketIds[0], SelectionMode.RANDOM, msg.sender, block.timestamp);
     }
 
     /**
-     * @notice Mode 2: Selects a winner manually by the admin.
-     * @dev Strictly verifies that the candidate address owns at least 1 valid ticket in that draw!
+     * @notice Mode 2: Selects multiple winners manually by the admin.
+     * @dev Strictly verifies that each candidate address owns at least 1 valid ticket in that draw, and enforces no duplicates.
+     * @param drawId The ID of the draw.
+     * @param manualWinners Array of candidate winner wallet addresses.
+     */
+    function selectWinnersManual(uint256 drawId, address[] calldata manualWinners) external onlyOwner nonReentrant {
+        _selectWinnersManual(drawId, manualWinners);
+    }
+
+    /**
+     * @notice Convenience wrapper to select a single manual winner.
      * @param drawId The ID of the draw.
      * @param winner Candidate winner wallet address.
      */
     function selectWinnerManual(uint256 drawId, address winner) external onlyOwner nonReentrant {
-        if (winner == address(0)) revert ZeroAddress();
+        address[] memory single = new address[](1);
+        single[0] = winner;
+        _selectWinnersManual(drawId, single);
+    }
+
+    function _selectWinnersManual(uint256 drawId, address[] memory manualWinners) internal {
+        if (manualWinners.length == 0) revert ZeroAmount();
 
         Draw storage draw = draws[drawId];
         if (draw.drawId == 0) revert DrawNotFound();
@@ -319,20 +390,46 @@ contract ApeBrokerLuckyDraw is IApeBrokerLuckyDraw, Ownable2Step, ReentrancyGuar
             revert DrawHasZeroTickets();
         }
 
-        // STRICT CONTRACT ENFORCEMENT: Winner must hold at least 1 ticket for this draw!
-        if (userTicketCount[drawId][winner] == 0) {
-            revert WinnerMustHoldTicket(winner);
+        uint256 maxAllowed = draw.winnerCount > 0 ? draw.winnerCount : 1;
+        if (manualWinners.length > maxAllowed) {
+            revert ExceedsMaxWinners();
         }
 
-        draw.winner = winner;
-        draw.winningTicketId = 0; // Manual selection has no single random ticket ID
+        uint256[] memory ticketIds = new uint256[](manualWinners.length);
+
+        for (uint256 i = 0; i < manualWinners.length; ) {
+            address candidate = manualWinners[i];
+            if (candidate == address(0)) revert ZeroAddress();
+
+            // STRICT CONTRACT ENFORCEMENT: Winner must hold at least 1 ticket for this draw!
+            if (userTicketCount[drawId][candidate] == 0) {
+                revert WinnerMustHoldTicket(candidate);
+            }
+
+            // Check for duplicates
+            for (uint256 j = 0; j < i; ) {
+                if (manualWinners[j] == candidate) {
+                    revert DuplicateWinnerAddress(candidate);
+                }
+                unchecked { ++j; }
+            }
+
+            ticketIds[i] = 0;
+            unchecked { ++i; }
+        }
+
+        draw.winners = manualWinners;
+        draw.winningTicketIds = ticketIds;
+        draw.winner = manualWinners[0];
+        draw.winningTicketId = 0;
         draw.selectionMode = SelectionMode.MANUAL;
         draw.selectedTimestamp = block.timestamp;
         draw.selectedByAdmin = msg.sender;
         draw.status = DrawStatus.WINNER_SELECTED;
         draw.prizeStatus = PrizeStatus.PENDING;
 
-        emit WinnerSelected(drawId, winner, 0, SelectionMode.MANUAL, msg.sender, block.timestamp);
+        emit WinnersSelected(drawId, manualWinners, ticketIds, SelectionMode.MANUAL, msg.sender, block.timestamp);
+        emit WinnerSelected(drawId, manualWinners[0], 0, SelectionMode.MANUAL, msg.sender, block.timestamp);
     }
 
     /**
@@ -460,6 +557,20 @@ contract ApeBrokerLuckyDraw is IApeBrokerLuckyDraw, Ownable2Step, ReentrancyGuar
      */
     function getUserTickets(uint256 drawId, address user) external view returns (uint256) {
         return userTicketCount[drawId][user];
+    }
+
+    /**
+     * @notice Returns array of winners for a draw.
+     */
+    function getDrawWinners(uint256 drawId) external view returns (address[] memory) {
+        return draws[drawId].winners;
+    }
+
+    /**
+     * @notice Returns array of winning ticket IDs for a draw.
+     */
+    function getDrawWinningTicketIds(uint256 drawId) external view returns (uint256[] memory) {
+        return draws[drawId].winningTicketIds;
     }
 
     /**
