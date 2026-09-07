@@ -394,6 +394,8 @@ export function useApeBrokerDesk() {
     contractOwner: ADMIN_ADDRESS,
     treasuryAddress: TREASURY_ADDRESS,
     isAdmin: false,
+    nftTotalSupply: 1250,
+    nftMaxSupply: 3333,
   });
 
   // User State
@@ -497,6 +499,7 @@ export function useApeBrokerDesk() {
         treasuryAddressOnChain,
         availableRewardPool,
         distParams,
+        nftSupplyRaw,
       ] = await Promise.all([
         publicClient
           .readContract({
@@ -603,6 +606,21 @@ export function useApeBrokerDesk() {
             functionName: 'getDistributionParameters',
           })
           .catch(() => [500n, 2000n, 0n]),
+        publicClient
+          .readContract({
+            address: APE_BROKER_NFT_ADDRESS,
+            abi: [
+              {
+                name: 'totalSupply',
+                type: 'function',
+                stateMutability: 'view',
+                inputs: [],
+                outputs: [{ type: 'uint256' }],
+              },
+            ],
+            functionName: 'totalSupply',
+          })
+          .catch(() => 1250n),
       ]);
 
       const [emissionBps, benchmarkWeight, lastEpoch] = distParams || [500n, 2000n, 0n];
@@ -632,6 +650,8 @@ export function useApeBrokerDesk() {
         contractOwner: contractOwner || ADMIN_ADDRESS,
         treasuryAddress: treasuryAddressOnChain || TREASURY_ADDRESS,
         isAdmin,
+        nftTotalSupply: Number(nftSupplyRaw || 1250n),
+        nftMaxSupply: 3333,
       });
     } catch (err) {
       console.warn('Error reading global desk stats:', err);

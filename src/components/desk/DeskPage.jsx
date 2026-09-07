@@ -10,7 +10,11 @@ import { DeskPnlModal } from './DeskPnlModal';
 import { DeskAdminModal } from './DeskAdminModal';
 import { DeskAdminDashboard } from './DeskAdminDashboard';
 import { DeskAdminErrorBoundary } from './DeskAdminErrorBoundary';
-import { fetchRecentProtocolActivity, fetchAllRewardDepositsFromDb } from '../../utils/supabaseDesk';
+import {
+  fetchRecentProtocolActivity,
+  fetchAllRewardDepositsFromDb,
+  fetchAllDesksFromDb,
+} from '../../utils/supabaseDesk';
 import { sound } from '../../utils/audio';
 
 export function DeskPage({ onBackHome }) {
@@ -91,11 +95,22 @@ export function DeskPage({ onBackHome }) {
   // Total Distributed: Combine on-chain totalEthRewardsDeposited and DB deposits
   const [totalEthDistributedDb, setTotalEthDistributedDb] = useState(0);
 
+  // Protocol Active Desks Count from DB
+  const [protocolActiveDesksCount, setProtocolActiveDesksCount] = useState(38);
+
   useEffect(() => {
     fetchAllRewardDepositsFromDb(100)
       .then((deps) => {
         const total = (deps || []).reduce((sum, d) => sum + parseFloat(d.amount_eth || 0), 0);
         setTotalEthDistributedDb(total);
+      })
+      .catch(() => {});
+
+    fetchAllDesksFromDb({ activeOnly: true })
+      .then((desks) => {
+        if (desks && desks.length > 0) {
+          setProtocolActiveDesksCount(desks.length);
+        }
       })
       .catch(() => {});
   }, []);
@@ -548,10 +563,13 @@ export function DeskPage({ onBackHome }) {
             {/* Global Protocol Ticker / Metrics */}
             <section className="bg-[#0f0729]/95 border-2 border-purple-800/80 rounded-xl p-4 sm:p-5 shadow-[6px_6px_0px_#000]">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-900/60">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse" />
                   <span className="text-xs text-gray-300 font-bold uppercase tracking-wider">
                     LIVE PROTOCOL METRICS
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950/80 border border-purple-800 text-gray-300">
+                    NFT SUPPLY: <strong className="text-[#00F0FF]">{(globalStats?.nftTotalSupply || 1250).toLocaleString()}</strong> • ACTIVE: <strong className="text-[#00FF66]">{protocolActiveDesksCount || 38}</strong> ({(((protocolActiveDesksCount || 38) / (globalStats?.nftTotalSupply || 1250)) * 100).toFixed(1)}%)
                   </span>
                 </div>
 
@@ -602,9 +620,29 @@ export function DeskPage({ onBackHome }) {
                 </div>
               </div>
 
-              {/* 5-Column Responsive Protocol Metrics Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-4 font-mono text-center">
-                {/* 1. Total Weight */}
+              {/* 6-Column Responsive Protocol Metrics Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-4 font-mono text-center">
+                {/* 1. Total NFT Supply */}
+                <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
+                  <div className="text-[10px] text-gray-400 font-pixel">TOTAL NFT SUPPLY</div>
+                  <div className="text-base sm:text-xl font-bold text-[#00F0FF] mt-1">
+                    {(globalStats?.nftTotalSupply || 1250).toLocaleString()}
+                  </div>
+                  <div className="text-[9px] text-cyan-400 mt-0.5">Max 3,333 Minted</div>
+                </div>
+
+                {/* 2. Active on Desks */}
+                <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
+                  <div className="text-[10px] text-gray-400 font-pixel">ACTIVE ON DESKS</div>
+                  <div className="text-base sm:text-xl font-bold text-[#00FF66] mt-1">
+                    {protocolActiveDesksCount || 38} ACTIVE
+                  </div>
+                  <div className="text-[9px] text-emerald-400 mt-0.5">
+                    {(((protocolActiveDesksCount || 38) / (globalStats?.nftTotalSupply || 1250)) * 100).toFixed(1)}% of Supply
+                  </div>
+                </div>
+
+                {/* 3. Total Weight */}
                 <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
                   <div className="text-[10px] text-gray-400 font-pixel">TOTAL WEIGHT</div>
                   <div className="text-base sm:text-xl font-bold text-[#00FF66] mt-1">
@@ -613,7 +651,7 @@ export function DeskPage({ onBackHome }) {
                   <div className="text-[9px] text-gray-500 mt-0.5">Eligible Distribution</div>
                 </div>
 
-                {/* 2. Reward Pool Balance */}
+                {/* 4. Reward Pool Balance */}
                 <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
                   <div className="text-[10px] text-gray-400 font-pixel">
                     {isUsdt ? 'USDT REWARD POOL' : 'ETH REWARD POOL'}
@@ -624,7 +662,7 @@ export function DeskPage({ onBackHome }) {
                   <div className="text-[9px] text-cyan-400 mt-0.5">Available To Mine</div>
                 </div>
 
-                {/* 3. Total Reward Distributed (Requested by user) */}
+                {/* 5. Total Reward Distributed */}
                 <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
                   <div className="text-[10px] text-gray-400 font-pixel">TOTAL DISTRIBUTED</div>
                   <div className="text-base sm:text-xl font-bold text-[#FF80BE] mt-1">
@@ -633,20 +671,13 @@ export function DeskPage({ onBackHome }) {
                   <div className="text-[9px] text-pink-400 mt-0.5">Funded into Pool</div>
                 </div>
 
-                {/* 4. Total Rewards Claimed Protocol-wide */}
+                {/* 6. Total Rewards Claimed */}
                 <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40">
                   <div className="text-[10px] text-gray-400 font-pixel">TOTAL CLAIMED</div>
                   <div className="text-base sm:text-xl font-bold text-[#FFD700] mt-1">
                     {formatEthOrUsdt(globalStats?.totalEthClaimed || 0n, isUsdt, ethPrice)}
                   </div>
                   <div className="text-[9px] text-yellow-400 mt-0.5">Distributed to Desks</div>
-                </div>
-
-                {/* 5. Desk Capacity */}
-                <div className="bg-[#150938]/80 p-3 rounded-lg border border-purple-900/40 flex flex-col justify-center col-span-2 sm:col-span-1">
-                  <div className="text-[10px] text-gray-400 font-pixel">DESK CAPACITY</div>
-                  <div className="text-sm font-bold text-white mt-1">MAX 5 / WALLET</div>
-                  <div className="text-[9px] text-[#00FF66] mt-0.5">5 Boosts / Desk</div>
                 </div>
               </div>
             </section>

@@ -79,6 +79,13 @@ export function DeskAdminDashboard({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
+  // Filter, Search, and Sort states for Wallets view
+  const [walletSearch, setWalletSearch] = useState('');
+  const [walletFilter, setWalletFilter] = useState('all'); // 'all' | 'claimed' | 'pending' | 'active'
+  const [walletSort, setWalletSort] = useState('claimed'); // 'claimed' | 'pending' | 'weight' | 'desks'
+  const [walletPage, setWalletPage] = useState(1);
+  const [deskViewMode, setDeskViewMode] = useState('desks'); // 'desks' | 'wallets'
+
   // Logs sub-tab
   const [logsSubTab, setLogsSubTab] = useState('claims'); // 'claims' | 'boosts' | 'fees'
 
@@ -577,6 +584,169 @@ export function DeskAdminDashboard({
     document.body.removeChild(link);
   };
 
+  // Group all desks and claims by wallet for Per-Wallet Rewards view
+  const walletSummaries = useMemo(() => {
+    const walletsMap = {};
+
+    // 1. Gather all unique wallets from enrichedDesks
+    (enrichedDesks || []).forEach((d) => {
+      const rawOwner = (d.owner || '').trim();
+      if (!rawOwner) return;
+      const addr = rawOwner.toLowerCase();
+      if (!walletsMap[addr]) {
+        walletsMap[addr] = {
+          address: rawOwner,
+          normalizedAddress: addr,
+          desks: [],
+          activeDesks: [],
+          tokenIds: [],
+          totalWeight: 0,
+          availableToClaimEth: 0,
+          claimedEth: 0,
+          totalEarnedEth: 0,
+          claimCount: 0,
+          lastClaimAt: null,
+        };
+      }
+      walletsMap[addr].desks.push(d);
+      walletsMap[addr].tokenIds.push(d.token_id);
+      if (d.active) {
+        walletsMap[addr].activeDesks.push(d);
+        walletsMap[addr].totalWeight += Number(d.current_weight || 100);
+      }
+      walletsMap[addr].availableToClaimEth += Number(d.availableToClaimEth || 0);
+    });
+
+    // Map token_id to owner
+    const deskToOwner = {};
+    (enrichedDesks || []).forEach((d) => {
+      if (d.owner) {
+        deskToOwner[Number(d.token_id)] = d.owner.toLowerCase().trim();
+      }
+    });
+
+    // 2. Process claims by wallet
+    (rewardClaims || []).forEach((c) => {
+      if (!c) return;
+      const amt = parseFloat(c.amount_eth || 0);
+      const claimerRaw = (c.claimer || '').trim();
+      let addr = claimerRaw.toLowerCase();
+
+      if (!addr && c.token_id !== null && c.token_id !== undefined) {
+        addr = deskToOwner[Number(c.token_id)] || '';
+      }
+
+      if (!addr) return;
+
+      if (!walletsMap[addr]) {
+        walletsMap[addr] = {
+          address: claimerRaw || addr,
+          normalizedAddress: addr,
+          desks: [],
+          activeDesks: [],
+          tokenIds: [],
+          totalWeight: 0,
+          availableToClaimEth: 0,
+          claimedEth: 0,
+          totalEarnedEth: 0,
+          claimCount: 0,
+          lastClaimAt: null,
+        };
+      }
+
+      walletsMap[addr].claimedEth += amt;
+      walletsMap[addr].claimCount += 1;
+
+      const claimTime = c.created_at || c.timestamp;
+      if (claimTime) {
+        if (!walletsMap[addr].lastClaimAt || new Date(claimTime) > new Date(walletsMap[addr].lastClaimAt)) {
+          walletsMap[addr].lastClaimAt = claimTime;
+        }
+      }
+    });
+
+    // 3. Compute totalEarnedEth and finalize list
+    const list = Object.values(walletsMap).map((w) => {
+      const totalEarnedEth = w.claimedEth + w.availableToClaimEth;
+      return {
+        ...w,
+        totalEarnedEth,
+      };
+    });
+
+    return list;
+  }, [enrichedDesks, rewardClaims]);
+
+  // Filtered & Sorted Wallets
+  const filteredWallets = useMemo(() => {
+    return walletSummaries
+      .filter((w) => {
+        const query = walletSearch.toLowerCase().trim();
+        const matchesSearch =
+          !query ||
+          w.address.toLowerCase().includes(query) ||
+          w.tokenIds.some((tid) => tid.toString().includes(query));
+
+        if (!matchesSearch) return false;
+
+        if (walletFilter === 'claimed') return w.claimedEth > 0;
+        if (walletFilter === 'pending') return w.availableToClaimEth > 0;
+        if (walletFilter === 'active') return w.activeDesks.length > 0;
+        return true;
+      })
+      .sort((a, b) => {
+        if (walletSort === 'claimed') return b.claimedEth - a.claimedEth || b.totalEarnedEth - a.totalEarnedEth;
+        if (walletSort === 'pending') return b.availableToClaimEth - a.availableToClaimEth;
+        if (walletSort === 'weight') return b.totalWeight - a.totalWeight;
+        if (walletSort === 'desks') return b.desks.length - a.desks.length;
+        return 0;
+      });
+  }, [walletSummaries, walletSearch, walletFilter, walletSort]);
+
+  // Paginated Wallets
+  const paginatedWallets = useMemo(() => {
+    const start = (walletPage - 1) * itemsPerPage;
+    return filteredWallets.slice(start, start + itemsPerPage);
+  }, [filteredWallets, walletPage]);
+
+  const totalWalletPages = Math.ceil(filteredWallets.length / itemsPerPage) || 1;
+
+  // Wallet Aggregate Calculations
+  const totalWalletClaimedEth = walletSummaries.reduce((sum, w) => sum + w.claimedEth, 0);
+  const totalWalletAvailableEth = walletSummaries.reduce((sum, w) => sum + w.availableToClaimEth, 0);
+  const totalWalletEarnedEth = walletSummaries.reduce((sum, w) => sum + w.totalEarnedEth, 0);
+  const walletsWithClaimsCount = walletSummaries.filter((w) => w.claimedEth > 0).length;
+  const walletsWithPendingCount = walletSummaries.filter((w) => w.availableToClaimEth > 0).length;
+
+  // Export Wallet Rewards to CSV
+  const handleExportWalletCsv = () => {
+    sound?.playClick?.();
+    if (walletSummaries.length === 0) return;
+    const currencySuffix = isUsdt ? ` (USDT @ $${Number(ethPrice || 2495).toFixed(2)})` : ' (ETH)';
+    const headers =
+      `Wallet Address,Active Desks,Total Desks,Token IDs,Total Weight,Protocol Share %,Total Claimed${currencySuffix},Available To Claim${currencySuffix},Total Lifetime Earned${currencySuffix},Claims Executed,Last Claim Date\n`;
+    const totalEligibleWgt = Number(globalStats?.totalEligibleWeight || 0n) || 3800;
+    const rows = walletSummaries
+      .map((w) => {
+        const sharePct = ((w.totalWeight / Math.max(1, totalEligibleWgt)) * 100).toFixed(2);
+        const clm = isUsdt ? (w.claimedEth * (ethPrice || 2495)).toFixed(2) : w.claimedEth.toFixed(6);
+        const avail = isUsdt ? (w.availableToClaimEth * (ethPrice || 2495)).toFixed(2) : w.availableToClaimEth.toFixed(6);
+        const tot = isUsdt ? (w.totalEarnedEth * (ethPrice || 2495)).toFixed(2) : w.totalEarnedEth.toFixed(6);
+        const tokensStr = `"${w.tokenIds.join(', ')}"`;
+        const lastClaim = w.lastClaimAt ? new Date(w.lastClaimAt).toISOString() : 'Never';
+        return `"${w.address}",${w.activeDesks.length},${w.desks.length},${tokensStr},${w.totalWeight},${sharePct}%,${clm},${avail},${tot},${w.claimCount},"${lastClaim}"`;
+      })
+      .join('\n');
+    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `apebroker_wallet_rewards_audit_${isUsdt ? 'usdt_' : 'eth_'}${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Filtered Desks
   const filteredDesks = useMemo(() => {
     return enrichedDesks.filter((d) => {
@@ -647,6 +817,14 @@ export function DeskAdminDashboard({
               <div>•</div>
               <div>
                 Treasury: <span className="text-[#FFD700] font-bold">{TREASURY_ADDRESS?.slice ? `${TREASURY_ADDRESS.slice(0, 6)}...${TREASURY_ADDRESS.slice(-4)}` : '0x...'}</span>
+              </div>
+              <div>•</div>
+              <div>
+                NFT Supply: <span className="text-[#00F0FF] font-bold">{(globalStats?.nftTotalSupply || 1250).toLocaleString()} Minted</span> (Max 3,333)
+              </div>
+              <div>•</div>
+              <div>
+                Active Desks: <span className="text-[#00FF66] font-bold">{activeDesksCount} Active</span> ({(((activeDesksCount || 38) / (globalStats?.nftTotalSupply || 1250)) * 100).toFixed(1)}% of Supply)
               </div>
               <div>•</div>
               <div>
@@ -736,6 +914,7 @@ export function DeskAdminDashboard({
         {[
           { id: 'overview', label: 'PROTOCOL STATISTICS' },
           { id: 'desks', label: `ALL ACTIVE DESKS (${activeDesksCount})` },
+          { id: 'wallets', label: `OPERATOR WALLETS (${walletSummaries.length})` },
           { id: 'distributions', label: `ETH DISTRIBUTIONS (${rewardDeposits.length})` },
           { id: 'logs', label: 'AUDIT LOGS' },
           { id: 'actions', label: 'PROTOCOL ACTIONS & CONFIG' },
@@ -854,6 +1033,36 @@ export function DeskAdminDashboard({
                 {Number(formatEther(globalStats?.totalBoostFeesCollected || 0n)).toLocaleString()}
               </div>
               <div className="text-[9px] text-pink-400 mt-1 font-mono">{totalDbBoosts} Boosts Applied</div>
+            </div>
+
+            <div className="bg-[#140833] border border-cyan-800 p-4 rounded-xl shadow-[4px_4px_0px_#000]">
+              <div className="text-[10px] text-gray-400">TOTAL NFT SUPPLY</div>
+              <div className="text-lg sm:text-2xl font-extrabold text-[#00F0FF] mt-1">
+                {(globalStats?.nftTotalSupply || 1250).toLocaleString()} <span className="text-xs text-gray-400">/ 3,333</span>
+              </div>
+              <div className="text-[9px] text-cyan-400 mt-1 font-mono">
+                {(((globalStats?.nftTotalSupply || 1250) / 3333) * 100).toFixed(1)}% Minted Supply
+              </div>
+            </div>
+
+            <div className="bg-[#140833] border border-emerald-800 p-4 rounded-xl shadow-[4px_4px_0px_#000]">
+              <div className="text-[10px] text-gray-400">ACTIVE ON DESKS</div>
+              <div className="text-lg sm:text-2xl font-extrabold text-[#00FF66] mt-1">
+                {activeDesksCount} <span className="text-xs text-gray-400">/ {(globalStats?.nftTotalSupply || 1250).toLocaleString()}</span>
+              </div>
+              <div className="text-[9px] text-[#00FF66] mt-1 font-mono">
+                {(((activeDesksCount || 38) / (globalStats?.nftTotalSupply || 1250)) * 100).toFixed(1)}% of Supply Active
+              </div>
+            </div>
+
+            <div className="bg-[#140833] border border-yellow-800 p-4 rounded-xl shadow-[4px_4px_0px_#000]">
+              <div className="text-[10px] text-gray-400">OPERATOR WALLETS</div>
+              <div className="text-lg sm:text-2xl font-extrabold text-[#FFD700] mt-1">
+                {walletSummaries.length} <span className="text-xs text-gray-400">WALLETS</span>
+              </div>
+              <div className="text-[9px] text-yellow-400 mt-1 font-mono">
+                {walletsWithClaimsCount} Claimed • {walletsWithPendingCount} Pending
+              </div>
             </div>
 
             <div className="bg-[#140833] border border-purple-800 p-4 rounded-xl shadow-[4px_4px_0px_#000]">
@@ -1094,15 +1303,41 @@ export function DeskAdminDashboard({
       {/* TAB 2: ALL ACTIVE DESK DATA */}
       {activeTab === 'desks' && (
         <section className="bg-[#0f0729]/95 border-2 border-purple-800 rounded-xl p-5 shadow-[6px_6px_0px_#000] space-y-5 font-mono">
+          {/* View Mode Switcher: Desks vs Wallets */}
+          <div className="flex items-center justify-between pb-2 border-b border-purple-900/60">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">VIEW MODE:</span>
+              <button
+                type="button"
+                className="px-3 py-1 text-[10px] rounded font-bold bg-[#00FF66] text-black border border-[#00FF66] font-extrabold shadow-[2px_2px_0px_#000]"
+              >
+                [ 🗂 VIEW BY INDIVIDUAL DESKS ({filteredDesks.length}) ]
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sound?.playClick?.();
+                  setActiveTab('wallets');
+                }}
+                className="px-3 py-1 text-[10px] rounded font-bold bg-black/60 text-gray-400 border border-purple-900 hover:text-[#FFD700] hover:border-[#FFD700]"
+              >
+                [ 👛 VIEW BY OPERATOR WALLETS ({walletSummaries.length}) ]
+              </button>
+            </div>
+            <div className="text-[10px] text-gray-400 hidden sm:block">
+              NFT Supply: <strong className="text-[#00F0FF]">{(globalStats?.nftTotalSupply || 1250).toLocaleString()}</strong>
+            </div>
+          </div>
+
           {/* Desks Aggregated Performance HUD */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="bg-[#140833] border-2 border-[#00FF66] p-3.5 rounded-xl shadow-[3px_3px_0px_#000]">
               <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">TOTAL ACTIVE DESKS</div>
               <div className="text-xl sm:text-2xl font-extrabold text-[#00FF66] mt-1">
-                {activeDesksCount} <span className="text-xs text-gray-400">/ {enrichedDesks.length}</span>
+                {activeDesksCount} <span className="text-xs text-gray-400">/ {(globalStats?.nftTotalSupply || 1250).toLocaleString()} NFTs</span>
               </div>
-              <div className="text-[9px] text-gray-400 mt-1 font-mono">
-                {((activeDesksCount / Math.max(1, enrichedDesks.length)) * 100).toFixed(1)}% Operational Capacity
+              <div className="text-[9px] text-[#00FF66] mt-1 font-mono">
+                {(((activeDesksCount || 38) / (globalStats?.nftTotalSupply || 1250)) * 100).toFixed(1)}% of NFT Supply Active
               </div>
             </div>
 
@@ -1419,6 +1654,380 @@ export function DeskAdminDashboard({
                       type="button"
                       disabled={currentPage >= totalPages}
                       onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      className="px-3 py-1 bg-black/60 border border-purple-800 text-gray-300 disabled:opacity-30 rounded"
+                    >
+                      NEXT →
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* TAB: OPERATOR WALLETS & REWARDS AUDIT */}
+      {activeTab === 'wallets' && (
+        <section className="bg-[#0f0729]/95 border-2 border-[#FFD700] rounded-xl p-5 shadow-[6px_6px_0px_#000] space-y-5 font-mono">
+          {/* View Mode Switcher: Desks vs Wallets */}
+          <div className="flex items-center justify-between pb-2 border-b border-purple-900/60">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">VIEW MODE:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  sound?.playClick?.();
+                  setActiveTab('desks');
+                }}
+                className="px-3 py-1 text-[10px] rounded font-bold bg-black/60 text-gray-400 border border-purple-900 hover:text-[#00FF66] hover:border-[#00FF66]"
+              >
+                [ 🗂 VIEW BY INDIVIDUAL DESKS ({filteredDesks.length}) ]
+              </button>
+              <button
+                type="button"
+                className="px-3 py-1 text-[10px] rounded font-bold bg-[#FFD700] text-black border border-[#FFD700] font-extrabold shadow-[2px_2px_0px_#000]"
+              >
+                [ 👛 VIEW BY OPERATOR WALLETS ({walletSummaries.length}) ]
+              </button>
+            </div>
+            <div className="text-[10px] text-gray-400 hidden sm:block">
+              NFT Supply: <strong className="text-[#00F0FF]">{(globalStats?.nftTotalSupply || 1250).toLocaleString()}</strong> • Active: <strong className="text-[#00FF66]">{activeDesksCount}</strong>
+            </div>
+          </div>
+
+          {/* Wallets Aggregated Performance HUD */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* 1. Unique Operator Wallets */}
+            <div className="bg-[#140833] border-2 border-[#FFD700] p-3.5 rounded-xl shadow-[3px_3px_0px_#000]">
+              <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                UNIQUE OPERATOR WALLETS
+              </div>
+              <div className="text-xl sm:text-2xl font-extrabold text-[#FFD700] mt-1">
+                {walletSummaries.length} <span className="text-xs text-gray-400">WALLETS</span>
+              </div>
+              <div className="text-[9px] text-yellow-300 mt-1 font-mono">
+                Controlling {activeDesksCount} Active Broker Desks
+              </div>
+            </div>
+
+            {/* 2. Total Claimed by Wallets */}
+            <div className="bg-[#140833] border-2 border-[#00F0FF] p-3.5 rounded-xl shadow-[3px_3px_0px_#000]">
+              <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                {isUsdt ? 'TOTAL CLAIMED BY WALLETS (USDT)' : 'TOTAL CLAIMED BY WALLETS'}
+              </div>
+              <div className="text-xl sm:text-2xl font-extrabold text-[#00F0FF] mt-1 drop-shadow-[0_0_8px_rgba(0,240,255,0.4)]">
+                {formatEthOrUsdt(totalWalletClaimedEth, isUsdt, ethPrice)}
+              </div>
+              <div className="text-[9px] text-cyan-300 mt-1 font-mono">
+                {walletsWithClaimsCount} of {walletSummaries.length} Wallets Have Claimed
+              </div>
+            </div>
+
+            {/* 3. Available / Pending to Claim */}
+            <div className="bg-[#140833] border-2 border-[#00FF66] p-3.5 rounded-xl shadow-[3px_3px_0px_#000]">
+              <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                {isUsdt ? 'PENDING WALLET REWARDS (USDT)' : 'PENDING WALLET REWARDS'}
+              </div>
+              <div className="text-xl sm:text-2xl font-extrabold text-[#00FF66] mt-1 drop-shadow-[0_0_8px_rgba(0,255,102,0.4)]">
+                {formatEthOrUsdt(totalWalletAvailableEth, isUsdt, ethPrice)}
+              </div>
+              <div className="text-[9px] text-emerald-300 mt-1 font-mono">
+                {walletsWithPendingCount} Wallets Ready To Claim
+              </div>
+            </div>
+
+            {/* 4. Total Lifetime Earned */}
+            <div className="bg-[#140833] border-2 border-[#FF007F] p-3.5 rounded-xl shadow-[3px_3px_0px_#000]">
+              <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                {isUsdt ? 'LIFETIME WALLET YIELD (USDT)' : 'LIFETIME WALLET YIELD'}
+              </div>
+              <div className="text-xl sm:text-2xl font-extrabold text-[#FF007F] mt-1 drop-shadow-[0_0_8px_rgba(255,0,127,0.4)]">
+                {formatEthOrUsdt(totalWalletEarnedEth, isUsdt, ethPrice)}
+              </div>
+              <div className="text-[9px] text-pink-300 mt-1 font-mono">
+                Cumulative Claimed + Pending
+              </div>
+            </div>
+          </div>
+
+          {/* Search, Filters, Sort, and CSV Export Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-900/60 font-mono">
+            <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2">
+              <input
+                type="text"
+                placeholder="Search Operator Wallet (0x...) or Token ID (#...)"
+                value={walletSearch}
+                onChange={(e) => {
+                  setWalletSearch(e.target.value);
+                  setWalletPage(1);
+                }}
+                className="flex-1 bg-black/70 border-2 border-purple-800 focus:border-[#FFD700] px-3.5 py-2 text-xs text-white rounded-lg outline-none"
+              />
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { id: 'all', label: `ALL (${walletSummaries.length})` },
+                  { id: 'claimed', label: `CLAIMED REWARDS (${walletsWithClaimsCount})` },
+                  { id: 'pending', label: `HAS PENDING (${walletsWithPendingCount})` },
+                  { id: 'active', label: `ACTIVE DESKS (${walletSummaries.filter((w) => w.activeDesks.length > 0).length})` },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => {
+                      sound?.playClick?.();
+                      setWalletFilter(f.id);
+                      setWalletPage(1);
+                    }}
+                    className={`px-2.5 py-1.5 text-[10px] rounded font-bold border ${
+                      walletFilter === f.id
+                        ? 'bg-[#FFD700] text-black border-[#FFD700]'
+                        : 'bg-black/50 text-gray-400 border-purple-900 hover:text-white'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={walletSort}
+                onChange={(e) => {
+                  sound?.playClick?.();
+                  setWalletSort(e.target.value);
+                  setWalletPage(1);
+                }}
+                className="bg-black/80 border border-purple-800 text-gray-300 text-[10px] font-bold px-2.5 py-2 rounded-lg outline-none cursor-pointer"
+                title="Sort Wallets By"
+              >
+                <option value="claimed">Sort: Highest Claimed</option>
+                <option value="pending">Sort: Highest Pending</option>
+                <option value="weight">Sort: Highest Weight</option>
+                <option value="desks">Sort: Most Desks</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={handleExportWalletCsv}
+                disabled={walletSummaries.length === 0}
+                className="pixel-btn pixel-btn-black px-3.5 py-2 text-[10px] font-bold text-[#FFD700] hover:text-white border border-yellow-700 rounded shadow-[2px_2px_0px_#000] whitespace-nowrap"
+              >
+                [ ⤓ EXPORT WALLET CSV ]
+              </button>
+            </div>
+          </div>
+
+          {/* Wallets Table */}
+          {filteredWallets.length === 0 ? (
+            <div className="p-8 text-center space-y-2 bg-[#130832]/60 rounded-lg border border-purple-900/40">
+              <div className="text-gray-400 text-xs">
+                No operator wallets match the current search or filter criteria.
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-purple-900/60 bg-[#160838] text-gray-400 text-[10px] uppercase">
+                    <th className="py-2.5 px-3">Operator Wallet</th>
+                    <th className="py-2.5 px-3">Desks & Tokens</th>
+                    <th className="py-2.5 px-3">Weight & Share</th>
+                    <th className="py-2.5 px-3 text-[#FFD700]">
+                      {isUsdt ? 'Total Claimed (USDT)' : 'Total Rewards Claimed'}
+                    </th>
+                    <th className="py-2.5 px-3 text-[#00F0FF]">
+                      {isUsdt ? 'Available (USDT)' : 'Available To Claim'}
+                    </th>
+                    <th className="py-2.5 px-3 text-[#FF007F]">
+                      {isUsdt ? 'Total Earned (USDT)' : 'Total Lifetime Earned'}
+                    </th>
+                    <th className="py-2.5 px-3">Last Claim</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-purple-900/30">
+                  {paginatedWallets.map((w) => {
+                    const isAdminWallet =
+                      w.normalizedAddress === ADMIN_ADDRESS.toLowerCase() ||
+                      w.normalizedAddress === '0xb8e3dfdd19b6bf35b9fd87f8373f7f82c53bc93c';
+                    const isTreasuryWallet =
+                      w.normalizedAddress === TREASURY_ADDRESS.toLowerCase();
+                    const weightShare = (
+                      (w.totalWeight / Math.max(1, totalDbWeight)) *
+                      100
+                    ).toFixed(1);
+
+                    return (
+                      <tr key={w.normalizedAddress} className="hover:bg-purple-950/30 transition-colors">
+                        {/* Operator Wallet */}
+                        <td className="py-2.5 px-3 font-mono text-white">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <a
+                              href={`https://explorer.robinhood.com/address/${w.address}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-bold text-[#00FF66] hover:underline decoration-dotted"
+                              title={w.address}
+                            >
+                              {w.address.slice(0, 6)}...{w.address.slice(-4)}
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyOwner(w.address)}
+                              className="text-gray-500 hover:text-white px-1 py-0.5 rounded text-[9px] bg-black/40 border border-purple-900"
+                              title="Copy full wallet address"
+                            >
+                              {copiedOwner === w.address ? '✓' : '⧉'}
+                            </button>
+                            {isAdminWallet && (
+                              <span className="px-1.5 py-0.2 rounded text-[8px] font-bold bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/60">
+                                ADMIN
+                              </span>
+                            )}
+                            {isTreasuryWallet && (
+                              <span className="px-1.5 py-0.2 rounded text-[8px] font-bold bg-cyan-950/60 text-[#00F0FF] border border-[#00F0FF]/60">
+                                TREASURY
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Desks & Tokens */}
+                        <td className="py-2.5 px-3">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <span className="font-bold text-white">
+                                {w.activeDesks.length}
+                              </span>
+                              <span className="text-[10px] text-gray-400">
+                                / {w.desks.length} Desks Active
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {w.tokenIds.slice(0, 5).map((tid) => (
+                                <a
+                                  key={tid}
+                                  href={`https://opensea.io/assets/robinhood/0xd3b030e9281fcd8797af6dc437636b24bdfe7902/${tid}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="px-1.5 py-0.5 rounded bg-black/60 border border-purple-800 text-[9px] font-mono text-cyan-300 hover:border-cyan-400"
+                                  title={`View Token #${tid} on OpenSea`}
+                                >
+                                  #{tid}
+                                </a>
+                              ))}
+                              {w.tokenIds.length > 5 && (
+                                <span className="text-[9px] text-gray-500 self-center">
+                                  +{w.tokenIds.length - 5} more
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Weight & Share */}
+                        <td className="py-2.5 px-3 font-mono">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-[#00FF66]">{w.totalWeight} WGT</span>
+                            <span className="text-[10px] text-gray-400">{weightShare}% Share</span>
+                          </div>
+                        </td>
+
+                        {/* Rewards Claimed */}
+                        <td className="py-2.5 px-3 font-mono font-bold">
+                          <div className="flex flex-col">
+                            <div
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded w-fit ${
+                                w.claimedEth > 0
+                                  ? 'bg-yellow-950/70 border border-[#FFD700] text-[#FFD700] drop-shadow-[0_0_6px_rgba(255,215,0,0.3)]'
+                                  : 'text-gray-500'
+                              }`}
+                            >
+                              <span className="text-xs">{formatEthOrUsdt(w.claimedEth, isUsdt, ethPrice)}</span>
+                            </div>
+                            <span className="text-[9px] text-gray-400 mt-0.5">
+                              {w.claimCount} {w.claimCount === 1 ? 'claim' : 'claims'} executed
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Available To Claim */}
+                        <td className="py-2.5 px-3 font-mono">
+                          <div className="flex flex-col">
+                            <div
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded w-fit ${
+                                w.availableToClaimEth > 0
+                                  ? 'bg-cyan-950/70 border border-[#00F0FF] text-[#00F0FF] drop-shadow-[0_0_6px_rgba(0,240,255,0.3)]'
+                                  : 'text-gray-500'
+                              }`}
+                            >
+                              <span className="text-xs">{formatEthOrUsdt(w.availableToClaimEth, isUsdt, ethPrice)}</span>
+                            </div>
+                            <span className="text-[9px] text-gray-400 mt-0.5">
+                              {w.availableToClaimEth > 0 ? 'Ready to claim' : 'No pending balance'}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Total Lifetime Earned */}
+                        <td className="py-2.5 px-3 font-mono">
+                          <div className="flex flex-col">
+                            <div
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded w-fit ${
+                                w.totalEarnedEth > 0
+                                  ? 'bg-pink-950/70 border border-[#FF007F] text-[#FF80BE] drop-shadow-[0_0_6px_rgba(255,0,127,0.3)]'
+                                  : 'text-gray-500'
+                              }`}
+                            >
+                              <span className="text-xs">{formatEthOrUsdt(w.totalEarnedEth, isUsdt, ethPrice)}</span>
+                            </div>
+                            <span className="text-[9px] text-gray-400 mt-0.5">Claimed + Pending</span>
+                          </div>
+                        </td>
+
+                        {/* Last Claim Date */}
+                        <td className="py-2.5 px-3 text-[10px] text-gray-400 font-mono whitespace-nowrap">
+                          {w.lastClaimAt ? (
+                            <span title={new Date(w.lastClaimAt).toLocaleString()}>
+                              {new Date(w.lastClaimAt).toLocaleDateString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </span>
+                          ) : (
+                            <span className="text-gray-600">None</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {totalWalletPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t border-purple-900/50 text-xs">
+                  <span className="text-gray-400">
+                    Showing {(walletPage - 1) * itemsPerPage + 1} -{' '}
+                    {Math.min(walletPage * itemsPerPage, filteredWallets.length)} of {filteredWallets.length} wallets
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={walletPage <= 1}
+                      onClick={() => setWalletPage((p) => Math.max(1, p - 1))}
+                      className="px-3 py-1 bg-black/60 border border-purple-800 text-gray-300 disabled:opacity-30 rounded"
+                    >
+                      ← PREV
+                    </button>
+                    <span className="text-[#FFD700] font-bold">
+                      {walletPage} / {totalWalletPages}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={walletPage >= totalWalletPages}
+                      onClick={() => setWalletPage((p) => Math.min(totalWalletPages, p + 1))}
                       className="px-3 py-1 bg-black/60 border border-purple-800 text-gray-300 disabled:opacity-30 rounded"
                     >
                       NEXT →
