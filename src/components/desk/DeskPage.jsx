@@ -6,6 +6,7 @@ import { useApeBrokerDesk } from '../../hooks/useApeBrokerDesk';
 import { useEthPrice, formatEthOrUsdt } from '../../hooks/useEthPrice';
 import { DeskRunningVisual } from './DeskRunningVisual';
 import { DeskActionModal } from './DeskActionModal';
+import { DeskDisclaimerModal } from './DeskDisclaimerModal';
 import { DeskPnlModal } from './DeskPnlModal';
 import { DeskAdminModal } from './DeskAdminModal';
 import { DeskAdminDashboard } from './DeskAdminDashboard';
@@ -91,6 +92,22 @@ export function DeskPage({ onBackHome }) {
   });
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [activeView, setActiveView] = useState('terminal'); // 'terminal' | 'admin'
+
+  // Cream Paper Legal Disclaimer Modal State (Autoloads on first visit until accepted)
+  const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(() => {
+    try {
+      return localStorage.getItem('apebroker_desk_disclaimer_accepted_v1') !== 'true';
+    } catch (e) {
+      return true;
+    }
+  });
+
+  const handleAcceptDisclaimer = () => {
+    try {
+      localStorage.setItem('apebroker_desk_disclaimer_accepted_v1', 'true');
+    } catch (e) {}
+    setIsDisclaimerOpen(false);
+  };
 
   // Total Distributed: Combine on-chain totalEthRewardsDeposited and DB deposits
   const [totalEthDistributedDb, setTotalEthDistributedDb] = useState(0);
@@ -431,6 +448,21 @@ export function DeskPage({ onBackHome }) {
                 USDT
               </button>
             </div>
+
+            {/* Legal Disclaimer & Risk Policy Button */}
+            <button
+              type="button"
+              onClick={() => {
+                sound?.playClick?.();
+                setIsDisclaimerOpen(true);
+              }}
+              className="pixel-btn pixel-btn-black px-2 sm:px-2.5 py-1.5 text-[9px] sm:text-xs font-bold text-amber-300 hover:text-[#FFD700] rounded border border-amber-700/80 flex items-center gap-1 shadow-[1px_1px_0px_#000]"
+              title="View Broker Desk Legal Disclaimer & Risk Policy"
+            >
+              <span>⚖️</span>
+              <span className="hidden sm:inline">DISCLAIMER</span>
+              <span className="sm:hidden">LEGAL</span>
+            </button>
 
             <button
               type="button"
@@ -1176,21 +1208,44 @@ export function DeskPage({ onBackHome }) {
             </div>
           )}
         </section>
+
+        {/* Footer Protocol Disclaimer Notice */}
+        <div className="pt-10 pb-4 text-center">
+          <button
+            type="button"
+            onClick={() => {
+              sound?.playClick?.();
+              setIsDisclaimerOpen(true);
+            }}
+            className="text-[11px] font-mono text-amber-300/80 hover:text-amber-200 underline decoration-dotted transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>⚖️</span>
+            <span>View Protocol Memorandum & Legal Disclosures (Non-Guaranteed APY & Non-Refundable Fee Structure)</span>
+          </button>
+        </div>
           </>
         )}
       </main>
 
-      {/* Action Modal (2-Step Approval & Execution) */}
+      {/* Action Modal (2-Step Approval & Execution with Gas Diagnosis) */}
       <DeskActionModal
         isOpen={actionModal.isOpen}
         onClose={() => setActionModal({ isOpen: false, actionType: 'activate', desk: null })}
         actionType={actionModal.actionType}
         desk={actionModal.desk}
         apeBrokeBalance={userBalances?.apeBrokeBalance || 0n}
+        ethBalance={userBalances?.ethBalance || 0n}
         allowance={userBalances?.allowance || 0n}
         activationFee={globalStats?.activationFee}
         onApprove={approveApebroke}
         onExecute={actionModal.actionType === 'activate' ? activateDesk : boostDesk}
+      />
+
+      {/* Cream Paper Legal Disclaimer Memorandum Modal */}
+      <DeskDisclaimerModal
+        isOpen={isDisclaimerOpen}
+        onClose={() => setIsDisclaimerOpen(false)}
+        onAccept={handleAcceptDisclaimer}
       />
 
       {/* PNL Claim Share & Download Modal */}

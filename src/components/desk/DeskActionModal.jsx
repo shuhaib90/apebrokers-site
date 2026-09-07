@@ -9,6 +9,7 @@ export function DeskActionModal({
   actionType, // 'activate' | 'boost'
   desk,
   apeBrokeBalance,
+  ethBalance = 0n,
   allowance,
   activationFee,
   onApprove,
@@ -39,10 +40,22 @@ export function DeskActionModal({
   const costTokens = Number(formatEther(costRaw)).toLocaleString();
   const hasEnoughAllowance = allowance >= costRaw && costRaw > 0n;
   const hasEnoughBalance = apeBrokeBalance >= costRaw;
-  const canExecute = isOwner && (isActivate || isDeskActiveOnChain) && hasEnoughBalance;
+  
+  // Gas check: Robinhood EVM transactions require a tiny amount of native ETH (e.g. >= 0.00005 ETH)
+  const MIN_GAS_WEI = 50000000000000n; // 0.00005 ETH (~$0.12)
+  const hasEnoughEthForGas = typeof ethBalance === 'bigint' ? ethBalance >= MIN_GAS_WEI : false;
+  const canExecute = isOwner && (isActivate || isDeskActiveOnChain) && hasEnoughBalance && hasEnoughEthForGas;
 
   const handleApprove = async () => {
     sound?.playClick?.();
+    if (!hasEnoughEthForGas) {
+      sound?.playError?.();
+      setErrorMessage(
+        `Insufficient ETH for gas! Your connected wallet has ${Number(formatEther(ethBalance || 0n)).toFixed(6)} ETH on Robinhood EVM. Approval transactions require a tiny amount of ETH (< $0.05) to pay network miners. Please deposit ETH to proceed.`
+      );
+      setStep('error');
+      return;
+    }
     setStep('approving');
     setErrorMessage('');
     try {
@@ -52,13 +65,31 @@ export function DeskActionModal({
     } catch (err) {
       console.error('Approval failed:', err);
       sound?.playError?.();
-      setErrorMessage(err.message || err.shortMessage || 'Approval rejected or failed.');
+      let rawMsg = (err.message || err.shortMessage || '').toLowerCase();
+      let msg = err.message || err.shortMessage || 'Approval rejected or failed.';
+      if (
+        rawMsg.includes('reverted') ||
+        rawMsg.includes('unexpected error') ||
+        rawMsg.includes('insufficient funds') ||
+        !hasEnoughEthForGas
+      ) {
+        msg = `Transaction Reverted: Insufficient ETH in your wallet to pay Robinhood EVM gas fees. (Your ETH balance: ${Number(formatEther(ethBalance || 0n)).toFixed(6)} ETH). Please deposit a small amount of ETH (e.g. 0.001 ETH) to approve & activate.`;
+      }
+      setErrorMessage(msg);
       setStep('error');
     }
   };
 
   const handleExecute = async () => {
     sound?.playClick?.();
+    if (!hasEnoughEthForGas) {
+      sound?.playError?.();
+      setErrorMessage(
+        `Insufficient ETH for gas! Your connected wallet has ${Number(formatEther(ethBalance || 0n)).toFixed(6)} ETH on Robinhood EVM. Please deposit a small amount of ETH to pay transaction fees.`
+      );
+      setStep('error');
+      return;
+    }
     setStep('executing');
     setErrorMessage('');
     try {
@@ -81,7 +112,17 @@ export function DeskActionModal({
     } catch (err) {
       console.error('Execution failed:', err);
       sound?.playError?.();
-      setErrorMessage(err.message || err.shortMessage || 'Transaction rejected or reverted.');
+      let rawMsg = (err.message || err.shortMessage || '').toLowerCase();
+      let msg = err.message || err.shortMessage || 'Transaction rejected or reverted.';
+      if (
+        rawMsg.includes('reverted') ||
+        rawMsg.includes('unexpected error') ||
+        rawMsg.includes('insufficient funds') ||
+        !hasEnoughEthForGas
+      ) {
+        msg = `Transaction Reverted: Insufficient ETH in your wallet to pay Robinhood EVM gas fees. (Your ETH balance: ${Number(formatEther(ethBalance || 0n)).toFixed(6)} ETH). Please deposit a small amount of ETH to proceed.`;
+      }
+      setErrorMessage(msg);
       setStep('error');
     }
   };
@@ -208,7 +249,34 @@ export function DeskActionModal({
                     {Number(formatEther(apeBrokeBalance)).toLocaleString()} $APE
                   </span>
                 </div>
+
+                <div className="flex justify-between items-center text-gray-400 border-t border-purple-900/40 pt-2">
+                  <span>Your ETH (Gas) Balance:</span>
+                  <span
+                    className={`font-bold ${hasEnoughEthForGas ? 'text-[#00FF66]' : 'text-[#FF2247]'}`}
+                  >
+                    {Number(formatEther(ethBalance || 0n)).toFixed(6)} ETH
+                  </span>
+                </div>
               </div>
+
+              {/* Insufficient ETH Gas Alert */}
+              {!hasEnoughEthForGas && (
+                <div className="bg-amber-950/90 border-2 border-[#FFD700] p-3.5 rounded-lg text-[10px] text-[#FFD700] space-y-1.5 font-mono shadow-[3px_3px_0px_#000]">
+                  <div className="flex items-center gap-2 font-bold text-amber-300">
+                    <span className="text-base">⚠️</span>
+                    <span className="uppercase tracking-wider font-pixel text-[10px] text-[#FFD700]">
+                      INSUFFICIENT ETH FOR NETWORK GAS
+                    </span>
+                  </div>
+                  <p className="text-gray-200 leading-relaxed">
+                    Your wallet has <strong className="text-white">{Number(formatEther(ethBalance || 0n)).toFixed(6)} ETH</strong>. On Robinhood EVM, broadcasting token approvals & activations requires a tiny fraction of native ETH (&lt; $0.05) to pay network miners.
+                  </p>
+                  <p className="text-[#00FF66] font-bold">
+                    ➔ Deposit a small amount of ETH (e.g. 0.001 ETH) to this wallet to proceed.
+                  </p>
+                </div>
+              )}
 
               {/* Not Verified NFT Owner Alert */}
               {!isOwner && (
@@ -278,7 +346,11 @@ export function DeskActionModal({
                     onClick={handleApprove}
                     className="w-full min-h-[46px] pixel-btn pixel-btn-vibrant-gold px-4 py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000] disabled:opacity-50"
                   >
-                    {step === 'approving' ? '[ 1/2 APPROVING $APEBROKE... ]' : '[ 1. APPROVE $APEBROKE ]'}
+                    {step === 'approving'
+                      ? '[ 1/2 APPROVING $APEBROKE... ]'
+                      : !hasEnoughEthForGas
+                      ? '[ ⚠️ APPROVE (REQUIRES ETH FOR GAS) ]'
+                      : '[ 1. APPROVE $APEBROKE ]'}
                   </button>
                 ) : (
                   <button
