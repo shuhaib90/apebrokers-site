@@ -29,11 +29,40 @@ async function main() {
   console.log("- Minimum NFT Holding    : 2 NFTs");
   console.log("- Lock Duration          : 24 Hours");
 
+  // Estimate gas dynamically
   const ApeBrokerStaking = await ethers.getContractFactory("ApeBrokerStaking");
-  const staking = await ApeBrokerStaking.deploy(
+  const deployTx = await ApeBrokerStaking.getDeployTransaction(
     APEBROKE_TOKEN_ADDRESS,
     APE_BROKER_NFT_ADDRESS,
     ADMIN_ADDRESS
+  );
+  const estimatedGas = await deployer.estimateGas(deployTx);
+  // Add safe 5% buffer over estimated gas
+  const gasLimit = (estimatedGas * 105n) / 100n;
+
+  // Fetch current fee data from Robinhood chain
+  const feeData = await ethers.provider.getFeeData();
+  const latestBlock = await ethers.provider.getBlock("latest");
+  const baseFee = latestBlock && latestBlock.baseFeePerGas ? latestBlock.baseFeePerGas : (feeData.gasPrice || ethers.parseUnits("0.35", "gwei"));
+  const maxPriorityFeePerGas = ethers.parseUnits("0.01", "gwei");
+  const maxFeePerGas = (baseFee * 115n) / 100n + maxPriorityFeePerGas;
+
+  console.log("Estimated Gas   :", estimatedGas.toString());
+  console.log("Gas Limit       :", gasLimit.toString());
+  console.log("Base Fee        :", ethers.formatUnits(baseFee, "gwei"), "gwei");
+  console.log("Max Fee         :", ethers.formatUnits(maxFeePerGas, "gwei"), "gwei");
+  console.log("Max Buffer Cost :", ethers.formatEther(gasLimit * maxFeePerGas), "ETH");
+
+  console.log("\nDeploying ApeBrokerStaking contract...");
+  const staking = await ApeBrokerStaking.deploy(
+    APEBROKE_TOKEN_ADDRESS,
+    APE_BROKER_NFT_ADDRESS,
+    ADMIN_ADDRESS,
+    {
+      gasLimit,
+      maxFeePerGas,
+      maxPriorityFeePerGas,
+    }
   );
 
   await staking.waitForDeployment();
