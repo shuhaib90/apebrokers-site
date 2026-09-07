@@ -10,6 +10,7 @@ export function LuckyDrawAdminDashboard({
   availableTicketRevenue,
   onBackToTerminal,
   onCreateDraw,
+  onSetTicketPrice,
   onSelectWinnerRandom,
   onSelectWinnerManual,
   onUpdatePrizeStatus,
@@ -32,6 +33,15 @@ export function LuckyDrawAdminDashboard({
   });
   const [imagePreview, setImagePreview] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Customize Ticket Fee Modal State
+  const [feeModal, setFeeModal] = useState({
+    isOpen: false,
+    drawId: null,
+    drawTitle: '',
+    currentPriceApe: '',
+    newPriceApe: '',
+  });
 
   // Manual Winner Modal State
   const [manualModal, setManualModal] = useState({
@@ -76,6 +86,24 @@ export function LuckyDrawAdminDashboard({
       alert('Failed to create draw: ' + (err.message || 'Transaction rejected.'));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSetTicketPriceSubmit = async () => {
+    if (!feeModal.newPriceApe || Number(feeModal.newPriceApe) <= 0) {
+      alert('Please enter a valid positive ticket price in $APEBROKE.');
+      return;
+    }
+    sound?.playClick?.();
+    try {
+      await onSetTicketPrice(feeModal.drawId, feeModal.newPriceApe);
+      sound?.playSuccess?.();
+      confetti({ particleCount: 60, spread: 60 });
+      alert(`Ticket fee for Draw #${feeModal.drawId} successfully updated to ${Number(feeModal.newPriceApe).toLocaleString()} $APEBROKE!`);
+      setFeeModal({ isOpen: false, drawId: null, drawTitle: '', currentPriceApe: '', newPriceApe: '' });
+    } catch (err) {
+      sound?.playError?.();
+      alert('Failed to update ticket fee: ' + (err.message || 'Transaction rejected.'));
     }
   };
 
@@ -353,6 +381,35 @@ export function LuckyDrawAdminDashboard({
                       </div>
                     </div>
 
+                    {/* Ticket Fee & Dynamic Customization */}
+                    <div className="flex items-center justify-between text-[10px] bg-black/40 px-2.5 py-1.5 rounded border border-purple-900/60 font-mono">
+                      <span className="text-gray-400">Ticket Fee:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-[#FFD700]">
+                          {Number(formatEther(draw.ticketPriceApe)).toLocaleString()} $APE
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sound?.playClick?.();
+                            const currentApe = Number(formatEther(draw.ticketPriceApe));
+                            setFeeModal({
+                              isOpen: true,
+                              drawId: draw.drawId,
+                              drawTitle: draw.title,
+                              currentPriceApe: currentApe.toString(),
+                              newPriceApe: currentApe.toString(),
+                            });
+                          }}
+                          className="px-2 py-0.5 rounded bg-[#00F0FF]/20 hover:bg-[#00F0FF]/40 text-[#00F0FF] text-[9px] font-bold border border-[#00F0FF]/60 transition-colors flex items-center gap-1 shadow-[1px_1px_0px_#000]"
+                          title="Admin can customize / update the ticket fee for this active draw"
+                        >
+                          <span>⚙️</span>
+                          <span>CUSTOMIZE FEE</span>
+                        </button>
+                      </div>
+                    </div>
+
                     {/* Action Buttons for Winner Selection */}
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-purple-900/60">
                       <button
@@ -453,7 +510,7 @@ export function LuckyDrawAdminDashboard({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-gray-300 font-bold mb-1 uppercase text-[10px]">
-                      Ticket Price ($APEBROKE) *
+                      Ticket Fee ($APEBROKE) *
                     </label>
                     <input
                       type="number"
@@ -463,9 +520,33 @@ export function LuckyDrawAdminDashboard({
                       onChange={(e) => setFormData({ ...formData, ticketPriceApe: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg bg-black/60 border border-purple-800 focus:border-[#FFD700] text-white focus:outline-none"
                     />
-                    <span className="text-[9px] text-[#00FF66] mt-0.5 block">
-                      ≈ ${(Number(formData.ticketPriceApe || 0) * apePriceUsd).toFixed(2)} USD
-                    </span>
+                    <div className="flex items-center justify-between text-[9px] text-[#00FF66] mt-0.5">
+                      <span>≈ ${(Number(formData.ticketPriceApe || 0) * apePriceUsd).toFixed(2)} USD</span>
+                      <span className="text-gray-400 font-mono">
+                        Max Pool: ${(Number(formData.ticketPriceApe || 0) * Number(formData.maxTickets || 100) * apePriceUsd).toFixed(1)}
+                      </span>
+                    </div>
+                    {/* Quick Fee Presets */}
+                    <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                      <span className="text-[9px] text-gray-400">Presets:</span>
+                      {['10000', '25000', '50000', '100000', '250000'].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => {
+                            sound?.playClick?.();
+                            setFormData((prev) => ({ ...prev, ticketPriceApe: preset }));
+                          }}
+                          className={`px-1.5 py-0.5 text-[9px] rounded font-bold border ${
+                            formData.ticketPriceApe === preset
+                              ? 'bg-[#FFD700] text-black border-[#FFD700]'
+                              : 'bg-black/60 text-gray-300 border-purple-800 hover:border-gray-500'
+                          }`}
+                        >
+                          {Number(preset) >= 1000 ? `${Number(preset) / 1000}K` : preset}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div>
@@ -797,6 +878,88 @@ export function LuckyDrawAdminDashboard({
                 className="pixel-btn pixel-btn-vibrant-gold px-4 py-2 text-xs font-bold rounded"
               >
                 [ CONFIRM MANUAL WINNER ]
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customize Ticket Fee Modal */}
+      {feeModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+          <div className="relative w-full max-w-md bg-[#12072e] border-3 border-[#00F0FF] rounded-xl p-5 shadow-[0_0_30px_rgba(0,240,255,0.3)] space-y-4 font-mono text-white">
+            <div className="flex items-center justify-between border-b border-purple-800 pb-3">
+              <h3 className="text-xs sm:text-sm font-bold text-[#00F0FF] font-pixel flex items-center gap-2">
+                <span>⚙️</span>
+                <span>CUSTOMIZE TICKET FEE</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setFeeModal({ isOpen: false, drawId: null, drawTitle: '', currentPriceApe: '', newPriceApe: '' })}
+                className="text-gray-400 hover:text-white text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="text-gray-300">
+                Draw: <strong className="text-white">{feeModal.drawTitle}</strong> (Draw #{feeModal.drawId})
+              </div>
+              <div className="text-gray-400 text-[11px]">
+                Current Fee: <span className="text-[#FFD700] font-bold">{Number(feeModal.currentPriceApe).toLocaleString()} $APEBROKE</span>
+              </div>
+
+              <div className="bg-[#170a36] border border-cyan-800/80 p-2.5 rounded text-[10px] text-cyan-200">
+                💡 <strong>Dynamic Fee Customization:</strong> You can customize or discount the ticket fee anytime. Any new ticket purchases will immediately charge the new fee.
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-bold mb-1 text-[10px] uppercase">
+                  New Ticket Fee ($APEBROKE):
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="e.g. 25000"
+                  value={feeModal.newPriceApe}
+                  onChange={(e) => setFeeModal({ ...feeModal, newPriceApe: e.target.value })}
+                  className="w-full px-3 py-2 rounded bg-black/80 border border-purple-700 text-xs text-white focus:outline-none focus:border-[#00F0FF]"
+                />
+                <div className="flex items-center justify-between text-[9px] text-gray-400 pt-1">
+                  <span className="text-[#00FF66]">
+                    ≈ ${(Number(feeModal.newPriceApe || 0) * apePriceUsd).toFixed(2)} USD
+                  </span>
+                  <div className="flex gap-1">
+                    {['10000', '25000', '50000', '100000'].map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setFeeModal((prev) => ({ ...prev, newPriceApe: p }))}
+                        className="px-1.5 py-0.5 rounded bg-black/50 border border-purple-800 hover:border-cyan-400 text-[9px] text-gray-300"
+                      >
+                        {Number(p) / 1000}K
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-purple-800">
+              <button
+                type="button"
+                onClick={() => setFeeModal({ isOpen: false, drawId: null, drawTitle: '', currentPriceApe: '', newPriceApe: '' })}
+                className="px-3 py-2 text-xs text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSetTicketPriceSubmit}
+                className="pixel-btn pixel-btn-vibrant-lime px-4 py-2 text-xs font-bold rounded"
+              >
+                [ UPDATE TICKET FEE ]
               </button>
             </div>
           </div>

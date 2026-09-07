@@ -36,6 +36,7 @@ contract ApeBrokerLuckyDraw is IApeBrokerLuckyDraw, Ownable2Step, ReentrancyGuar
     mapping(uint256 => Draw) public draws;
     mapping(uint256 => address[]) private _drawTickets;
     mapping(uint256 => mapping(address => uint256)) public userTicketCount;
+    mapping(uint256 => mapping(address => uint256)) public userSpentAmountApe;
     mapping(uint256 => address[]) private _uniqueParticipants;
     mapping(uint256 => mapping(address => bool)) private _isUniqueParticipant;
     mapping(uint256 => mapping(address => bool)) public hasClaimedRefund;
@@ -105,6 +106,7 @@ contract ApeBrokerLuckyDraw is IApeBrokerLuckyDraw, Ownable2Step, ReentrancyGuar
         totalProtocolTicketRevenue += totalCostApe;
 
         userTicketCount[drawId][msg.sender] = currentUserTickets + ticketCount;
+        userSpentAmountApe[drawId][msg.sender] += totalCostApe;
 
         if (!_isUniqueParticipant[drawId][msg.sender]) {
             _isUniqueParticipant[drawId][msg.sender] = true;
@@ -150,10 +152,11 @@ contract ApeBrokerLuckyDraw is IApeBrokerLuckyDraw, Ownable2Step, ReentrancyGuar
         if (hasClaimedRefund[drawId][msg.sender]) revert NoRefundAvailable();
 
         uint256 tickets = userTicketCount[drawId][msg.sender];
-        if (tickets == 0) revert NoRefundAvailable();
+        uint256 refundAmount = userSpentAmountApe[drawId][msg.sender];
+        if (tickets == 0 || refundAmount == 0) revert NoRefundAvailable();
 
-        uint256 refundAmount = tickets * draw.ticketPriceApe;
         hasClaimedRefund[drawId][msg.sender] = true;
+        userSpentAmountApe[drawId][msg.sender] = 0;
 
         emit TicketRefundClaimed(drawId, msg.sender, tickets, refundAmount);
 
@@ -227,6 +230,24 @@ contract ApeBrokerLuckyDraw is IApeBrokerLuckyDraw, Ownable2Step, ReentrancyGuar
         if (draw.status != DrawStatus.ACTIVE) revert DrawNotActive();
 
         draw.status = DrawStatus.CLOSED;
+    }
+
+    /**
+     * @notice Admin customizes/updates the ticket fee in $APEBROKE for an active or upcoming draw.
+     * @param drawId The ID of the draw.
+     * @param newTicketPriceApe The new ticket price in $APEBROKE (18 decimals).
+     */
+    function setTicketPrice(uint256 drawId, uint256 newTicketPriceApe) external onlyOwner {
+        Draw storage draw = draws[drawId];
+        if (draw.drawId == 0) revert DrawNotFound();
+        if (draw.status != DrawStatus.ACTIVE && draw.status != DrawStatus.CLOSED) {
+            revert DrawAlreadyFinished();
+        }
+
+        uint256 oldPrice = draw.ticketPriceApe;
+        draw.ticketPriceApe = newTicketPriceApe;
+
+        emit TicketPriceUpdated(drawId, oldPrice, newTicketPriceApe, msg.sender);
     }
 
     /**

@@ -165,6 +165,13 @@ interface IApeBrokerLuckyDraw {
         uint256 amountRefundedApe
     );
 
+    event TicketPriceUpdated(
+        uint256 indexed drawId,
+        uint256 oldPriceApe,
+        uint256 newPriceApe,
+        address indexed updatedBy
+    );
+
     // ==========================================
     // USER FUNCTIONS
     // ==========================================
@@ -178,6 +185,7 @@ interface IApeBrokerLuckyDraw {
 
     function createDraw(DrawCreateInput calldata input) external returns (uint256 drawId);
     function closeDraw(uint256 drawId) external;
+    function setTicketPrice(uint256 drawId, uint256 newTicketPriceApe) external;
     function selectWinnerRandom(uint256 drawId) external returns (address winner, uint256 winningTicketId);
     function selectWinnerManual(uint256 drawId, address winner) external;
     function updatePrizeStatus(uint256 drawId, PrizeStatus status, string calldata proofOrTxHash) external;

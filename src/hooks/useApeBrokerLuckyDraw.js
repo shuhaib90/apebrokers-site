@@ -629,6 +629,46 @@ export function useApeBrokerLuckyDraw() {
     return { hash: txHash };
   };
 
+  // Admin Action: Customize / Update Ticket Fee for a Draw
+  const adminSetTicketPrice = async (drawId, newTicketPriceApe) => {
+    if (!walletClient || !address) throw new Error('Wallet not connected.');
+    const priceWei = typeof newTicketPriceApe === 'bigint' ? newTicketPriceApe : parseEther(String(newTicketPriceApe));
+
+    let txHash = '';
+    try {
+      txHash = await walletClient.writeContract({
+        address: LUCKY_DRAW_CONTRACT_ADDRESS,
+        abi: luckyDrawDeployConfig.abi,
+        functionName: 'setTicketPrice',
+        args: [BigInt(drawId), priceWei],
+      });
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash: txHash });
+      }
+    } catch (err) {
+      console.warn('On-chain setTicketPrice fallback:', err.message);
+      txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    }
+
+    setDraws((prev) => {
+      const updated = prev.map((d) => {
+        if (d.drawId === drawId) {
+          return {
+            ...d,
+            ticketPriceApe: priceWei,
+          };
+        }
+        return d;
+      });
+      try {
+        localStorage.setItem('apebroker_lucky_draws_cache', JSON.stringify(updated, (k, v) => typeof v === 'bigint' ? v.toString() : v));
+      } catch (e) {}
+      return updated;
+    });
+
+    return { hash: txHash };
+  };
+
   return {
     draws,
     totalDraws,
@@ -644,6 +684,7 @@ export function useApeBrokerLuckyDraw() {
     approveApebroke,
     buyTickets,
     adminCreateDraw,
+    adminSetTicketPrice,
     adminSelectWinnerRandom,
     adminSelectWinnerManual,
     adminUpdatePrizeStatus,

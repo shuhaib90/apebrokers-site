@@ -24,6 +24,7 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
     approveApebroke,
     buyTickets,
     adminCreateDraw,
+    adminSetTicketPrice,
     adminSelectWinnerRandom,
     adminSelectWinnerManual,
     adminUpdatePrizeStatus,
@@ -227,6 +228,7 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
             availableTicketRevenue={availableTicketRevenue}
             onBackToTerminal={() => setActiveView('terminal')}
             onCreateDraw={adminCreateDraw}
+            onSetTicketPrice={adminSetTicketPrice}
             onSelectWinnerRandom={adminSelectWinnerRandom}
             onSelectWinnerManual={adminSelectWinnerManual}
             onUpdatePrizeStatus={adminUpdatePrizeStatus}

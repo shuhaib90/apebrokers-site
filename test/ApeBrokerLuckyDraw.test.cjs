@@ -341,4 +341,76 @@ describe("ApeBrokerLuckyDraw - Comprehensive Contract Test Suite", function () {
       ).to.be.revertedWithCustomError(luckyDraw, "NoRefundAvailable");
     });
   });
+
+  describe("Ticket Fee Customization by Admin", function () {
+    beforeEach(async function () {
+      await luckyDraw.createDraw({
+        title: "Fee Customization Test",
+        prizeDescription: "Gaming Rig",
+        prizeCategory: 0,
+        imageUrl: "",
+        ticketPriceApe: TICKET_PRICE, // 50,000 $APE
+        maxTickets: 50,
+        maxTicketsPerWallet: 20,
+        minNftRequired: 1,
+        durationSeconds: ONE_DAY,
+      });
+    });
+
+    it("Should allow admin to customize ticket fee for an active draw", async function () {
+      const NEW_FEE = ethers.parseEther("25000"); // discount from 50k to 25k
+      const tx = await luckyDraw.setTicketPrice(1, NEW_FEE);
+
+      await expect(tx)
+        .to.emit(luckyDraw, "TicketPriceUpdated")
+        .withArgs(1, TICKET_PRICE, NEW_FEE, owner.address);
+
+      const draw = await luckyDraw.getDraw(1);
+      expect(draw.ticketPriceApe).to.equal(NEW_FEE);
+    });
+
+    it("Should apply new customized ticket fee to subsequent ticket purchases", async function () {
+      const NEW_FEE = ethers.parseEther("75000"); // raise fee to 75k
+      await luckyDraw.setTicketPrice(1, NEW_FEE);
+
+      const aliceBalBefore = await token.balanceOf(alice.address);
+      await luckyDraw.connect(alice).buyTickets(1, 2);
+      const aliceBalAfter = await token.balanceOf(alice.address);
+
+      expect(aliceBalBefore - aliceBalAfter).to.equal(NEW_FEE * 2n);
+    });
+
+    it("Should revert if non-admin attempts to customize ticket fee", async function () {
+      await expect(
+        luckyDraw.connect(alice).setTicketPrice(1, ethers.parseEther("10000"))
+      ).to.be.revertedWithCustomError(luckyDraw, "OwnableUnauthorizedAccount");
+    });
+
+    it("Should accurately refund exact spent amount when ticket fee was customized midway", async function () {
+      // Alice buys 1 ticket at 50,000 $APE
+      await luckyDraw.connect(alice).buyTickets(1, 1);
+
+      // Admin customizes fee to 25,000 $APE
+      const DISCOUNT_FEE = ethers.parseEther("25000");
+      await luckyDraw.setTicketPrice(1, DISCOUNT_FEE);
+
+      // Bob buys 1 ticket at 25,000 $APE
+      await luckyDraw.connect(bob).buyTickets(1, 1);
+
+      // Cancel draw
+      await luckyDraw.cancelDraw(1, "Cancelled for refund test");
+
+      // Alice claims refund -> gets exact 50,000 $APE back
+      const aliceBefore = await token.balanceOf(alice.address);
+      await luckyDraw.connect(alice).claimTicketRefund(1);
+      const aliceAfter = await token.balanceOf(alice.address);
+      expect(aliceAfter - aliceBefore).to.equal(TICKET_PRICE);
+
+      // Bob claims refund -> gets exact 25,000 $APE back
+      const bobBefore = await token.balanceOf(bob.address);
+      await luckyDraw.connect(bob).claimTicketRefund(1);
+      const bobAfter = await token.balanceOf(bob.address);
+      expect(bobAfter - bobBefore).to.equal(DISCOUNT_FEE);
+    });
+  });
 });
