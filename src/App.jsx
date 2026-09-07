@@ -26,6 +26,9 @@ function App() {
         path.startsWith('/staking') ||
         hash === '#staking'
       ) {
+        if (window.location.hash) {
+          window.history.replaceState({}, '', '/staking');
+        }
         setCurrentPage('staking');
       } else if (
         path === '/brokerdesk' ||
@@ -34,6 +37,9 @@ function App() {
         path === '/desk' ||
         hash === '#desk'
       ) {
+        if (window.location.hash) {
+          window.history.replaceState({}, '', '/brokerdesk');
+        }
         setCurrentPage('desk');
       } else {
         setCurrentPage('home');
@@ -56,7 +62,7 @@ function App() {
   };
 
   const handleDesk = () => {
-    if (window.location.pathname !== '/brokerdesk') {
+    if (window.location.pathname !== '/brokerdesk' || window.location.hash) {
       window.history.pushState({}, '', '/brokerdesk');
     }
     setCurrentPage('desk');
@@ -64,10 +70,9 @@ function App() {
   };
 
   const handleStaking = () => {
-    if (window.location.pathname !== '/staking') {
+    if (window.location.pathname !== '/staking' || window.location.hash) {
       window.history.pushState({}, '', '/staking');
     }
-    window.location.hash = 'staking';
     setCurrentPage('staking');
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
