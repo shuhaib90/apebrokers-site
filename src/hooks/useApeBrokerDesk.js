@@ -316,53 +316,61 @@ export async function fetchSingleNftMetadataFromAlchemy(tokenId) {
  * Direct RPC queries for balances as resilient fallback
  */
 async function fetchDirectBalances(ownerAddress) {
-  const rpc =
-    import.meta.env.VITE_ROBINHOOD_RPC_URL ||
-    'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY';
-  try {
-    const [ethRes, tokenRes] = await Promise.all([
-      fetch(rpc, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          id: 1,
-          method: 'eth_getBalance',
-          params: [ownerAddress, 'latest'],
-        }),
-      })
-        .then((r) => r.json())
-        .catch(() => ({})),
-      fetch(rpc, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          id: 2,
-          method: 'eth_call',
-          params: [
-            {
-              to: APEBROKE_TOKEN_ADDRESS,
-              data:
-                '0x70a08231' +
-                ownerAddress.toLowerCase().replace('0x', '').padStart(64, '0'),
-            },
-            'latest',
-          ],
-        }),
-      })
-        .then((r) => r.json())
-        .catch(() => ({})),
-    ]);
+  const rpcs = [
+    'https://rpc.mainnet.chain.robinhood.com',
+    import.meta.env.VITE_ROBINHOOD_RPC_URL,
+    'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY',
+  ].filter(Boolean);
 
-    const ethBal =
-      ethRes.result && ethRes.result !== '0x' ? BigInt(ethRes.result) : 0n;
-    const tokenBal =
-      tokenRes.result && tokenRes.result !== '0x' ? BigInt(tokenRes.result) : 0n;
-    return { ethBal, tokenBal };
-  } catch (err) {
-    return { ethBal: 0n, tokenBal: 0n };
+  for (const rpc of rpcs) {
+    try {
+      const [ethRes, tokenRes] = await Promise.all([
+        fetch(rpc, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'eth_getBalance',
+            params: [ownerAddress, 'latest'],
+          }),
+        })
+          .then((r) => r.json())
+          .catch(() => ({})),
+        fetch(rpc, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 2,
+            method: 'eth_call',
+            params: [
+              {
+                to: APEBROKE_TOKEN_ADDRESS,
+                data:
+                  '0x70a08231' +
+                  ownerAddress.toLowerCase().replace('0x', '').padStart(64, '0'),
+              },
+              'latest',
+            ],
+          }),
+        })
+          .then((r) => r.json())
+          .catch(() => ({})),
+      ]);
+
+      const ethBal =
+        ethRes.result && ethRes.result !== '0x' ? BigInt(ethRes.result) : 0n;
+      const tokenBal =
+        tokenRes.result && tokenRes.result !== '0x' ? BigInt(tokenRes.result) : 0n;
+      if (ethRes.result !== undefined || tokenRes.result !== undefined) {
+        return { ethBal, tokenBal };
+      }
+    } catch (err) {
+      // try next rpc
+    }
   }
+  return { ethBal: 0n, tokenBal: 0n };
 }
 
 export function useApeBrokerDesk() {
@@ -822,8 +830,15 @@ export function useApeBrokerDesk() {
       }
 
       // If user has active desks on the Desk contract, ensure those active desks are included
-      if (activeDeskCount > 0n && publicClient) {
-        const checkRange = Array.from({ length: 50 }, (_, i) => i + 1);
+      if (
+        activeDeskCount > 0n &&
+        selectedTokenIds.size < Number(activeDeskCount) &&
+        selectedTokenIds.size < 5 &&
+        publicClient
+      ) {
+        const checkRange = Array.from({ length: 50 }, (_, i) => i + 1).filter(
+          (id) => !selectedTokenIds.has(id)
+        );
         const deskOwnerChecks = await Promise.allSettled(
           checkRange.map((id) =>
             publicClient.readContract({
@@ -849,54 +864,20 @@ export function useApeBrokerDesk() {
       // 3. For the selected token IDs (max 5), read on-chain Desk status
       const desksList = [];
       for (const tid of Array.from(selectedTokenIds)) {
-        let deskData = { active: false, baseWeight: 100n };
-        let boostCount = 0n;
-        let currentWeight = 100n;
-        let pendingEth = 0n;
-        let nftOwner = null;
+        const dbDeskMatch = dbDesks.find((d) => Number(d.token_id) === Number(tid));
+        let deskData = null;
         let onChainEst = 0n;
-        let isDeskActiveDirect = false;
+        let nftOwner = null;
 
         if (publicClient) {
           try {
-            const [dData, bCount, cWeight, pEth, nOwner, estReward, activeDirect] = await Promise.all([
+            const isKnownOwnerInAlchemy = alchemyNfts.some((n) => Number(n.tokenId) === tid);
+            const [dData, estReward, nOwner] = await Promise.all([
               publicClient
                 .readContract({
                   address: DESK_CONTRACT_ADDRESS,
                   abi: deskDeployConfig.abi,
                   functionName: 'getDesk',
-                  args: [BigInt(tid)],
-                })
-                .catch(() => ({ active: false, baseWeight: 100n })),
-              publicClient
-                .readContract({
-                  address: DESK_CONTRACT_ADDRESS,
-                  abi: deskDeployConfig.abi,
-                  functionName: 'getBoostCount',
-                  args: [BigInt(tid)],
-                })
-                .catch(() => 0n),
-              publicClient
-                .readContract({
-                  address: DESK_CONTRACT_ADDRESS,
-                  abi: deskDeployConfig.abi,
-                  functionName: 'getDeskWeight',
-                  args: [BigInt(tid)],
-                })
-                .catch(() => 100n),
-              publicClient
-                .readContract({
-                  address: DESK_CONTRACT_ADDRESS,
-                  abi: deskDeployConfig.abi,
-                  functionName: 'getPendingRewards',
-                  args: [BigInt(tid)],
-                })
-                .catch(() => 0n),
-              publicClient
-                .readContract({
-                  address: APE_BROKER_NFT_ADDRESS,
-                  abi: ERC721_ABI,
-                  functionName: 'ownerOf',
                   args: [BigInt(tid)],
                 })
                 .catch(() => null),
@@ -908,52 +889,72 @@ export function useApeBrokerDesk() {
                   args: [BigInt(tid)],
                 })
                 .catch(() => 0n),
-              publicClient
-                .readContract({
-                  address: DESK_CONTRACT_ADDRESS,
-                  abi: deskDeployConfig.abi,
-                  functionName: 'isDeskActive',
-                  args: [BigInt(tid)],
-                })
-                .catch(() => false),
+              isKnownOwnerInAlchemy
+                ? Promise.resolve(address)
+                : publicClient
+                    .readContract({
+                      address: APE_BROKER_NFT_ADDRESS,
+                      abi: ERC721_ABI,
+                      functionName: 'ownerOf',
+                      args: [BigInt(tid)],
+                    })
+                    .catch(() => null),
             ]);
 
             deskData = dData;
-            boostCount = bCount;
-            currentWeight = cWeight;
-            pendingEth = pEth;
-            nftOwner = nOwner;
             onChainEst = estReward;
-            isDeskActiveDirect = Boolean(activeDirect);
+            nftOwner = nOwner;
           } catch (e) {
-            // Keep default
+            // Keep defaults
           }
         }
 
         // Parse getDesk returns (handles both viem array [active, boostCount, currentWeight, owner, pendingRewards] and object)
         let deskActiveFromData = false;
+        let boostCount = 0n;
+        let currentWeight = 100n;
         let deskOwnerFromContract = null;
+        let pendingEth = 0n;
+
         if (Array.isArray(deskData) && deskData.length >= 5) {
           deskActiveFromData = Boolean(deskData[0]);
-          if (boostCount === 0n && deskData[1] !== undefined) {
+          if (deskData[1] !== undefined) {
             boostCount = BigInt(deskData[1]);
           }
-          if (currentWeight <= 100n && deskData[2]) {
+          if (deskData[2]) {
             currentWeight = BigInt(deskData[2]);
           }
           if (deskData[3] && deskData[3] !== '0x0000000000000000000000000000000000000000') {
             deskOwnerFromContract = deskData[3];
           }
-          if (pendingEth === 0n && deskData[4]) {
+          if (deskData[4]) {
             pendingEth = BigInt(deskData[4]);
           }
         } else if (deskData && typeof deskData === 'object') {
           deskActiveFromData = Boolean(deskData.active);
-          if (deskData.owner) deskOwnerFromContract = deskData.owner;
+          if (deskData.boostCount !== undefined) boostCount = BigInt(deskData.boostCount);
+          if (deskData.currentWeight) currentWeight = BigInt(deskData.currentWeight);
+          if (deskData.owner && deskData.owner !== '0x0000000000000000000000000000000000000000') {
+            deskOwnerFromContract = deskData.owner;
+          }
+          if (deskData.pendingRewards) pendingEth = BigInt(deskData.pendingRewards);
         }
 
-        // On-chain status is the definitive source of truth for contract state
-        const onChainActive = Boolean(isDeskActiveDirect || deskActiveFromData);
+        // Resilient fallback to DB data if on-chain read timed out or failed
+        if (dbDeskMatch) {
+          if (boostCount === 0n && dbDeskMatch.boost_count) {
+            boostCount = BigInt(dbDeskMatch.boost_count);
+          }
+          if (currentWeight <= 100n && dbDeskMatch.current_weight) {
+            currentWeight = BigInt(dbDeskMatch.current_weight);
+          }
+          if (!deskOwnerFromContract && dbDeskMatch.owner) {
+            deskOwnerFromContract = dbDeskMatch.owner;
+          }
+        }
+
+        // On-chain status or DB cached active status (smart contracts never deactivate desks)
+        const onChainActive = Boolean(deskActiveFromData || dbDeskMatch?.active);
         const isActive = onChainActive;
         const currentBoosts = Number(boostCount);
         const nextBoostNumber = currentBoosts < 5 ? currentBoosts + 1 : 5;

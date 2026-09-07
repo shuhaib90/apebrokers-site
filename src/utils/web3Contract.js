@@ -6,7 +6,7 @@
 const ERC721_BALANCE_OF = '0x70a08231';
 
 const DEFAULT_NETWORK_RPCS = {
-  'Robinhood Chain': import.meta.env.VITE_ROBINHOOD_RPC_URL || 'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY',
+  'Robinhood Chain': import.meta.env.VITE_ROBINHOOD_RPC_URL || 'https://rpc.mainnet.chain.robinhood.com',
   'Ethereum': 'https://ethereum-rpc.publicnode.com',
   'Base': 'https://base-rpc.publicnode.com',
   'Arbitrum': 'https://arbitrum-one-rpc.publicnode.com',

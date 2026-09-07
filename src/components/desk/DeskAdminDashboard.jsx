@@ -106,75 +106,73 @@ export function DeskAdminDashboard({
         fetchAllProtocolFeeClaimsFromDb(300),
       ]);
 
-      // Query on-chain status & pending rewards for all known desks + probe 1..10
+      // Query on-chain status & pending rewards for all known desks
       const tokenIdsToProbe = new Set(
         (desks || [])
           .map((d) => Number(d.token_id))
           .filter((id) => !isNaN(id) && id > 0)
       );
-      for (let i = 1; i <= 10; i++) tokenIdsToProbe.add(i);
 
       const onChainMap = {};
-      if (publicClient) {
-        const probeList = Array.from(tokenIdsToProbe).slice(0, 50);
-        const deskResults = await Promise.allSettled(
-          probeList.map((tid) =>
-            Promise.all([
-              publicClient.readContract({
-                address: DESK_CONTRACT_ADDRESS,
-                abi: deskDeployConfig.abi,
-                functionName: 'getDesk',
-                args: [BigInt(tid)],
-              }).catch(() => null),
-              publicClient.readContract({
-                address: DESK_CONTRACT_ADDRESS,
-                abi: deskDeployConfig.abi,
-                functionName: 'getPendingRewards',
-                args: [BigInt(tid)],
-              }).catch(() => 0n),
-              publicClient.readContract({
-                address: DESK_CONTRACT_ADDRESS,
-                abi: deskDeployConfig.abi,
-                functionName: 'isDeskActive',
-                args: [BigInt(tid)],
-              }).catch(() => false),
-            ])
-          )
-        );
+      if (publicClient && tokenIdsToProbe.size > 0) {
+        const probeList = Array.from(tokenIdsToProbe);
+        // Query in chunks of 8 to respect RPC rate limits and prevent 429 errors
+        const chunkSize = 8;
+        for (let i = 0; i < probeList.length; i += chunkSize) {
+          const chunk = probeList.slice(i, i + chunkSize);
+          const chunkResults = await Promise.allSettled(
+            chunk.map((tid) =>
+              publicClient
+                .readContract({
+                  address: DESK_CONTRACT_ADDRESS,
+                  abi: deskDeployConfig.abi,
+                  functionName: 'getDesk',
+                  args: [BigInt(tid)],
+                })
+                .catch(() => null)
+            )
+          );
 
-        probeList.forEach((tid, idx) => {
-          const res = deskResults[idx];
-          if (res.status === 'fulfilled' && res.value) {
-            const [dData, pEth, isActiveDirect] = res.value;
-            let active = Boolean(isActiveDirect);
-            let boostCount = 0n;
-            let currentWeight = 100n;
-            let owner = null;
-            let pendingRewards = pEth || 0n;
+          chunk.forEach((tid, idx) => {
+            const res = chunkResults[idx];
+            const dbDesk = (desks || []).find((d) => Number(d.token_id) === tid);
+            const dbIsActive = Boolean(dbDesk?.active);
 
-            if (Array.isArray(dData) && dData.length >= 5) {
-              if (dData[0] !== undefined) active = Boolean(dData[0]);
-              if (dData[1] !== undefined) boostCount = BigInt(dData[1]);
-              if (dData[2] !== undefined) currentWeight = BigInt(dData[2]);
-              if (dData[3] && dData[3] !== '0x0000000000000000000000000000000000000000') owner = dData[3];
-              if (dData[4] !== undefined && pendingRewards === 0n) pendingRewards = BigInt(dData[4]);
-            } else if (dData && typeof dData === 'object') {
-              if (dData.active !== undefined) active = Boolean(dData.active);
-              if (dData.boostCount !== undefined) boostCount = BigInt(dData.boostCount);
-              if (dData.currentWeight !== undefined) currentWeight = BigInt(dData.currentWeight);
-              if (dData.owner) owner = dData.owner;
-              if (dData.pendingRewards !== undefined && pendingRewards === 0n) pendingRewards = BigInt(dData.pendingRewards);
+            let active = dbIsActive;
+            let boostCount = BigInt(dbDesk?.boost_count || 0);
+            let currentWeight = BigInt(dbDesk?.current_weight || 100);
+            let owner = dbDesk?.owner || null;
+            let pendingRewards = 0n;
+            let hasOnChain = false;
+
+            if (res.status === 'fulfilled' && res.value) {
+              const dData = res.value;
+              hasOnChain = true;
+              if (Array.isArray(dData) && dData.length >= 5) {
+                if (dData[0] !== undefined) active = Boolean(dData[0]) || dbIsActive;
+                if (dData[1] !== undefined) boostCount = BigInt(dData[1]);
+                if (dData[2] !== undefined) currentWeight = BigInt(dData[2]);
+                if (dData[3] && dData[3] !== '0x0000000000000000000000000000000000000000') owner = dData[3];
+                if (dData[4] !== undefined) pendingRewards = BigInt(dData[4]);
+              } else if (dData && typeof dData === 'object') {
+                if (dData.active !== undefined) active = Boolean(dData.active) || dbIsActive;
+                if (dData.boostCount !== undefined) boostCount = BigInt(dData.boostCount);
+                if (dData.currentWeight !== undefined) currentWeight = BigInt(dData.currentWeight);
+                if (dData.owner) owner = dData.owner;
+                if (dData.pendingRewards !== undefined) pendingRewards = BigInt(dData.pendingRewards);
+              }
             }
 
             onChainMap[tid] = {
-              active,
+              hasOnChain,
+              active: active || dbIsActive,
               boostCount: Number(boostCount),
               currentWeight: Number(currentWeight),
-              owner,
+              owner: owner || dbDesk?.owner,
               pendingRewards,
             };
-          }
-        });
+          });
+        }
         setOnChainDeskData(onChainMap);
       }
 
@@ -465,7 +463,7 @@ export function DeskAdminDashboard({
         const key = d.owner.toLowerCase().trim();
         if (!desksByOwner[key]) desksByOwner[key] = [];
         const onChain = onChainDeskData[Number(d.token_id)];
-        const isActive = onChain?.active !== undefined ? onChain.active : Boolean(d.active);
+        const isActive = Boolean(onChain?.active || d.active);
         const w = Number(onChain?.currentWeight || d.current_weight || 100);
         desksByOwner[key].push({ tid: Number(d.token_id), weight: w, active: isActive });
       }
@@ -506,7 +504,7 @@ export function DeskAdminDashboard({
       const tid = Number(d.token_id);
       const onChain = onChainDeskData[tid];
 
-      const isActive = onChain?.active !== undefined ? onChain.active : Boolean(d.active);
+      const isActive = Boolean(onChain?.active || d.active);
       const currentWeight = onChain?.currentWeight || d.current_weight || 100;
       const boostCount = onChain?.boostCount !== undefined ? onChain.boostCount : (d.boost_count || 0);
       const owner = onChain?.owner || d.owner || '';

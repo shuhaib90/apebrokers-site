@@ -5,7 +5,7 @@ import {
   RainbowKitProvider,
   darkTheme,
 } from '@rainbow-me/rainbowkit';
-import { WagmiProvider, http } from 'wagmi';
+import { WagmiProvider, http, fallback } from 'wagmi';
 import { hardhat } from 'wagmi/chains';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 
@@ -16,10 +16,16 @@ export const robinhoodChain = {
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: {
     default: {
-      http: [import.meta.env.VITE_ROBINHOOD_RPC_URL || 'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY'],
+      http: [
+        'https://rpc.mainnet.chain.robinhood.com',
+        import.meta.env.VITE_ROBINHOOD_RPC_URL || 'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY',
+      ],
     },
     public: {
-      http: [import.meta.env.VITE_ROBINHOOD_RPC_URL || 'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY'],
+      http: [
+        'https://rpc.mainnet.chain.robinhood.com',
+        import.meta.env.VITE_ROBINHOOD_RPC_URL || 'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY',
+      ],
     },
   },
   blockExplorers: {
@@ -34,7 +40,10 @@ export const robinhoodChainAlt = {
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: {
     default: {
-      http: [import.meta.env.VITE_ROBINHOOD_RPC_URL || 'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY'],
+      http: [
+        'https://rpc.mainnet.chain.robinhood.com',
+        import.meta.env.VITE_ROBINHOOD_RPC_URL || 'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY',
+      ],
     },
   },
 };
@@ -46,8 +55,14 @@ export const config = getDefaultConfig({
   projectId: '3a8170812b534d0ff9d794f19a901d64', // Demo ProjectId
   chains: [robinhoodChain, robinhoodChainAlt, hardhat],
   transports: {
-    [robinhoodChain.id]: http(import.meta.env.VITE_ROBINHOOD_RPC_URL || 'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY'),
-    [robinhoodChainAlt.id]: http(import.meta.env.VITE_ROBINHOOD_RPC_URL || 'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY'),
+    [robinhoodChain.id]: fallback([
+      http('https://rpc.mainnet.chain.robinhood.com', { batch: true }),
+      http(import.meta.env.VITE_ROBINHOOD_RPC_URL || 'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY', { batch: true }),
+    ]),
+    [robinhoodChainAlt.id]: fallback([
+      http('https://rpc.mainnet.chain.robinhood.com', { batch: true }),
+      http(import.meta.env.VITE_ROBINHOOD_RPC_URL || 'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY', { batch: true }),
+    ]),
     [hardhat.id]: http('http://127.0.0.1:8545'),
   },
   ssr: false,

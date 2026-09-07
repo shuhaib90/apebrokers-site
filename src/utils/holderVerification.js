@@ -11,6 +11,7 @@ export const TOTAL_SPOTS = 9000;
 export const GTD_WIN_RATE_PERCENT = 5; // 5% chance to win GTD from 9,000 spots
 
 const ROBINHOOD_RPCS = [
+  'https://rpc.mainnet.chain.robinhood.com',
   'https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY',
 ];
 
