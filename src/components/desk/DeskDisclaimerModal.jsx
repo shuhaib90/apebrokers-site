@@ -72,7 +72,7 @@ export function DeskDisclaimerModal({ isOpen, onClose, onAccept }) {
               <span>REWARD ESTIMATES & APY ARE NOT GUARANTEED</span>
             </h3>
             <p className="text-[11px] sm:text-xs text-[#3D3226]">
-              All displayed epoch yields, projected reward estimates, and APY metrics are <strong>purely mathematical estimates</strong> derived from current pool balances, active network weights, and historical distributions. Reward funding is dynamic and dependent entirely on protocol activity and manual admin reward pool deposits. <strong>No specific rate of return, profit, or yield is guaranteed or guaranteed by the protocol or developers.</strong>
+              All displayed epoch yields, projected reward estimates, and APY metrics are <strong>purely mathematical estimates</strong> derived from current pool balances, active network weights, and historical distributions. Reward funding is dynamic and dependent entirely on protocol activity and available pool reserves. <strong>No specific rate of return, profit, or yield is guaranteed or promised by the protocol or developers.</strong>
             </p>
           </div>
 
