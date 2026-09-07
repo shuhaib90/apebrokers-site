@@ -26,7 +26,7 @@ module.exports = {
       chainId: 31337,
     },
     robinhood: {
-      url: process.env.RPC_URL || "https://robinhood-mainnet.g.alchemy.com/v2/alch_008u8jC_qTSIJvqgLbdGY",
+      url: process.env.RPC_URL || "https://rpc.mainnet.chain.robinhood.com",
       chainId: process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : 4663,
       accounts: deployerKey ? [deployerKey] : [],
     },
