@@ -7,6 +7,7 @@ import confetti from 'canvas-confetti';
 import { useApeBrokerLuckyDraw } from '../../hooks/useApeBrokerLuckyDraw';
 import { useEthPrice } from '../../hooks/useEthPrice';
 import { LuckyDrawAdminDashboard } from './LuckyDrawAdminDashboard';
+import { LuckyDrawLockedScreen } from './LuckyDrawLockedScreen';
 
 export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
   const { openConnectModal } = useConnectModal();
@@ -32,6 +33,41 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
     adminClaimAllTicketRevenue,
   } = useApeBrokerLuckyDraw();
 
+  // Public Lock state - defaults to true (locked for public)
+  const [isPublicLocked, setIsPublicLocked] = useState(() => {
+    try {
+      const stored = localStorage.getItem('APE_LUCKY_DRAW_PUBLIC_LOCKED');
+      return stored === null ? true : stored !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  const [hasPasscodeBypass, setHasPasscodeBypass] = useState(() => {
+    try {
+      return sessionStorage.getItem('APE_LUCKY_DRAW_ADMIN_UNLOCKED') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleAdminPasscodeUnlock = () => {
+    try {
+      sessionStorage.setItem('APE_LUCKY_DRAW_ADMIN_UNLOCKED', 'true');
+    } catch {}
+    setHasPasscodeBypass(true);
+  };
+
+  const handleTogglePublicLock = (lockedState) => {
+    const nextVal = typeof lockedState === 'boolean' ? lockedState : !isPublicLocked;
+    setIsPublicLocked(nextVal);
+    try {
+      localStorage.setItem('APE_LUCKY_DRAW_PUBLIC_LOCKED', String(nextVal));
+    } catch {}
+  };
+
+  const isUnlockedForUser = !isPublicLocked || isAdmin || hasPasscodeBypass;
+
   const [activeView, setActiveView] = useState('terminal'); // 'terminal' | 'admin'
   const [selectedDrawForBuy, setSelectedDrawForBuy] = useState(null);
   const [ticketAmount, setTicketAmount] = useState(1);
@@ -42,6 +78,18 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
 
   const activeDraws = draws.filter((d) => d.status === 0 || d.status === 1);
   const completedDraws = draws.filter((d) => d.status === 2);
+
+  // If public access is locked and user is not verified as admin, render Locked Screen
+  if (!isUnlockedForUser) {
+    return (
+      <LuckyDrawLockedScreen
+        onBackHome={onBackHome}
+        onGoToDesk={onGoToDesk}
+        onGoToStaking={onGoToStaking}
+        onAdminPasscodeUnlock={handleAdminPasscodeUnlock}
+      />
+    );
+  }
 
   // Buy Modal handlers
   const handleOpenBuyModal = (draw) => {
@@ -131,8 +179,16 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
 
           {/* Right Navigation & Wallet */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Public Lock Indicator */}
+            {isPublicLocked && (
+              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-amber-900/50 border border-amber-500/70 text-[8px] text-amber-200 rounded font-mono font-bold">
+                <span>🔒</span>
+                <span>PUBLIC LOCKED</span>
+              </span>
+            )}
+
             {/* View Switcher for Admins */}
-            {isAdmin && (
+            {(isAdmin || hasPasscodeBypass) && (
               <div className="flex items-center gap-1 bg-[#13072b] p-1 rounded-lg border border-[#FFD700]/70 shadow-[2px_2px_0px_#000]">
                 <button
                   type="button"
@@ -235,6 +291,8 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
             onSelectWinnersManual={adminSelectWinnersManual}
             onUpdatePrizeStatus={adminUpdatePrizeStatus}
             onClaimAllRevenue={adminClaimAllTicketRevenue}
+            isPublicLocked={isPublicLocked}
+            onTogglePublicLock={handleTogglePublicLock}
           />
         ) : (
           <>

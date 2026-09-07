@@ -17,6 +17,8 @@ export function LuckyDrawAdminDashboard({
   onSelectWinnersManual,
   onUpdatePrizeStatus,
   onClaimAllRevenue,
+  isPublicLocked = true,
+  onTogglePublicLock,
 }) {
   const { ethPrice } = useEthPrice();
   const [activeTab, setActiveTab] = useState('active'); // 'create' | 'active' | 'winners' | 'revenue'
@@ -335,6 +337,34 @@ export function LuckyDrawAdminDashboard({
 
           {/* Top Quick Actions */}
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {/* Public Access Lock Toggle */}
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-black/60 border border-[#FFD700] rounded-lg">
+              <div className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${isPublicLocked ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
+                <span className="text-[10px] font-mono text-gray-300">PUBLIC ACCESS:</span>
+                <span className={`text-[10px] font-mono font-extrabold ${isPublicLocked ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  {isPublicLocked ? '🔒 LOCKED' : '🔓 OPEN'}
+                </span>
+              </div>
+              {onTogglePublicLock && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound?.playClick?.();
+                    onTogglePublicLock(!isPublicLocked);
+                  }}
+                  className={`pixel-btn px-2 py-0.5 text-[9px] font-bold rounded ${
+                    isPublicLocked
+                      ? 'pixel-btn-vibrant-lime text-black'
+                      : 'pixel-btn-black text-amber-300 border border-amber-500'
+                  }`}
+                  title={isPublicLocked ? 'Unlock Lucky Draw for public users' : 'Lock Lucky Draw for public users'}
+                >
+                  {isPublicLocked ? '[ UNLOCK FOR PUBLIC ]' : '[ LOCK FOR PUBLIC ]'}
+                </button>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={handleClaimRevenue}

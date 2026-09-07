@@ -73,12 +73,13 @@ export const Header = ({ onDeskClick, onStakingClick, onLuckyDrawClick }) => {
                 sound?.playClick?.();
                 onLuckyDrawClick();
               }}
-              aria-label="Ape Broker Lucky Draw"
+              aria-label="Ape Broker Lucky Draw (Locked)"
               className="pixel-btn pixel-btn-black px-2 sm:px-3.5 py-1.5 sm:py-2 text-[8px] sm:text-xs whitespace-nowrap font-extrabold text-[#FFD700] bg-black hover:bg-[#111] shadow-[2px_2px_0px_#000] sm:shadow-[3px_3px_0px_#000] border-2 border-black flex items-center gap-1.5 rounded-md sm:rounded-lg"
+              title="Lucky Draw Protocol (Locked for Public)"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FFD700] animate-bounce" />
+              <span className="text-[10px]">🔒</span>
               <span className="sm:hidden">[ DRAW ]</span>
-              <span className="hidden sm:inline">[ 🎟️ LUCKY DRAW ]</span>
+              <span className="hidden sm:inline">[ LUCKY DRAW ]</span>
             </button>
           )}
 

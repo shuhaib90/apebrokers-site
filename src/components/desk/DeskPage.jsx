@@ -485,11 +485,12 @@ export function DeskPage({ onBackHome, onGoToStaking, onGoToLuckyDraw }) {
                 if (onGoToLuckyDraw) onGoToLuckyDraw();
                 else window.location.href = '/luckydraw';
               }}
-              className="pixel-btn pixel-btn-black px-2.5 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold text-[#FFD700] hover:text-white rounded border border-[#FFD700]/80 shadow-[1px_1px_0px_#000]"
-              title="Ape Broker Lucky Draw"
+              className="pixel-btn pixel-btn-black px-2.5 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold text-[#FFD700] hover:text-white rounded border border-[#FFD700]/80 shadow-[1px_1px_0px_#000] flex items-center gap-1"
+              title="Ape Broker Lucky Draw (Locked for Public)"
             >
+              <span>🔒</span>
               <span className="sm:hidden">[ DRAW ]</span>
-              <span className="hidden sm:inline">[ 🎟️ LUCKY DRAW ]</span>
+              <span className="hidden sm:inline">[ LUCKY DRAW ]</span>
             </button>
 
             <button
