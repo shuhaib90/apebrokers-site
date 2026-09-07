@@ -103,7 +103,7 @@ function App() {
   if (currentPage === 'desk') {
     return (
       <>
-        <DeskPage onBackHome={handleBackHome} onGoToStaking={handleStaking} />
+        <DeskPage onBackHome={handleBackHome} />
         <Analytics />
       </>
     );

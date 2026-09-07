@@ -6,6 +6,8 @@
     { "source": "/brokerdesk", "destination": "/brokerdesk.html" },
     { "source": "/brokerdesk/(.*)", "destination": "/brokerdesk.html" },
     { "source": "/desk", "destination": "/brokerdesk.html" },
-    { "source": "/desk/(.*)", "destination": "/brokerdesk.html" }
+    { "source": "/desk/(.*)", "destination": "/brokerdesk.html" },
+    { "source": "/staking", "destination": "/staking.html" },
+    { "source": "/staking/(.*)", "destination": "/staking.html" }
   ]
 }
