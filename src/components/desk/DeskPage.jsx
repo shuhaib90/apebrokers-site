@@ -17,7 +17,7 @@ import {
 } from '../../utils/supabaseDesk';
 import { sound } from '../../utils/audio';
 
-export function DeskPage({ onBackHome }) {
+export function DeskPage({ onBackHome, onGoToStaking }) {
   const { openConnectModal } = useConnectModal();
   const { disconnect } = useDisconnect();
   const { ethPrice } = useEthPrice();
@@ -356,6 +356,19 @@ export function DeskPage({ onBackHome }) {
             <span className="hidden md:inline-block px-2 py-0.5 bg-[#170a36] border border-purple-800 text-[9px] text-[#00F0FF] rounded">
               ROBINHOOD EVM
             </span>
+            <button
+              type="button"
+              onClick={() => {
+                sound?.playClick?.();
+                if (onGoToStaking) onGoToStaking();
+                else window.location.href = '/staking';
+              }}
+              aria-label="24H Staking"
+              className="pixel-btn pixel-btn-black px-2 sm:px-2.5 py-1 text-[9px] sm:text-xs font-bold text-[#00F0FF] hover:text-[#00FF66] border border-purple-800 hover:border-[#00F0FF] rounded-lg shadow-[1px_1px_0px_#000] flex items-center gap-1.5"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse" />
+              <span>[ 24H STAKING ]</span>
+            </button>
           </div>
 
           {/* Right Actions & Wallet */}

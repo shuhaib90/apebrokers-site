@@ -19,6 +19,7 @@ import {
   ADMIN_ADDRESS,
   TREASURY_ADDRESS,
 } from '../../hooks/useApeBrokerDesk';
+import { useApeBrokerStaking, STAKING_CONTRACT_ADDRESS } from '../../hooks/useApeBrokerStaking';
 import { formatEthOrUsdt } from '../../hooks/useEthPrice';
 
 export function DeskAdminDashboard({
@@ -62,6 +63,91 @@ export function DeskAdminDashboard({
   const [isDistributingImmediate, setIsDistributingImmediate] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
+
+  // Staking Protocol Admin Hook & State
+  const {
+    globalStats: stakingStats,
+    refetchGlobalStats: refetchStakingStats,
+    adminDepositRewards: stakingDepositRewards,
+    adminSetRewardRateBps: stakingSetRewardRateBps,
+    adminTogglePause: stakingTogglePause,
+  } = useApeBrokerStaking();
+
+  const [stakingEthDepositInput, setStakingEthDepositInput] = useState('');
+  const [stakingBpsInput, setStakingBpsInput] = useState('');
+  const [isStakingAdminSubmitting, setIsStakingAdminSubmitting] = useState(false);
+
+  const handleStakingDepositEth = async (e) => {
+    e?.preventDefault?.();
+    sound?.playClick?.();
+    const amount = parseFloat(stakingEthDepositInput);
+    if (isNaN(amount) || amount <= 0) {
+      setErrorMessage('Please enter a valid ETH deposit amount.');
+      return;
+    }
+    setIsStakingAdminSubmitting(true);
+    setErrorMessage(null);
+    setStatusMessage(null);
+    try {
+      await stakingDepositRewards(stakingEthDepositInput.trim());
+      sound?.playSuccess?.();
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      setStatusMessage(`Successfully deposited ${stakingEthDepositInput} ETH into Staking Reward Pool!`);
+      setStakingEthDepositInput('');
+      await refetchStakingStats();
+    } catch (err) {
+      console.error('Staking deposit error:', err);
+      sound?.playError?.();
+      setErrorMessage(err?.shortMessage || err?.message || 'Failed to deposit ETH into staking pool.');
+    } finally {
+      setIsStakingAdminSubmitting(false);
+    }
+  };
+
+  const handleStakingSetBps = async (bpsVal) => {
+    sound?.playClick?.();
+    const bps = parseInt(bpsVal ?? stakingBpsInput, 10);
+    if (isNaN(bps) || bps < 100 || bps > 5000) {
+      setErrorMessage('Staking dynamic rate must be between 100 (1%) and 5,000 (50%) BPS.');
+      return;
+    }
+    setIsStakingAdminSubmitting(true);
+    setErrorMessage(null);
+    setStatusMessage(null);
+    try {
+      await stakingSetRewardRateBps(bps);
+      sound?.playSuccess?.();
+      setStatusMessage(`Staking reward rate updated to ${bps} BPS (${(bps / 100).toFixed(2)}% / period)!`);
+      setStakingBpsInput('');
+      await refetchStakingStats();
+    } catch (err) {
+      console.error('Staking set BPS error:', err);
+      sound?.playError?.();
+      setErrorMessage(err?.shortMessage || err?.message || 'Failed to update staking reward rate.');
+    } finally {
+      setIsStakingAdminSubmitting(false);
+    }
+  };
+
+  const handleStakingTogglePause = async () => {
+    sound?.playClick?.();
+    const willPause = !stakingStats.isPaused;
+    setIsStakingAdminSubmitting(true);
+    setErrorMessage(null);
+    setStatusMessage(null);
+    try {
+      await stakingTogglePause(willPause);
+      sound?.playSuccess?.();
+      setStatusMessage(`Staking protocol successfully ${willPause ? 'PAUSED' : 'UNPAUSED / RESUMED'}!`);
+      await refetchStakingStats();
+    } catch (err) {
+      console.error('Staking toggle pause error:', err);
+      sound?.playError?.();
+      setErrorMessage(err?.shortMessage || err?.message || 'Failed to change staking pause state.');
+    } finally {
+      setIsStakingAdminSubmitting(false);
+    }
+  };
 
   // Data states from Supabase
   const [allDesks, setAllDesks] = useState([]);
@@ -913,6 +999,7 @@ export function DeskAdminDashboard({
           { id: 'overview', label: 'PROTOCOL STATISTICS' },
           { id: 'desks', label: `ALL ACTIVE DESKS (${activeDesksCount})` },
           { id: 'wallets', label: `OPERATOR WALLETS (${walletSummaries.length})` },
+          { id: 'staking', label: '24H STAKING PROTOCOL' },
           { id: 'distributions', label: `ETH DISTRIBUTIONS (${rewardDeposits.length})` },
           { id: 'logs', label: 'AUDIT LOGS' },
           { id: 'actions', label: 'PROTOCOL ACTIONS & CONFIG' },
@@ -2256,6 +2343,252 @@ export function DeskAdminDashboard({
               </table>
             </div>
           )}
+        </section>
+      )}
+
+      {/* TAB: 24H STAKING PROTOCOL CONTROLLER */}
+      {activeTab === 'staking' && (
+        <section className="space-y-6">
+          {/* Staking Protocol High-Level HUD */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+            <div className="bg-[#140833] border-2 border-[#00FF66] p-4 rounded-xl shadow-[4px_4px_0px_#000]">
+              <div className="text-[10px] text-gray-400 uppercase font-mono">TOTAL $APEBROKE STAKED</div>
+              <div className="text-lg sm:text-2xl font-extrabold text-[#00FF66] mt-1 drop-shadow-[0_0_8px_rgba(0,255,102,0.3)]">
+                {Number(formatEther(stakingStats?.totalStaked || 0n)).toLocaleString('en-US', {
+                  maximumFractionDigits: 0,
+                })}
+              </div>
+              <div className="text-[9px] text-gray-300 mt-1 font-mono">
+                Across {stakingStats?.activePositionsCount || 0} active positions
+              </div>
+            </div>
+
+            <div className="bg-[#140833] border-2 border-[#FFD700] p-4 rounded-xl shadow-[4px_4px_0px_#000]">
+              <div className="text-[10px] text-gray-400 uppercase font-mono">
+                {isUsdt ? 'ETH REWARD POOL (USDT)' : 'ETH REWARD POOL'}
+              </div>
+              <div className="text-lg sm:text-2xl font-extrabold text-[#FFD700] mt-1 drop-shadow-[0_0_8px_rgba(255,215,0,0.3)]">
+                {formatEthOrUsdt(stakingStats?.rewardPoolBalance || 0n, isUsdt, ethPrice)}
+              </div>
+              <div className="text-[9px] text-yellow-400 mt-1 font-mono">
+                Available unallocated reward pool
+              </div>
+            </div>
+
+            <div className="bg-[#140833] border-2 border-[#00F0FF] p-4 rounded-xl shadow-[4px_4px_0px_#000]">
+              <div className="text-[10px] text-gray-400 uppercase font-mono">
+                {isUsdt ? 'CURRENT PERIOD YIELD (USDT)' : 'CURRENT PERIOD YIELD'}
+              </div>
+              <div className="text-lg sm:text-2xl font-extrabold text-[#00F0FF] mt-1 drop-shadow-[0_0_8px_rgba(0,240,255,0.3)]">
+                {formatEthOrUsdt(stakingStats?.currentPeriodReward || 0n, isUsdt, ethPrice)}
+              </div>
+              <div className="text-[9px] text-[#00F0FF] mt-1 font-mono">
+                Period #{stakingStats?.currentPeriodId?.toString() || '1'} ({(Number(stakingStats?.rewardRateBps || 1000n) / 100).toFixed(1)}% rate)
+              </div>
+            </div>
+
+            <div className="bg-[#140833] border-2 border-purple-800 p-4 rounded-xl shadow-[4px_4px_0px_#000]">
+              <div className="text-[10px] text-gray-400 uppercase font-mono">PROTOCOL STATUS</div>
+              <div className="text-lg sm:text-2xl font-extrabold mt-1">
+                {stakingStats?.isPaused ? (
+                  <span className="text-[#FF2247]">PAUSED</span>
+                ) : (
+                  <span className="text-[#00FF66]">OPERATIONAL</span>
+                )}
+              </div>
+              <div className="text-[9px] text-gray-400 mt-1 font-mono">
+                Gated: ≥ 2 Ape Broker NFTs
+              </div>
+            </div>
+          </div>
+
+          {/* Staking Admin Actions Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Card 1: Deposit ETH into Staking Reward Pool */}
+            <div className="bg-[#0f0729]/95 border-2 border-[#FFD700] rounded-xl p-5 shadow-[6px_6px_0px_#000] space-y-4 font-mono">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs sm:text-sm font-extrabold text-[#FFD700] uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#FFD700] animate-pulse" />
+                  <span>DEPOSIT ETH REWARD POOL</span>
+                </h3>
+                <span className="text-[10px] text-gray-400">
+                  Pool: {formatEthOrUsdt(stakingStats?.rewardPoolBalance || 0n, isUsdt, ethPrice)}
+                </span>
+              </div>
+              <p className="text-xs text-gray-300">
+                Deposit native ETH to fund the 24-hour dynamic staking reward pool. 
+                Each period dispenses a proportional fraction ({((Number(stakingStats?.rewardRateBps || 1000n)) / 100).toFixed(0)}%) of the remaining pool.
+              </p>
+
+              <form onSubmit={handleStakingDepositEth} className="space-y-3">
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    placeholder="ETH Amount to Deposit (e.g. 1.0)"
+                    value={stakingEthDepositInput}
+                    onChange={(e) => setStakingEthDepositInput(e.target.value)}
+                    disabled={isStakingAdminSubmitting}
+                    className="w-full bg-black/80 border-2 border-purple-800 focus:border-[#FFD700] px-3 py-2.5 text-xs text-white rounded-lg outline-none font-mono"
+                  />
+                  <span className="absolute right-3 top-2.5 text-xs text-[#FFD700] font-bold">ETH</span>
+                </div>
+
+                {/* Quick amount presets */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] text-gray-400">QUICK:</span>
+                  {['0.1', '0.25', '0.5', '1.0', '2.5'].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => {
+                        sound?.playClick?.();
+                        setStakingEthDepositInput(amt);
+                      }}
+                      className="px-2 py-0.5 bg-[#1a0c3b] hover:bg-[#2b145e] text-[9px] text-yellow-300 rounded border border-yellow-700/50"
+                    >
+                      +{amt} ETH
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isStakingAdminSubmitting || !stakingEthDepositInput || parseFloat(stakingEthDepositInput) <= 0}
+                  className="pixel-btn pixel-btn-vibrant-gold w-full py-2.5 text-xs font-extrabold rounded-lg shadow-[3px_3px_0px_#000] disabled:opacity-40"
+                >
+                  {isStakingAdminSubmitting ? '[ EXECUTING DEPOSIT... ]' : '[ DEPOSIT ETH TO STAKING POOL ]'}
+                </button>
+              </form>
+            </div>
+
+            {/* Card 2: Dynamic Reward Rate Configuration */}
+            <div className="bg-[#0f0729]/95 border-2 border-[#00F0FF] rounded-xl p-5 shadow-[6px_6px_0px_#000] space-y-4 font-mono">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs sm:text-sm font-extrabold text-[#00F0FF] uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#00F0FF] animate-pulse" />
+                  <span>DYNAMIC REWARD RATE (BPS)</span>
+                </h3>
+                <span className="text-[10px] text-gray-400">
+                  Current: {stakingStats?.rewardRateBps?.toString() || '1000'} BPS ({((Number(stakingStats?.rewardRateBps || 1000n)) / 100).toFixed(1)}%)
+                </span>
+              </div>
+              <p className="text-xs text-gray-300">
+                Sets the dynamic percentage of the available ETH reward pool distributed per 24-hour period (100 = 1.0%, 5,000 = 50.0%).
+              </p>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      step="50"
+                      min="100"
+                      max="5000"
+                      placeholder="Enter BPS (e.g. 1000 for 10%)"
+                      value={stakingBpsInput}
+                      onChange={(e) => setStakingBpsInput(e.target.value)}
+                      disabled={isStakingAdminSubmitting}
+                      className="w-full bg-black/80 border-2 border-purple-800 focus:border-[#00F0FF] px-3 py-2.5 text-xs text-white rounded-lg outline-none font-mono"
+                    />
+                    <span className="absolute right-3 top-2.5 text-xs text-[#00F0FF] font-bold">BPS</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleStakingSetBps()}
+                    disabled={isStakingAdminSubmitting || !stakingBpsInput}
+                    className="pixel-btn pixel-btn-vibrant-cyan px-4 py-2.5 text-xs font-bold rounded-lg shadow-[2px_2px_0px_#000] whitespace-nowrap disabled:opacity-40"
+                  >
+                    [ SET ]
+                  </button>
+                </div>
+
+                {/* Quick rate presets */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] text-gray-400">PRESETS:</span>
+                  {[
+                    { label: '5%', bps: 500 },
+                    { label: '10%', bps: 1000 },
+                    { label: '15%', bps: 1500 },
+                    { label: '20%', bps: 2000 },
+                    { label: '25%', bps: 2500 },
+                  ].map((p) => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={() => handleStakingSetBps(p.bps)}
+                      disabled={isStakingAdminSubmitting}
+                      className="px-2 py-0.5 bg-[#0a2333] hover:bg-[#123e59] text-[9px] text-cyan-300 rounded border border-cyan-800"
+                    >
+                      {p.label} ({p.bps})
+                    </button>
+                  ))}
+                </div>
+
+                {/* Emergency Pause Toggle */}
+                <div className="pt-3 border-t border-purple-900/60 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold text-white">Emergency Staking Pause</div>
+                    <div className="text-[9px] text-gray-400">Temporarily suspends new stakes while protecting existing positions</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleStakingTogglePause}
+                    disabled={isStakingAdminSubmitting}
+                    className={`pixel-btn px-4 py-2 text-xs font-extrabold rounded-lg shadow-[2px_2px_0px_#000] ${
+                      stakingStats?.isPaused
+                        ? 'bg-[#00FF66] text-black hover:bg-[#20ff78]'
+                        : 'bg-[#FF2247] text-white hover:bg-red-600'
+                    }`}
+                  >
+                    {stakingStats?.isPaused ? '[ ▶ UNPAUSE STAKING ]' : '[ ⏸ PAUSE STAKING ]'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Staking Contract Architecture & Audit Info */}
+          <div className="bg-[#0f0729]/95 border-2 border-purple-800 rounded-xl p-5 shadow-[4px_4px_0px_#000] space-y-3 font-mono">
+            <h3 className="text-xs sm:text-sm font-extrabold text-white uppercase tracking-wider">
+              24-HOUR STAKING CONTRACT ARCHITECTURE & SECURITY
+            </h3>
+            <div className="divide-y divide-purple-900/40 text-xs">
+              <div className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <span className="text-gray-400">Staking Contract Address:</span>
+                <span className="text-[#00F0FF] break-all select-all">{STAKING_CONTRACT_ADDRESS}</span>
+              </div>
+              <div className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <span className="text-gray-400">Lock Duration:</span>
+                <span className="text-[#00FF66] font-bold">Strict 24 Hours (86,400 Seconds)</span>
+              </div>
+              <div className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <span className="text-gray-400">Access Gating:</span>
+                <span className="text-[#FF80BE] font-bold">Holding ≥ 2 Ape Broker NFTs Required</span>
+              </div>
+              <div className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <span className="text-gray-400">Principal Custody Guarantee:</span>
+                <span className="text-[#FFD700] font-bold">100% Locked Custody — Zero Admin Access to User Principal</span>
+              </div>
+              <div className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <span className="text-gray-400">Reward Accounting Engine:</span>
+                <span className="text-white">Continuous Cumulative Share Index (MasterChef Non-Diluting Debt Formula)</span>
+              </div>
+              <div className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <span className="text-gray-400">Lifetime Total Rewards Distributed:</span>
+                <span className="text-[#00FF66] font-bold">
+                  {formatEthOrUsdt(stakingStats?.totalEthRewardsDistributed || 0n, isUsdt, ethPrice)}
+                </span>
+              </div>
+              <div className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <span className="text-gray-400">Lifetime Total Rewards Claimed:</span>
+                <span className="text-[#FFD700] font-bold">
+                  {formatEthOrUsdt(stakingStats?.totalEthRewardsClaimed || 0n, isUsdt, ethPrice)}
+                </span>
+              </div>
+            </div>
+          </div>
         </section>
       )}
 

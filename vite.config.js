@@ -12,6 +12,7 @@ export default defineConfig({
         brokers: resolve(__dirname, 'brokers.html'),
         apply: resolve(__dirname, 'apply.html'),
         brokerdesk: resolve(__dirname, 'brokerdesk.html'),
+        staking: resolve(__dirname, 'staking.html'),
       },
     },
   },

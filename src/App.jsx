@@ -5,12 +5,13 @@ import { Hero } from './components/Hero';
 import { ApplicationPage } from './components/ApplicationPage';
 import { AdminDashboard } from './components/AdminDashboard';
 import { DeskPage } from './components/desk/DeskPage';
+import { StakingPage } from './components/staking/StakingPage';
 import { PixelFluidBackground } from './components/PixelFluidBackground';
 import { BrokerDeskSections } from './components/BrokerDeskSections';
 import { Footer } from './components/Footer';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'apply' | 'admin' | 'desk'
+  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'apply' | 'admin' | 'desk' | 'staking'
 
   useEffect(() => {
     const handleRoute = () => {
@@ -20,6 +21,12 @@ function App() {
         setCurrentPage('admin');
       } else if (path === '/apply' || hash === '#apply') {
         setCurrentPage('apply');
+      } else if (
+        path === '/staking' ||
+        path.startsWith('/staking') ||
+        hash === '#staking'
+      ) {
+        setCurrentPage('staking');
       } else if (
         path === '/brokerdesk' ||
         path.startsWith('/brokerdesk') ||
@@ -56,6 +63,15 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
+  const handleStaking = () => {
+    if (window.location.pathname !== '/staking') {
+      window.history.pushState({}, '', '/staking');
+    }
+    window.location.hash = 'staking';
+    setCurrentPage('staking');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
   const handleAdmin = () => {
     window.location.hash = 'admin';
     setCurrentPage('admin');
@@ -71,10 +87,23 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
+  if (currentPage === 'staking') {
+    return (
+      <>
+        <StakingPage
+          onBackHome={handleBackHome}
+          onGoToDesk={handleDesk}
+          onGoToAdmin={handleDesk}
+        />
+        <Analytics />
+      </>
+    );
+  }
+
   if (currentPage === 'desk') {
     return (
       <>
-        <DeskPage onBackHome={handleBackHome} />
+        <DeskPage onBackHome={handleBackHome} onGoToStaking={handleStaking} />
         <Analytics />
       </>
     );
@@ -105,7 +134,7 @@ function App() {
 
       {/* Top Header */}
       <div className="relative z-50">
-        <Header onDeskClick={handleDesk} />
+        <Header onDeskClick={handleDesk} onStakingClick={handleStaking} />
       </div>
 
       {/* Hero Content with Stats & Sections */}
