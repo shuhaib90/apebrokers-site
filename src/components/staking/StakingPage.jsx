@@ -7,7 +7,7 @@ import { useEthPrice, formatEthOrUsdt } from '../../hooks/useEthPrice';
 import { sound } from '../../utils/audio';
 import confetti from 'canvas-confetti';
 
-export function StakingPage({ onBackHome, onGoToDesk, onGoToAdmin }) {
+export function StakingPage({ onBackHome, onGoToDesk, onGoToAdmin, onGoToLuckyDraw }) {
   const { openConnectModal } = useConnectModal();
   const { disconnect } = useDisconnect();
   const { ethPrice } = useEthPrice();
@@ -318,6 +318,20 @@ export function StakingPage({ onBackHome, onGoToDesk, onGoToAdmin }) {
             >
               <span className="w-1.5 h-1.5 rounded-full bg-[#00FF66]" />
               <span>[ BROKERDESK ]</span>
+            </button>
+
+            {/* Go to Lucky Draw Button */}
+            <button
+              type="button"
+              onClick={() => {
+                sound?.playClick?.();
+                if (onGoToLuckyDraw) onGoToLuckyDraw();
+                else window.location.href = '/luckydraw';
+              }}
+              className="pixel-btn pixel-btn-black px-2.5 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold text-[#FFD700] hover:text-white border-2 border-amber-600/80 rounded-lg shadow-[2px_2px_0px_#000] flex items-center gap-1.5"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#FFD700] animate-bounce" />
+              <span>[ 🎟️ LUCKY DRAW ]</span>
             </button>
 
             {/* Currency Toggle (ETH / USDT) */}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { sound } from '../utils/audio';
 
-export const Header = ({ onDeskClick, onStakingClick }) => {
+export const Header = ({ onDeskClick, onStakingClick, onLuckyDrawClick }) => {
   const handleFollowX = () => {
     sound?.playClick?.();
     window.open('https://x.com/Apesyndicates', '_blank', 'noopener,noreferrer');
@@ -63,6 +63,22 @@ export const Header = ({ onDeskClick, onStakingClick }) => {
               <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse" />
               <span className="sm:hidden">[ STAKE ]</span>
               <span className="hidden sm:inline">[ STAKING ]</span>
+            </button>
+          )}
+
+          {onLuckyDrawClick && (
+            <button
+              type="button"
+              onClick={() => {
+                sound?.playClick?.();
+                onLuckyDrawClick();
+              }}
+              aria-label="Ape Broker Lucky Draw"
+              className="pixel-btn pixel-btn-black px-2 sm:px-3.5 py-1.5 sm:py-2 text-[8px] sm:text-xs whitespace-nowrap font-extrabold text-[#FFD700] bg-black hover:bg-[#111] shadow-[2px_2px_0px_#000] sm:shadow-[3px_3px_0px_#000] border-2 border-black flex items-center gap-1.5 rounded-md sm:rounded-lg"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#FFD700] animate-bounce" />
+              <span className="sm:hidden">[ DRAW ]</span>
+              <span className="hidden sm:inline">[ 🎟️ LUCKY DRAW ]</span>
             </button>
           )}
 

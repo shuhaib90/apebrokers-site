@@ -6,12 +6,13 @@ import { ApplicationPage } from './components/ApplicationPage';
 import { AdminDashboard } from './components/AdminDashboard';
 import { DeskPage } from './components/desk/DeskPage';
 import { StakingPage } from './components/staking/StakingPage';
+import { LuckyDrawPage } from './components/luckydraw/LuckyDrawPage';
 import { PixelFluidBackground } from './components/PixelFluidBackground';
 import { BrokerDeskSections } from './components/BrokerDeskSections';
 import { Footer } from './components/Footer';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'apply' | 'admin' | 'desk' | 'staking'
+  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'apply' | 'admin' | 'desk' | 'staking' | 'luckydraw'
 
   useEffect(() => {
     const handleRoute = () => {
@@ -41,6 +42,17 @@ function App() {
           window.history.replaceState({}, '', '/brokerdesk');
         }
         setCurrentPage('desk');
+      } else if (
+        path === '/luckydraw' ||
+        path.startsWith('/luckydraw') ||
+        hash === '#luckydraw' ||
+        path === '/draws' ||
+        hash === '#draws'
+      ) {
+        if (window.location.hash) {
+          window.history.replaceState({}, '', '/luckydraw');
+        }
+        setCurrentPage('luckydraw');
       } else {
         setCurrentPage('home');
       }
@@ -77,6 +89,14 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
+  const handleLuckyDraw = () => {
+    if (window.location.pathname !== '/luckydraw' || window.location.hash) {
+      window.history.pushState({}, '', '/luckydraw');
+    }
+    setCurrentPage('luckydraw');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
   const handleAdmin = () => {
     window.location.hash = 'admin';
     setCurrentPage('admin');
@@ -92,6 +112,19 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
+  if (currentPage === 'luckydraw') {
+    return (
+      <>
+        <LuckyDrawPage
+          onBackHome={handleBackHome}
+          onGoToDesk={handleDesk}
+          onGoToStaking={handleStaking}
+        />
+        <Analytics />
+      </>
+    );
+  }
+
   if (currentPage === 'staking') {
     return (
       <>
@@ -99,6 +132,7 @@ function App() {
           onBackHome={handleBackHome}
           onGoToDesk={handleDesk}
           onGoToAdmin={handleDesk}
+          onGoToLuckyDraw={handleLuckyDraw}
         />
         <Analytics />
       </>
@@ -108,7 +142,11 @@ function App() {
   if (currentPage === 'desk') {
     return (
       <>
-        <DeskPage onBackHome={handleBackHome} />
+        <DeskPage
+          onBackHome={handleBackHome}
+          onGoToStaking={handleStaking}
+          onGoToLuckyDraw={handleLuckyDraw}
+        />
         <Analytics />
       </>
     );
@@ -139,7 +177,11 @@ function App() {
 
       {/* Top Header */}
       <div className="relative z-50">
-        <Header onDeskClick={handleDesk} onStakingClick={handleStaking} />
+        <Header
+          onDeskClick={handleDesk}
+          onStakingClick={handleStaking}
+          onLuckyDrawClick={handleLuckyDraw}
+        />
       </div>
 
       {/* Hero Content with Stats & Sections */}

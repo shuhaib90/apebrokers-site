@@ -18,7 +18,7 @@ import {
 } from '../../utils/supabaseDesk';
 import { sound } from '../../utils/audio';
 
-export function DeskPage({ onBackHome }) {
+export function DeskPage({ onBackHome, onGoToStaking, onGoToLuckyDraw }) {
   const { openConnectModal } = useConnectModal();
   const { disconnect } = useDisconnect();
   const { ethPrice } = useEthPrice();
@@ -462,6 +462,34 @@ export function DeskPage({ onBackHome }) {
               <span>⚖️</span>
               <span className="hidden sm:inline">DISCLAIMER</span>
               <span className="sm:hidden">LEGAL</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                sound?.playClick?.();
+                if (onGoToStaking) onGoToStaking();
+                else window.location.href = '/staking';
+              }}
+              className="pixel-btn pixel-btn-black px-2.5 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold text-[#00F0FF] hover:text-white rounded border border-[#00F0FF]/80 shadow-[1px_1px_0px_#000]"
+              title="Ape Broker 24H Staking"
+            >
+              <span className="sm:hidden">[ STAKE ]</span>
+              <span className="hidden sm:inline">[ ⚡ STAKING ]</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                sound?.playClick?.();
+                if (onGoToLuckyDraw) onGoToLuckyDraw();
+                else window.location.href = '/luckydraw';
+              }}
+              className="pixel-btn pixel-btn-black px-2.5 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold text-[#FFD700] hover:text-white rounded border border-[#FFD700]/80 shadow-[1px_1px_0px_#000]"
+              title="Ape Broker Lucky Draw"
+            >
+              <span className="sm:hidden">[ DRAW ]</span>
+              <span className="hidden sm:inline">[ 🎟️ LUCKY DRAW ]</span>
             </button>
 
             <button

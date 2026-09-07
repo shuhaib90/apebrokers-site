@@ -13,6 +13,7 @@ export default defineConfig({
         apply: resolve(__dirname, 'apply.html'),
         brokerdesk: resolve(__dirname, 'brokerdesk.html'),
         staking: resolve(__dirname, 'staking.html'),
+        luckydraw: resolve(__dirname, 'luckydraw.html'),
       },
     },
   },
