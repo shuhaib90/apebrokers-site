@@ -1903,7 +1903,7 @@ export function DeskAdminDashboard({
                               </span>
                             </div>
                             <div className="flex flex-wrap gap-1">
-                              {w.tokenIds.slice(0, 10).map((tid) => (
+                              {w.tokenIds.slice(0, 5).map((tid) => (
                                 <a
                                   key={tid}
                                   href={`https://opensea.io/assets/robinhood/0xd3b030e9281fcd8797af6dc437636b24bdfe7902/${tid}`}
@@ -1915,9 +1915,9 @@ export function DeskAdminDashboard({
                                   #{tid}
                                 </a>
                               ))}
-                              {w.tokenIds.length > 10 && (
+                              {w.tokenIds.length > 5 && (
                                 <span className="text-[9px] text-gray-500 self-center">
-                                  +{w.tokenIds.length - 10} more
+                                  +{w.tokenIds.length - 5} more
                                 </span>
                               )}
                             </div>
@@ -2445,7 +2445,7 @@ export function DeskAdminDashboard({
               </div>
               <div className="bg-black/50 p-3 rounded-lg border border-purple-900/50">
                 <span className="text-gray-400 text-[10px]">Max Desks Per Wallet:</span>
-                <div className="text-sm font-bold text-white mt-0.5">10 Desks Max</div>
+                <div className="text-sm font-bold text-white mt-0.5">5 Desks Max</div>
               </div>
               <div className="bg-black/50 p-3 rounded-lg border border-purple-900/50">
                 <span className="text-gray-400 text-[10px]">Max Boosts Per Desk:</span>

@@ -131,37 +131,40 @@ describe("ApeBrokerDesk - Full Production Test Suite", function () {
         .to.be.reverted;
     });
 
-    it("Should enforce maximum 10 active Desks per wallet limit", async function () {
+    it("Should enforce maximum 5 active Desks per wallet limit", async function () {
       const deskAddress = await desk.getAddress();
-      // Mint more NFTs to Alice so she has at least 11 NFTs
-      for (let id = 5; id <= 13; id++) {
-        await nft.mint(alice.address, id);
-      }
+      // Mint 4 more NFTs to Alice (so Alice has NFTs 1, 2, 5, 6, 7, 8)
+      await nft.mint(alice.address, 5);
+      await nft.mint(alice.address, 6);
+      await nft.mint(alice.address, 7);
+      await nft.mint(alice.address, 8);
 
-      await token.connect(alice).approve(deskAddress, ACTIVATION_FEE * 20n);
+      await token.connect(alice).approve(deskAddress, ACTIVATION_FEE * 10n);
 
-      // Alice activates 10 Desks: 1, 2, 5, 6, 7, 8, 9, 10, 11, 12
-      for (const id of [1, 2, 5, 6, 7, 8, 9, 10, 11, 12]) {
-        await desk.connect(alice).activateDesk(id);
-      }
+      // Alice activates 5 Desks: 1, 2, 5, 6, 7
+      await desk.connect(alice).activateDesk(1);
+      await desk.connect(alice).activateDesk(2);
+      await desk.connect(alice).activateDesk(5);
+      await desk.connect(alice).activateDesk(6);
+      await desk.connect(alice).activateDesk(7);
 
-      expect(await desk.getActiveDeskCount(alice.address)).to.equal(10n);
+      expect(await desk.getActiveDeskCount(alice.address)).to.equal(5n);
 
-      // Alice attempts to activate an 11th Desk -> reverts with MaxDesksPerWalletReached
-      await expect(desk.connect(alice).activateDesk(13))
+      // Alice attempts to activate a 6th Desk -> reverts with MaxDesksPerWalletReached
+      await expect(desk.connect(alice).activateDesk(8))
         .to.be.revertedWithCustomError(desk, "MaxDesksPerWalletReached");
 
       // Alice transfers Desk 1 to Bob
       await nft.connect(alice).transferFrom(alice.address, bob.address, 1);
       await desk.checkpointDesk(1);
 
-      // Alice active desk count reduces to 9, Bob becomes 1
-      expect(await desk.getActiveDeskCount(alice.address)).to.equal(9n);
+      // Alice active desk count reduces to 4, Bob becomes 1
+      expect(await desk.getActiveDeskCount(alice.address)).to.equal(4n);
       expect(await desk.getActiveDeskCount(bob.address)).to.equal(1n);
 
-      // Alice can now activate her 10th desk (Desk 13)
-      await desk.connect(alice).activateDesk(13);
-      expect(await desk.getActiveDeskCount(alice.address)).to.equal(10n);
+      // Alice can now activate her 5th desk (Desk 8)
+      await desk.connect(alice).activateDesk(8);
+      expect(await desk.getActiveDeskCount(alice.address)).to.equal(5n);
     });
   });
 

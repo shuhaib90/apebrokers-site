@@ -71,7 +71,7 @@ export const BrokerDeskSections = ({ onDeskClick }) => {
                 ACTIVATE DESK
               </h3>
               <p className="font-mono text-xs text-gray-300 leading-relaxed font-medium">
-                Connect your EVM wallet holding an Ape Broker NFT. Each NFT initializes an independent trading workstation with 100 WGT base weight. Run up to 10 desks concurrently.
+                Connect your EVM wallet holding an Ape Broker NFT. Each NFT initializes an independent trading workstation with 100 WGT base weight. Run up to 5 desks concurrently.
               </p>
             </div>
             <div className="pt-2 border-t border-white/10 font-mono text-[11px] text-[#00FF66] font-bold">
@@ -167,8 +167,8 @@ export const BrokerDeskSections = ({ onDeskClick }) => {
 
           <div className="bg-[#1a0c3b] p-3.5 sm:p-4 rounded-lg border border-[#A855F7]/40">
             <div className="font-pixel text-[8px] sm:text-[9px] text-gray-400">OPERATOR CAP</div>
-            <div className="font-pixel text-xs sm:text-sm text-[#FF007F] font-extrabold mt-1">10 DESKS MAX</div>
-            <div className="font-mono text-[10px] text-gray-300 mt-0.5">6,000 WGT MAX TOTAL</div>
+            <div className="font-pixel text-xs sm:text-sm text-[#FF007F] font-extrabold mt-1">5 DESKS MAX</div>
+            <div className="font-mono text-[10px] text-gray-300 mt-0.5">3,000 WGT MAX TOTAL</div>
           </div>
 
           <div className="bg-[#1a0c3b] p-3.5 sm:p-4 rounded-lg border border-[#A855F7]/40">
