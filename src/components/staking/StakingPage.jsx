@@ -532,9 +532,6 @@ export function StakingPage({ onBackHome, onGoToDesk, onGoToAdmin }) {
             <div className="text-lg sm:text-2xl font-extrabold text-[#FFD700] mt-1 drop-shadow-[0_0_6px_rgba(255,215,0,0.3)]">
               {formatEthReward(globalStats?.rewardPoolBalance || 0n)}
             </div>
-            <div className="text-[9px] text-yellow-400/80 mt-1 font-mono">
-              Dynamic pool funded by Admin
-            </div>
           </div>
 
           {/* Current 24H Period Reward */}
@@ -722,7 +719,7 @@ export function StakingPage({ onBackHome, onGoToDesk, onGoToAdmin }) {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#00FF66]">✓</span>
-                    <span><strong>Dynamic ETH Rewards:</strong> Rewards are paid strictly from the ETH reward pool funded by the admin.</span>
+                    <span><strong>Dynamic ETH Rewards:</strong> Rewards are paid strictly from the dynamic ETH reward pool.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#00FF66]">✓</span>
