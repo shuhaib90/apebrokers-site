@@ -807,7 +807,7 @@ export function DeskPage({ onBackHome }) {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <h3 className="text-xs sm:text-sm font-extrabold text-white tracking-wider">
-                YOUR BROKER DESKS ({Math.min(userDesks.length, 5)} / 5 MAX)
+                YOUR BROKER DESKS ({Math.min(userDesks.length, 10)} / 10 MAX)
               </h3>
               {userDesks.length > 0 && (
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#052b16] border border-[#00FF66] text-[#00FF66] text-[9px] font-mono rounded">
@@ -872,7 +872,7 @@ export function DeskPage({ onBackHome }) {
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {userDesks.slice(0, 5).map((desk) => {
+                {userDesks.slice(0, 10).map((desk) => {
                   const isActive = desk.active;
                   const boostCount = desk.boostCount || 0;
                   const weight = desk.currentWeight || 100;

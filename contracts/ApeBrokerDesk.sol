@@ -35,7 +35,7 @@ contract ApeBrokerDesk is IApeBrokerDesk, Ownable2Step, ReentrancyGuard {
 
     // Protocol Constants
     uint8 public constant MAX_BOOSTS = 5;
-    uint256 public constant MAX_DESKS_PER_WALLET = 5;
+    uint256 public constant MAX_DESKS_PER_WALLET = 10;
     uint256 public constant EPOCH_DURATION = 5 hours; // 18,000 seconds
     uint256 public constant REWARD_PRECISION = 1e18;
     uint256 public constant DEFAULT_EPOCH_EMISSION_BPS = 500; // 5.00%

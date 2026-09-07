@@ -777,30 +777,30 @@ export function useApeBrokerDesk() {
       // Fetch indexed desks from Supabase
       const dbDesks = await fetchUserDesksFromDb(address);
 
-      // Select strictly at most 5 token IDs:
+      // Select strictly at most 10 token IDs:
       // Priority 1: User-tracked token ID
       // Priority 2: Known active desks in DB
-      // Priority 3: Owned NFTs from Alchemy up to 5 total
+      // Priority 3: Owned NFTs from Alchemy up to 10 total
       // Priority 4: On-chain detected token IDs if balance > 0
       const selectedTokenIds = new Set();
 
       trackedTokenIds.forEach((id) => {
-        if (selectedTokenIds.size < 5) selectedTokenIds.add(id);
+        if (selectedTokenIds.size < 10) selectedTokenIds.add(id);
       });
 
       dbDesks
         .filter((d) => d.active)
         .forEach((d) => {
-          if (selectedTokenIds.size < 5) selectedTokenIds.add(Number(d.token_id));
+          if (selectedTokenIds.size < 10) selectedTokenIds.add(Number(d.token_id));
         });
 
       for (const n of alchemyNfts) {
-        if (selectedTokenIds.size >= 5) break;
+        if (selectedTokenIds.size >= 10) break;
         selectedTokenIds.add(n.tokenId);
       }
 
       for (const d of dbDesks) {
-        if (selectedTokenIds.size >= 5) break;
+        if (selectedTokenIds.size >= 10) break;
         selectedTokenIds.add(Number(d.token_id));
       }
 
@@ -819,7 +819,7 @@ export function useApeBrokerDesk() {
         );
         ownerChecks.forEach((res, idx) => {
           if (
-            selectedTokenIds.size < 5 &&
+            selectedTokenIds.size < 10 &&
             res.status === 'fulfilled' &&
             res.value &&
             res.value.toLowerCase() === address.toLowerCase()
@@ -833,7 +833,7 @@ export function useApeBrokerDesk() {
       if (
         activeDeskCount > 0n &&
         selectedTokenIds.size < Number(activeDeskCount) &&
-        selectedTokenIds.size < 5 &&
+        selectedTokenIds.size < 10 &&
         publicClient
       ) {
         const checkRange = Array.from({ length: 50 }, (_, i) => i + 1).filter(
@@ -851,7 +851,7 @@ export function useApeBrokerDesk() {
         );
         deskOwnerChecks.forEach((res, idx) => {
           if (
-            selectedTokenIds.size < 5 &&
+            selectedTokenIds.size < 10 &&
             res.status === 'fulfilled' &&
             res.value &&
             res.value.toLowerCase() === address.toLowerCase()
@@ -861,7 +861,7 @@ export function useApeBrokerDesk() {
         });
       }
 
-      // 3. For the selected token IDs (max 5), read on-chain Desk status
+      // 3. For the selected token IDs (max 10), read on-chain Desk status
       const desksList = [];
       for (const tid of Array.from(selectedTokenIds)) {
         const dbDeskMatch = dbDesks.find((d) => Number(d.token_id) === Number(tid));
@@ -1043,7 +1043,7 @@ export function useApeBrokerDesk() {
       }
 
       desksList.sort((a, b) => (b.active ? 1 : 0) - (a.active ? 1 : 0) || a.tokenId - b.tokenId);
-      setUserDesks(desksList.slice(0, 5));
+      setUserDesks(desksList.slice(0, 10));
     } catch (err) {
       console.warn('Error reading user data:', err);
     } finally {

@@ -493,7 +493,7 @@ export function DeskAdminModal({
                 </div>
                 <div className="flex justify-between text-gray-400">
                   <span>Max Desks Per Wallet:</span>
-                  <span className="text-white font-bold">5 Desks</span>
+                  <span className="text-white font-bold">10 Desks</span>
                 </div>
                 <div className="flex justify-between text-gray-400">
                   <span>Max Boosts Per Desk:</span>
