@@ -14,12 +14,17 @@ import "./interfaces/IApeBrokerLuckyDraw.sol";
  * @notice Production-grade Lucky Draw protocol on Robinhood EVM for Ape Broker NFT holders.
  * @dev Separate contract from Desk activations and staking.
  *
- * Core Guarantees:
- * - NFT Gated: Only Ape Broker NFT holders can buy tickets.
- * - Dual Winner Selection: Secure on-chain Random mode or strictly validated Manual mode.
- * - In Manual mode, the contract enforces that the winner MUST hold >= 1 ticket in that draw.
- * - External Prize Fulfillment: Contract is the source of truth for who won; admin fulfills prize externally.
- * - Logical Fund Isolation: Ticket revenue is segregated from refundable funds and withdrawable only when valid.
+ * Core Protocol Principles:
+ * 1. NO AUTOMATIC REWARD DISTRIBUTIONS:
+ *    The contract does NOT automatically transfer or distribute prizes upon draw completion.
+ *    The contract ONLY manages ticket pricing in $APEBROKE, ticket sales, and winner selection.
+ * 2. ADMIN DIRECT PRIZE DELIVERY:
+ *    Upon draw completion, the contract permanently records the official winner address on-chain.
+ *    The admin can see the winner's address and details, and directly delivers the prize to the winner
+ *    (via direct external transfer, wallet send, or physical shipping) then updates fulfillment proofs on-chain.
+ * 3. NFT GATED: Only verified Ape Broker NFT holders can participate in draws.
+ * 4. DUAL WINNER SELECTION: Secure Random on-chain draw OR strictly verified Manual pick (must hold >= 1 ticket).
+ * 5. 100% CLAIMABLE TICKET REVENUE: All $APEBROKE collected from ticket fees is withdrawable by the admin.
  */
 contract ApeBrokerLuckyDraw is IApeBrokerLuckyDraw, Ownable2Step, ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;

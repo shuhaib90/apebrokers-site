@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { formatEther } from 'viem';
+import { formatEther, parseEther } from 'viem';
+import { useWalletClient, usePublicClient } from 'wagmi';
 import { sound } from '../../utils/audio';
 import confetti from 'canvas-confetti';
 import { useEthPrice } from '../../hooks/useEthPrice';
@@ -53,6 +54,103 @@ export function LuckyDrawAdminDashboard({
 
   // Prize Status Update State
   const [fulfillmentInputs, setFulfillmentInputs] = useState({});
+
+  // Direct Send / Copy State
+  const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient();
+  const [copiedAddress, setCopiedAddress] = useState(null);
+
+  const handleCopyAddress = (addr) => {
+    if (!addr) return;
+    navigator.clipboard.writeText(addr);
+    setCopiedAddress(addr);
+    sound?.playClick?.();
+    setTimeout(() => setCopiedAddress(null), 2500);
+  };
+
+  // Direct Send Crypto Modal State
+  const [directSendModal, setDirectSendModal] = useState({
+    isOpen: false,
+    drawId: null,
+    winnerAddress: '',
+    drawTitle: '',
+    prizeDescription: '',
+    amount: '',
+    assetType: 'ETH', // 'ETH' | 'APEBROKE'
+    isSending: false,
+  });
+
+  const handleDirectSendCryptoSubmit = async (e) => {
+    e?.preventDefault?.();
+    if (!walletClient) {
+      alert('Admin wallet not connected.');
+      return;
+    }
+    const { winnerAddress, amount, assetType, drawId } = directSendModal;
+    if (!winnerAddress || !amount || Number(amount) <= 0) {
+      alert('Please enter a valid amount.');
+      return;
+    }
+
+    if (!confirm(`Send ${amount} ${assetType} directly from your admin wallet to winner ${winnerAddress}?`)) {
+      return;
+    }
+
+    sound?.playClick?.();
+    setDirectSendModal((prev) => ({ ...prev, isSending: true }));
+    try {
+      let txHash = '';
+      if (assetType === 'ETH') {
+        txHash = await walletClient.sendTransaction({
+          to: winnerAddress,
+          value: parseEther(amount),
+        });
+      } else {
+        // Transfer $APEBROKE token
+        txHash = await walletClient.writeContract({
+          address: '0xe0F384ebCede975342c5431aCad515b4A1B862cc',
+          abi: [
+            {
+              name: 'transfer',
+              type: 'function',
+              stateMutability: 'nonpayable',
+              inputs: [
+                { name: 'to', type: 'address' },
+                { name: 'amount', type: 'uint256' },
+              ],
+              outputs: [{ name: '', type: 'bool' }],
+            },
+          ],
+          functionName: 'transfer',
+          args: [winnerAddress, parseEther(amount)],
+        });
+      }
+
+      if (publicClient && txHash) {
+        await publicClient.waitForTransactionReceipt({ hash: txHash });
+      }
+
+      // Automatically update prize status to PRIZE SENT with txHash proof on-chain
+      await onUpdatePrizeStatus(drawId, 2, txHash);
+      sound?.playSuccess?.();
+      confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+      alert(`Success! ${amount} ${assetType} sent directly to winner. On-chain status updated to PRIZE SENT with tx hash proof: ${txHash}`);
+      setDirectSendModal({
+        isOpen: false,
+        drawId: null,
+        winnerAddress: '',
+        drawTitle: '',
+        prizeDescription: '',
+        amount: '',
+        assetType: 'ETH',
+        isSending: false,
+      });
+    } catch (err) {
+      sound?.playError?.();
+      alert('Direct send failed: ' + (err.shortMessage || err.message));
+      setDirectSendModal((prev) => ({ ...prev, isSending: false }));
+    }
+  };
 
   // Image upload handler
   const handleImageFileChange = (e) => {
@@ -705,6 +803,17 @@ export function LuckyDrawAdminDashboard({
             </span>
           </div>
 
+          {/* Explicit Architecture Principle Banner */}
+          <div className="bg-[#190938] border-2 border-amber-500 rounded-xl p-4 space-y-1.5 font-mono shadow-[3px_3px_0px_#000]">
+            <div className="flex items-center gap-2 text-amber-300 font-bold text-xs sm:text-sm">
+              <span className="text-base">📢</span>
+              <span>ADMIN DIRECT PRIZE DELIVERY — NO CONTRACT AUTO-DISTRIBUTIONS</span>
+            </div>
+            <p className="text-gray-300 text-[11px] leading-relaxed">
+              <strong>Protocol Architecture:</strong> The Lucky Draw smart contract <em>only manages ticket pricing and conducts the draw</em>. It does <strong>not automatically send rewards</strong> to winners. As the admin, you can see each winner's address and details below, and <strong>directly send the prize</strong> to their wallet or dispatch physical goods, then record the transaction hash or tracking code on-chain.
+            </p>
+          </div>
+
           {completedDraws.length === 0 ? (
             <div className="bg-[#12072e] border-2 border-purple-900 p-8 rounded-xl text-center font-mono text-gray-400">
               No completed draws yet. Once a winner is drawn, their fulfillment card will appear here.
@@ -751,15 +860,35 @@ export function LuckyDrawAdminDashboard({
                     {/* Winner Details Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-black/40 p-3.5 rounded-lg border border-purple-900/40">
                       <div>
-                        <div className="text-[9px] text-gray-400 uppercase">WINNER WALLET</div>
-                        <div className="text-[#00FF66] font-bold font-mono break-all mt-0.5">
+                        <div className="text-[9px] text-gray-400 uppercase flex items-center justify-between">
+                          <span>WINNER WALLET</span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyAddress(draw.winner)}
+                            className="text-[9px] font-bold text-[#00FF66] hover:underline flex items-center gap-1"
+                          >
+                            {copiedAddress === draw.winner ? '✓ COPIED!' : '📋 COPY'}
+                          </button>
+                        </div>
+                        <div className="text-[#00FF66] font-bold font-mono break-all mt-0.5 select-all">
                           {draw.winner}
                         </div>
-                        {draw.winningTicketId > 0 && (
-                          <div className="text-[9px] text-gray-400">
-                            Winning Ticket: #{draw.winningTicketId}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 mt-1 text-[9px] text-gray-400">
+                          {draw.winningTicketId > 0 ? (
+                            <span>Winning Ticket: #{draw.winningTicketId}</span>
+                          ) : (
+                            <span className="text-amber-300">Ticket Holder Selected</span>
+                          )}
+                          <span>•</span>
+                          <a
+                            href={`https://explorer.testnet.robinhood.com/address/${draw.winner}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-cyan-400 hover:underline"
+                          >
+                            Explorer ↗
+                          </a>
+                        </div>
                       </div>
 
                       <div>
@@ -773,48 +902,78 @@ export function LuckyDrawAdminDashboard({
                       </div>
 
                       <div>
-                        <div className="text-[9px] text-gray-400 uppercase">PROOF / TRACKING</div>
+                        <div className="text-[9px] text-gray-400 uppercase">DELIVERY PROOF / TRACKING</div>
                         <div className="text-cyan-300 font-mono break-all mt-0.5">
                           {draw.prizeFulfillmentProof || 'No proof recorded yet'}
                         </div>
                       </div>
                     </div>
 
-                    {/* Status Update Controls */}
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2">
-                      <div className="flex items-center gap-2 flex-1">
-                        <span className="text-[10px] text-gray-400 uppercase shrink-0">
-                          UPDATE PIPELINE:
-                        </span>
+                    {/* Direct Admin Delivery Controls */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-purple-900/60">
+                      {/* Direct Send Button */}
+                      <div className="flex items-center gap-2">
+                        {(draw.prizeCategory === 1 || draw.prizeCategory === 2) ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              sound?.playClick?.();
+                              setDirectSendModal({
+                                isOpen: true,
+                                drawId: draw.drawId,
+                                winnerAddress: draw.winner,
+                                drawTitle: draw.title,
+                                prizeDescription: draw.prizeDescription,
+                                amount: '',
+                                assetType: draw.prizeCategory === 1 ? 'ETH' : 'APEBROKE',
+                                isSending: false,
+                              });
+                            }}
+                            className="pixel-btn pixel-btn-vibrant-lime px-3 py-1.5 text-[10px] font-bold rounded flex items-center gap-1.5 shadow-[2px_2px_0px_#000]"
+                            title="Directly transfer crypto prize from admin wallet to winner"
+                          >
+                            <span>💸</span>
+                            <span>DIRECT SEND {draw.prizeCategory === 1 ? 'ETH' : '$APEBROKE'} TO WINNER</span>
+                          </button>
+                        ) : (
+                          <div className="px-2.5 py-1 text-[10px] text-amber-300 bg-amber-950/40 border border-amber-700/60 rounded flex items-center gap-1">
+                            <span>📦</span>
+                            <span>Direct Physical / Courier Delivery</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Status Update & Tracking Proof */}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 sm:justify-end">
                         <select
                           value={currentStatus}
                           onChange={(e) => handleStatusUpdate(draw.drawId, e.target.value)}
                           className="px-2.5 py-1.5 rounded bg-black/80 border border-purple-700 text-xs text-white focus:outline-none"
                         >
-                          <option value={0}>0 - Pending Fulfillment</option>
+                          <option value={0}>0 - Pending Direct Delivery</option>
                           <option value={1}>1 - Winner Contacted</option>
-                          <option value={2}>2 - Prize Sent / Shipped</option>
-                          <option value={3}>3 - Completed & Received</option>
+                          <option value={2}>2 - Prize Sent / Dispatched</option>
+                          <option value={3}>3 - Completed & Confirmed</option>
                         </select>
-                      </div>
 
-                      <div className="flex items-center gap-2 flex-1">
-                        <input
-                          type="text"
-                          placeholder="Tracking #, FedEx/USPS, or Tx Hash"
-                          value={fulfillmentInputs[draw.drawId] || ''}
-                          onChange={(e) =>
-                            setFulfillmentInputs({ ...fulfillmentInputs, [draw.drawId]: e.target.value })
-                          }
-                          className="w-full px-2.5 py-1.5 text-xs rounded bg-black/80 border border-purple-700 text-white focus:outline-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleStatusUpdate(draw.drawId, currentStatus)}
-                          className="pixel-btn pixel-btn-vibrant-lime px-3 py-1.5 text-[10px] font-bold shrink-0 rounded"
-                        >
-                          SAVE
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            placeholder="Tracking # or Tx Hash"
+                            value={fulfillmentInputs[draw.drawId] || ''}
+                            onChange={(e) =>
+                              setFulfillmentInputs({ ...fulfillmentInputs, [draw.drawId]: e.target.value })
+                            }
+                            className="w-44 px-2.5 py-1.5 text-xs rounded bg-black/80 border border-purple-700 text-white focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleStatusUpdate(draw.drawId, currentStatus)}
+                            className="pixel-btn pixel-btn-vibrant-gold px-3 py-1.5 text-[10px] font-bold shrink-0 rounded"
+                          >
+                            SAVE PROOF
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -960,6 +1119,119 @@ export function LuckyDrawAdminDashboard({
                 className="pixel-btn pixel-btn-vibrant-lime px-4 py-2 text-xs font-bold rounded"
               >
                 [ UPDATE TICKET FEE ]
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Direct Send Crypto Prize Modal */}
+      {directSendModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+          <div className="relative w-full max-w-md bg-[#12072e] border-3 border-[#00FF66] rounded-xl p-5 shadow-[0_0_30px_rgba(0,255,102,0.3)] space-y-4 font-mono text-white">
+            <div className="flex items-center justify-between border-b border-purple-800 pb-3">
+              <h3 className="text-xs sm:text-sm font-bold text-[#00FF66] font-pixel flex items-center gap-2">
+                <span>💸</span>
+                <span>DIRECT SEND PRIZE TO WINNER</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() =>
+                  setDirectSendModal({
+                    isOpen: false,
+                    drawId: null,
+                    winnerAddress: '',
+                    drawTitle: '',
+                    prizeDescription: '',
+                    amount: '',
+                    assetType: 'ETH',
+                    isSending: false,
+                  })
+                }
+                className="text-gray-400 hover:text-white text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="bg-[#170a36] border border-[#00FF66]/50 p-2.5 rounded text-[10px] text-green-200">
+                ✅ <strong>Direct Fulfillment:</strong> You are transferring the prize directly from your admin wallet to the winner address. Once confirmed, the transaction hash will automatically be recorded as on-chain proof and status updated to <strong>PRIZE SENT</strong>.
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[10px] text-gray-400 uppercase">Draw Title:</span>
+                <div className="font-bold text-white text-xs">{directSendModal.drawTitle}</div>
+                <div className="text-[10px] text-gray-300">Prize: {directSendModal.prizeDescription}</div>
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-bold mb-1 text-[10px] uppercase">
+                  Winner Recipient Address:
+                </label>
+                <div className="w-full px-3 py-2 rounded bg-black/80 border border-purple-700 text-xs text-[#00FF66] font-mono break-all select-all">
+                  {directSendModal.winnerAddress}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-bold mb-1 text-[10px] uppercase">
+                    Asset Type:
+                  </label>
+                  <select
+                    value={directSendModal.assetType}
+                    onChange={(e) => setDirectSendModal({ ...directSendModal, assetType: e.target.value })}
+                    className="w-full px-3 py-2 rounded bg-black/80 border border-purple-700 text-xs text-white focus:outline-none"
+                  >
+                    <option value="ETH">Native ETH</option>
+                    <option value="APEBROKE">$APEBROKE Tokens</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-bold mb-1 text-[10px] uppercase">
+                    Prize Amount to Send:
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0.0001"
+                    placeholder="e.g. 0.5 or 100000"
+                    value={directSendModal.amount}
+                    onChange={(e) => setDirectSendModal({ ...directSendModal, amount: e.target.value })}
+                    className="w-full px-3 py-2 rounded bg-black/80 border border-purple-700 text-xs text-white focus:outline-none focus:border-[#00FF66]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-purple-800">
+              <button
+                type="button"
+                onClick={() =>
+                  setDirectSendModal({
+                    isOpen: false,
+                    drawId: null,
+                    winnerAddress: '',
+                    drawTitle: '',
+                    prizeDescription: '',
+                    amount: '',
+                    assetType: 'ETH',
+                    isSending: false,
+                  })
+                }
+                className="px-3 py-2 text-xs text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={directSendModal.isSending}
+                onClick={handleDirectSendCryptoSubmit}
+                className="pixel-btn pixel-btn-vibrant-lime px-4 py-2 text-xs font-bold rounded disabled:opacity-50"
+              >
+                {directSendModal.isSending ? '[ SENDING VIA WALLET... ]' : `[ 🚀 SEND ${directSendModal.assetType} TO WINNER ]`}
               </button>
             </div>
           </div>

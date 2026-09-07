@@ -450,9 +450,13 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                             {draw.prizeStatus === 3 ? '✓ COMPLETED' : draw.prizeStatus === 2 ? 'PRIZE SENT' : 'IN PROGRESS'}
                           </span>
                         </div>
+                        <div className="text-[10px] text-gray-400 pt-1 border-t border-purple-900/40 flex justify-between items-center">
+                          <span>Prize Delivery:</span>
+                          <span className="text-[#FFD700] font-bold">Direct Admin Delivery</span>
+                        </div>
                         {draw.prizeFulfillmentProof && (
                           <div className="text-[10px] text-gray-400 pt-1 border-t border-purple-900/40">
-                            Proof: <span className="text-cyan-300 break-all">{draw.prizeFulfillmentProof}</span>
+                            Delivery Proof: <span className="text-cyan-300 break-all">{draw.prizeFulfillmentProof}</span>
                           </div>
                         )}
                       </div>
