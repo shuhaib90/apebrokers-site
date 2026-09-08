@@ -3,6 +3,7 @@ import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { formatEther, parseEther, maxUint256 } from 'viem';
 import luckyDrawDeployConfig from '../config/apeBrokerLuckyDraw.json';
 import { APEBROKE_TOKEN_ADDRESS, APE_BROKER_NFT_ADDRESS, ADMIN_ADDRESS } from './useApeBrokerDesk';
+import { supabase } from '../utils/supabase';
 
 export const LUCKY_DRAW_CONTRACT_ADDRESS =
   import.meta.env.VITE_LUCKY_DRAW_CONTRACT_ADDRESS ||
@@ -48,6 +49,84 @@ const ERC721_ABI = [
     outputs: [{ type: 'uint256' }],
   },
 ];
+
+// Clean error message formatter for human-readable wallet and on-chain errors
+export function formatWeb3Error(err) {
+  if (!err) return 'Transaction failed.';
+  if (typeof err === 'string') return err;
+  if (err.shortMessage) return err.shortMessage;
+  if (err.cause?.shortMessage) return err.cause.shortMessage;
+  if (err.message) {
+    if (
+      err.message.includes('User rejected') ||
+      err.message.includes('user rejected') ||
+      err.message.includes('rejected the request')
+    ) {
+      return 'Transaction was rejected in your wallet.';
+    }
+    if (err.message.includes('payload too large') || err.message.includes('Payload Too Large')) {
+      return 'RPC error: Payload too large. Image stored off-chain.';
+    }
+    if (err.message.includes('insufficient funds')) {
+      return 'Insufficient ETH gas funds to execute transaction.';
+    }
+    return err.message.split('\n')[0].replace(/^Error:\s*/, '').substring(0, 160);
+  }
+  return 'Transaction failed on-chain.';
+}
+
+const DRAW_IMAGES_KEY = 'apebroker_draw_images';
+
+// Save draw image off-chain in Supabase and local cache
+export async function saveDrawImageOffchain(drawId, imageUrl) {
+  if (!drawId || !imageUrl) return;
+  const idStr = String(drawId);
+  try {
+    const local = JSON.parse(localStorage.getItem(DRAW_IMAGES_KEY) || '{}');
+    local[idStr] = imageUrl;
+    localStorage.setItem(DRAW_IMAGES_KEY, JSON.stringify(local));
+  } catch (e) {}
+
+  try {
+    const { data } = await supabase
+      .from('apebrokers_settings')
+      .select('value')
+      .eq('key', 'lucky_draw_metadata')
+      .single();
+    const current = (data && data.value && data.value.images) ? data.value.images : {};
+    current[idStr] = imageUrl;
+    await supabase.from('apebrokers_settings').upsert({
+      key: 'lucky_draw_metadata',
+      value: { images: current },
+      updated_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn('Could not sync draw image to Supabase:', err);
+  }
+}
+
+// Load all draw images from Supabase and local cache
+export async function loadDrawImagesOffchain() {
+  let map = {};
+  try {
+    map = JSON.parse(localStorage.getItem(DRAW_IMAGES_KEY) || '{}');
+  } catch (e) {}
+
+  try {
+    const { data } = await supabase
+      .from('apebrokers_settings')
+      .select('value')
+      .eq('key', 'lucky_draw_metadata')
+      .single();
+    if (data && data.value && data.value.images) {
+      map = { ...map, ...data.value.images };
+      try {
+        localStorage.setItem(DRAW_IMAGES_KEY, JSON.stringify(map));
+      } catch (e) {}
+    }
+  } catch (err) {}
+  return map;
+}
 
 // No default demo draws - all draws are dynamically loaded from Robinhood EVM
 const DEFAULT_SAMPLE_DRAWS = [];
@@ -129,10 +208,24 @@ export function useApeBrokerLuckyDraw() {
     }
   }, [address, publicClient]);
 
-  // Load Draws from On-Chain Contract or Local Storage Cache
+  // Load Draws from On-Chain Contract & merge with off-chain images
   const fetchDraws = useCallback(async () => {
     setIsLoading(true);
     let onChainLoaded = false;
+
+    // Load off-chain images
+    const drawImages = await loadDrawImagesOffchain();
+
+    // Read deleted IDs and metadata overrides
+    let deletedIds = [];
+    try {
+      deletedIds = JSON.parse(localStorage.getItem('apebroker_deleted_draw_ids') || '[]');
+    } catch (e) {}
+
+    let overrides = {};
+    try {
+      overrides = JSON.parse(localStorage.getItem('apebroker_draw_metadata_overrides') || '{}');
+    } catch (e) {}
 
     if (publicClient && LUCKY_DRAW_CONTRACT_ADDRESS) {
       try {
@@ -162,48 +255,59 @@ export function useApeBrokerLuckyDraw() {
           const rawResults = await Promise.all(drawPromises);
           const validDraws = rawResults
             .filter((d) => d !== null && d.drawId > 0n)
-            .map((d) => ({
-              drawId: Number(d.drawId),
-              title: d.title,
-              prizeDescription: d.prizeDescription,
-              prizeCategory: Number(d.prizeCategory),
-              imageUrl: d.imageUrl || 'https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=1200&q=80',
-              ticketPriceApe: d.ticketPriceApe,
-              maxTickets: Number(d.maxTickets),
-              maxTicketsPerWallet: Number(d.maxTicketsPerWallet),
-              minNftRequired: Number(d.minNftRequired),
-              startTime: Number(d.startTime),
-              endTime: Number(d.endTime),
-              status: Number(d.status),
-              totalTicketsSold: Number(d.totalTicketsSold),
-              totalRevenueCollected: d.totalRevenueCollected,
-              selectionMode: Number(d.selectionMode),
-              winnerCount: Number(d.winnerCount || 1),
-              winner: d.winner,
-              winners: Array.isArray(d.winners) && d.winners.length > 0
-                ? d.winners
-                : (d.winner && d.winner !== '0x0000000000000000000000000000000000000000' ? [d.winner] : []),
-              winningTicketId: Number(d.winningTicketId || 0),
-              winningTicketIds: Array.isArray(d.winningTicketIds) ? d.winningTicketIds.map(Number) : [],
-              selectedTimestamp: Number(d.selectedTimestamp),
-              selectedByAdmin: d.selectedByAdmin,
-              prizeStatus: Number(d.prizeStatus),
-              prizeFulfillmentProof: d.prizeFulfillmentProof,
-              revenueWithdrawn: d.revenueWithdrawn,
-            }));
+            .map((d) => {
+              const id = Number(d.drawId);
+              const ov = overrides[String(id)] || {};
+              const resolvedImage =
+                drawImages[String(id)] ||
+                ov.imageUrl ||
+                d.imageUrl ||
+                'https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=1200&q=80';
 
-          if (validDraws.length > 0) {
-            setDraws(validDraws);
-            setTotalDraws(validDraws.length);
-            onChainLoaded = true;
-          } else {
-            setDraws([]);
-            setTotalDraws(0);
-            onChainLoaded = true;
-            try {
-              localStorage.removeItem('apebroker_lucky_draws_cache');
-            } catch (e) {}
-          }
+              return {
+                drawId: id,
+                title: ov.title || d.title,
+                prizeDescription: ov.prizeDescription || d.prizeDescription,
+                prizeCategory: ov.prizeCategory !== undefined ? Number(ov.prizeCategory) : Number(d.prizeCategory),
+                imageUrl: resolvedImage,
+                ticketPriceApe: ov.ticketPriceApe ? parseEther(String(ov.ticketPriceApe)) : d.ticketPriceApe,
+                maxTickets: ov.maxTickets !== undefined ? Number(ov.maxTickets) : Number(d.maxTickets),
+                maxTicketsPerWallet: ov.maxTicketsPerWallet !== undefined ? Number(ov.maxTicketsPerWallet) : Number(d.maxTicketsPerWallet),
+                minNftRequired: ov.minNftRequired !== undefined ? Number(ov.minNftRequired) : Number(d.minNftRequired),
+                startTime: Number(d.startTime),
+                endTime: Number(d.endTime),
+                status: ov.status !== undefined ? Number(ov.status) : Number(d.status),
+                totalTicketsSold: Number(d.totalTicketsSold),
+                totalRevenueCollected: d.totalRevenueCollected,
+                selectionMode: Number(d.selectionMode),
+                winnerCount: Number(d.winnerCount || 1),
+                winner: d.winner,
+                winners: Array.isArray(d.winners) && d.winners.length > 0
+                  ? d.winners
+                  : (d.winner && d.winner !== '0x0000000000000000000000000000000000000000' ? [d.winner] : []),
+                winningTicketId: Number(d.winningTicketId || 0),
+                winningTicketIds: Array.isArray(d.winningTicketIds) ? d.winningTicketIds.map(Number) : [],
+                selectedTimestamp: Number(d.selectedTimestamp),
+                selectedByAdmin: d.selectedByAdmin,
+                prizeStatus: Number(d.prizeStatus),
+                prizeFulfillmentProof: d.prizeFulfillmentProof,
+                revenueWithdrawn: d.revenueWithdrawn,
+                noDeadline: Boolean(ov.noDeadline),
+              };
+            });
+
+          const nonDeleted = validDraws.filter((d) => !deletedIds.includes(d.drawId));
+
+          setDraws(nonDeleted);
+          setTotalDraws(nonDeleted.length);
+          onChainLoaded = true;
+
+          try {
+            localStorage.setItem(
+              'apebroker_lucky_draws_cache',
+              JSON.stringify(nonDeleted, (k, v) => (typeof v === 'bigint' ? v.toString() : v))
+            );
+          } catch (e) {}
 
           // Read available unwithdrawn ticket revenue
           const unwithdrawn = await publicClient
@@ -219,41 +323,30 @@ export function useApeBrokerLuckyDraw() {
           setDraws([]);
           setTotalDraws(0);
           onChainLoaded = true;
-          try {
-            localStorage.removeItem('apebroker_lucky_draws_cache');
-          } catch (e) {}
         }
       } catch (err) {
         console.warn('Could not query on-chain lucky draw contract:', err.message);
       }
     }
 
-    // If on-chain draws were empty or contract not yet deployed, load from localStorage fallback
+    // If on-chain query failed, load from cached draws if any
     if (!onChainLoaded) {
       try {
         const cached = localStorage.getItem('apebroker_lucky_draws_cache');
         if (cached) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed)) {
-            // Strictly exclude old mock demo draws
-            const cleaned = parsed.filter((d) =>
-              d &&
-              !d.title?.includes('Sony PlayStation') &&
-              !d.title?.includes('Syndicate Miner') &&
-              !d.title?.includes('Whale Stash')
-            );
-            if (cleaned.length > 0) {
-              setDraws(cleaned.map(d => ({ ...d, ticketPriceApe: BigInt(d.ticketPriceApe || 0), totalRevenueCollected: BigInt(d.totalRevenueCollected || 0) })));
-              setTotalDraws(cleaned.length);
-            } else {
-              setDraws([]);
-              setTotalDraws(0);
-              localStorage.removeItem('apebroker_lucky_draws_cache');
-            }
+            const cleaned = parsed
+              .filter((d) => d && !deletedIds.includes(d.drawId))
+              .map((d) => ({
+                ...d,
+                imageUrl: drawImages[String(d.drawId)] || d.imageUrl,
+                ticketPriceApe: BigInt(d.ticketPriceApe || 0),
+                totalRevenueCollected: BigInt(d.totalRevenueCollected || 0),
+              }));
+            setDraws(cleaned);
+            setTotalDraws(cleaned.length);
           }
-        } else {
-          setDraws([]);
-          setTotalDraws(0);
         }
       } catch (e) {}
     }
@@ -278,21 +371,28 @@ export function useApeBrokerLuckyDraw() {
       throw new Error('Insufficient ETH for network gas fee on Robinhood EVM.');
     }
 
-    const tx = await walletClient.writeContract({
-      address: APEBROKE_TOKEN_ADDRESS,
-      abi: ERC20_ABI,
-      functionName: 'approve',
-      args: [LUCKY_DRAW_CONTRACT_ADDRESS, amount],
-    });
+    try {
+      const tx = await walletClient.writeContract({
+        address: APEBROKE_TOKEN_ADDRESS,
+        abi: ERC20_ABI,
+        functionName: 'approve',
+        args: [LUCKY_DRAW_CONTRACT_ADDRESS, amount],
+      });
 
-    if (publicClient) {
-      await publicClient.waitForTransactionReceipt({ hash: tx });
+      if (publicClient) {
+        const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+        if (receipt.status !== 'success') {
+          throw new Error('Approval transaction reverted on-chain.');
+        }
+      }
+      await fetchUserData();
+      return tx;
+    } catch (err) {
+      throw new Error(formatWeb3Error(err));
     }
-    await fetchUserData();
-    return tx;
   };
 
-  // Action: Buy Tickets
+  // Action: Buy Tickets (Fully On-Chain Verified)
   const buyTickets = async (drawId, ticketCount) => {
     if (!walletClient || !address) throw new Error('Wallet not connected.');
     if (!userBalances.isEligible) {
@@ -307,51 +407,36 @@ export function useApeBrokerLuckyDraw() {
       throw new Error(`Insufficient $APEBROKE balance. Required: ${Number(formatEther(totalCost)).toLocaleString()} $APE`);
     }
 
-    // Try executing on-chain
-    let txHash = '';
     try {
-      txHash = await walletClient.writeContract({
+      const txHash = await walletClient.writeContract({
         address: LUCKY_DRAW_CONTRACT_ADDRESS,
         abi: luckyDrawDeployConfig.abi,
         functionName: 'buyTickets',
         args: [BigInt(drawId), BigInt(ticketCount)],
       });
+
       if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
-      }
-    } catch (onChainErr) {
-      console.warn('On-chain buyTickets fallback to local state:', onChainErr.message);
-      txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-    }
-
-    // Update state & localStorage cache
-    setDraws((prev) => {
-      const updated = prev.map((d) => {
-        if (d.drawId === drawId) {
-          return {
-            ...d,
-            totalTicketsSold: d.totalTicketsSold + ticketCount,
-            totalRevenueCollected: d.totalRevenueCollected + totalCost,
-          };
+        const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+        if (receipt.status !== 'success') {
+          throw new Error('Ticket purchase transaction reverted on-chain.');
         }
-        return d;
-      });
-      try {
-        localStorage.setItem('apebroker_lucky_draws_cache', JSON.stringify(updated, (k, v) => typeof v === 'bigint' ? v.toString() : v));
-      } catch (e) {}
-      return updated;
-    });
+      }
 
-    setUserTicketsByDraw((prev) => ({
-      ...prev,
-      [drawId]: (prev[drawId] || 0) + ticketCount,
-    }));
+      await fetchDraws();
+      await fetchUserData();
 
-    await fetchUserData();
-    return { hash: txHash };
+      setUserTicketsByDraw((prev) => ({
+        ...prev,
+        [drawId]: (prev[drawId] || 0) + ticketCount,
+      }));
+
+      return { hash: txHash };
+    } catch (err) {
+      throw new Error(formatWeb3Error(err));
+    }
   };
 
-  // Admin Action: Create Draw
+  // Admin Action: Create Draw (No large image in contract payload, verified on-chain)
   const adminCreateDraw = async (drawData) => {
     if (!walletClient || !address) throw new Error('Wallet not connected.');
 
@@ -361,6 +446,9 @@ export function useApeBrokerLuckyDraw() {
 
     let txHash = '';
     try {
+      // NOTE: "no need to depoly image on contracte"
+      // Sending imageUrl as '' keeps the payload tiny (a few hundred bytes),
+      // completely eliminating "payload too large" error from Rabby / Ethereum RPC!
       txHash = await walletClient.writeContract({
         address: LUCKY_DRAW_CONTRACT_ADDRESS,
         abi: luckyDrawDeployConfig.abi,
@@ -370,7 +458,7 @@ export function useApeBrokerLuckyDraw() {
             title: drawData.title,
             prizeDescription: drawData.prizeDescription,
             prizeCategory: Number(drawData.prizeCategory || 0),
-            imageUrl: drawData.imageUrl || '',
+            imageUrl: '', // EMPTY: Never deploy base64 or heavy image bytes to contract!
             ticketPriceApe: ticketPriceWei,
             maxTickets: BigInt(drawData.maxTickets || 0),
             maxTicketsPerWallet: BigInt(drawData.maxTicketsPerWallet || 0),
@@ -380,53 +468,54 @@ export function useApeBrokerLuckyDraw() {
           },
         ],
       });
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
-      }
     } catch (err) {
-      console.warn('On-chain createDraw error:', err.message);
-      txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      throw new Error(formatWeb3Error(err));
     }
 
-    const newDraw = {
-      drawId: draws.length + 1,
-      title: drawData.title,
-      prizeDescription: drawData.prizeDescription,
-      prizeCategory: Number(drawData.prizeCategory || 0),
-      imageUrl: drawData.imageUrl || 'https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=1200&q=80',
-      ticketPriceApe: ticketPriceWei,
-      maxTickets: Number(drawData.maxTickets || 0),
-      maxTicketsPerWallet: Number(drawData.maxTicketsPerWallet || 0),
-      minNftRequired: Number(drawData.minNftRequired || 1),
-      durationDays: isNoDead ? 3650 : Number(drawData.durationDays || 2),
-      noDeadline: isNoDead,
-      startTime: Math.floor(Date.now() / 1000),
-      endTime: Math.floor(Date.now() / 1000) + durationSec,
-      status: 0,
-      totalTicketsSold: 0,
-      totalRevenueCollected: 0n,
-      selectionMode: 0,
-      winnerCount: Number(drawData.winnerCount || 1),
-      winner: '0x0000000000000000000000000000000000000000',
-      winners: [],
-      winningTicketId: 0,
-      winningTicketIds: [],
-      selectedTimestamp: 0,
-      selectedByAdmin: '0x0000000000000000000000000000000000000000',
-      prizeStatus: 0,
-      prizeFulfillmentProof: '',
-      revenueWithdrawn: false,
-    };
+    // Wait for on-chain receipt & verify success
+    if (publicClient) {
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      if (receipt.status !== 'success') {
+        throw new Error('Create Draw transaction reverted on-chain.');
+      }
+    }
 
-    setDraws((prev) => {
-      const next = [newDraw, ...prev];
+    // Query on-chain count to identify the new draw ID
+    let newDrawId = draws.length + 1;
+    if (publicClient) {
       try {
-        localStorage.setItem('apebroker_lucky_draws_cache', JSON.stringify(next, (k, v) => typeof v === 'bigint' ? v.toString() : v));
+        const count = await publicClient.readContract({
+          address: LUCKY_DRAW_CONTRACT_ADDRESS,
+          abi: luckyDrawDeployConfig.abi,
+          functionName: 'totalDrawsCount',
+        });
+        if (count && count > 0n) {
+          newDrawId = Number(count);
+        }
       } catch (e) {}
-      return next;
-    });
+    }
 
-    return { hash: txHash, draw: newDraw };
+    // Save image off-chain in Supabase & localStorage so all users see it
+    if (drawData.imageUrl) {
+      await saveDrawImageOffchain(newDrawId, drawData.imageUrl);
+    }
+
+    // If no-deadline was selected, record metadata override
+    if (isNoDead) {
+      try {
+        const overrides = JSON.parse(localStorage.getItem('apebroker_draw_metadata_overrides') || '{}');
+        overrides[String(newDrawId)] = {
+          ...overrides[String(newDrawId)],
+          noDeadline: true,
+        };
+        localStorage.setItem('apebroker_draw_metadata_overrides', JSON.stringify(overrides));
+      } catch (e) {}
+    }
+
+    // Refresh draws from blockchain
+    await fetchDraws();
+
+    return { hash: txHash, drawId: newDrawId };
   };
 
   // Admin Action: Select Winner Randomly (Mode 1)
@@ -441,52 +530,22 @@ export function useApeBrokerLuckyDraw() {
         functionName: 'selectWinnerRandom',
         args: [BigInt(drawId)],
       });
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
-      }
     } catch (err) {
-      console.warn('On-chain selectWinnerRandom fallback:', err.message);
-      txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      throw new Error(formatWeb3Error(err));
     }
 
-    // Update draw status
-    setDraws((prev) => {
-      const updated = prev.map((d) => {
-        if (d.drawId === drawId) {
-          const sampleWinners = [
-            '0x12942981aF3C5E5e6003a46607B4560e6589146E',
-            '0x2A232D1ab1226b981c35DA8B477E337952B5486F',
-            '0xD706dafbDab3a7b69fc14E7CBe9b5008ca0f0A74',
-            '0x902801F504107E054D69A33f383e580a149CeCbb',
-            '0x7234E4c8b2E6bB3a5d89812C45b986F97Abe0633',
-          ];
-          const count = Math.min(d.winnerCount || 1, sampleWinners.length);
-          const picked = sampleWinners.slice(0, count);
-          return {
-            ...d,
-            status: 2, // WINNER_SELECTED
-            selectionMode: 1, // RANDOM
-            winner: picked[0],
-            winners: picked,
-            winningTicketId: Math.floor(Math.random() * (d.totalTicketsSold || 10)) + 1,
-            winningTicketIds: picked.map(() => Math.floor(Math.random() * (d.totalTicketsSold || 10)) + 1),
-            selectedTimestamp: Math.floor(Date.now() / 1000),
-            selectedByAdmin: address,
-            prizeStatus: 0, // PENDING
-          };
-        }
-        return d;
-      });
-      try {
-        localStorage.setItem('apebroker_lucky_draws_cache', JSON.stringify(updated, (k, v) => typeof v === 'bigint' ? v.toString() : v));
-      } catch (e) {}
-      return updated;
-    });
+    if (publicClient) {
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      if (receipt.status !== 'success') {
+        throw new Error('Select winner transaction reverted on-chain.');
+      }
+    }
 
+    await fetchDraws();
     return { hash: txHash };
   };
 
-  // Admin Action: Select Multiple Winners Manually (Mode 2 - Gated to valid ticket holders)
+  // Admin Action: Select Multiple Winners Manually (Mode 2)
   const adminSelectWinnersManual = async (drawId, winnersArray) => {
     if (!walletClient || !address) throw new Error('Wallet not connected.');
     if (!winnersArray || !Array.isArray(winnersArray) || winnersArray.length === 0) {
@@ -501,38 +560,18 @@ export function useApeBrokerLuckyDraw() {
         functionName: 'selectWinnersManual',
         args: [BigInt(drawId), winnersArray],
       });
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
-      }
     } catch (err) {
-      console.warn('On-chain selectWinnersManual fallback:', err.message);
-      txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      throw new Error(formatWeb3Error(err));
     }
 
-    setDraws((prev) => {
-      const updated = prev.map((d) => {
-        if (d.drawId === drawId) {
-          return {
-            ...d,
-            status: 2, // WINNER_SELECTED
-            selectionMode: 2, // MANUAL
-            winner: winnersArray[0],
-            winners: winnersArray,
-            winningTicketId: 0,
-            winningTicketIds: new Array(winnersArray.length).fill(0),
-            selectedTimestamp: Math.floor(Date.now() / 1000),
-            selectedByAdmin: address,
-            prizeStatus: 0,
-          };
-        }
-        return d;
-      });
-      try {
-        localStorage.setItem('apebroker_lucky_draws_cache', JSON.stringify(updated, (k, v) => typeof v === 'bigint' ? v.toString() : v));
-      } catch (e) {}
-      return updated;
-    });
+    if (publicClient) {
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      if (receipt.status !== 'success') {
+        throw new Error('Manual winner selection reverted on-chain.');
+      }
+    }
 
+    await fetchDraws();
     return { hash: txHash };
   };
 
@@ -553,31 +592,18 @@ export function useApeBrokerLuckyDraw() {
         functionName: 'updatePrizeStatus',
         args: [BigInt(drawId), status, proofOrTx || ''],
       });
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
-      }
     } catch (err) {
-      console.warn('On-chain updatePrizeStatus fallback:', err.message);
-      txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      throw new Error(formatWeb3Error(err));
     }
 
-    setDraws((prev) => {
-      const updated = prev.map((d) => {
-        if (d.drawId === drawId) {
-          return {
-            ...d,
-            prizeStatus: status,
-            prizeFulfillmentProof: proofOrTx || d.prizeFulfillmentProof,
-          };
-        }
-        return d;
-      });
-      try {
-        localStorage.setItem('apebroker_lucky_draws_cache', JSON.stringify(updated, (k, v) => typeof v === 'bigint' ? v.toString() : v));
-      } catch (e) {}
-      return updated;
-    });
+    if (publicClient) {
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      if (receipt.status !== 'success') {
+        throw new Error('Update prize status transaction reverted on-chain.');
+      }
+    }
 
+    await fetchDraws();
     return { hash: txHash };
   };
 
@@ -593,22 +619,18 @@ export function useApeBrokerLuckyDraw() {
         functionName: 'claimAllTicketRevenue',
         args: [recipient],
       });
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
-      }
     } catch (err) {
-      console.warn('On-chain claimAllTicketRevenue fallback:', err.message);
-      txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      throw new Error(formatWeb3Error(err));
     }
 
-    setDraws((prev) => {
-      const updated = prev.map((d) => ({ ...d, revenueWithdrawn: true }));
-      try {
-        localStorage.setItem('apebroker_lucky_draws_cache', JSON.stringify(updated, (k, v) => typeof v === 'bigint' ? v.toString() : v));
-      } catch (e) {}
-      return updated;
-    });
+    if (publicClient) {
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      if (receipt.status !== 'success') {
+        throw new Error('Claim revenue transaction reverted on-chain.');
+      }
+    }
 
+    await fetchDraws();
     setAvailableTicketRevenue(0n);
     return { hash: txHash };
   };
@@ -626,36 +648,25 @@ export function useApeBrokerLuckyDraw() {
         functionName: 'setTicketPrice',
         args: [BigInt(drawId), priceWei],
       });
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
-      }
     } catch (err) {
-      console.warn('On-chain setTicketPrice fallback:', err.message);
-      txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      throw new Error(formatWeb3Error(err));
     }
 
-    setDraws((prev) => {
-      const updated = prev.map((d) => {
-        if (d.drawId === drawId) {
-          return {
-            ...d,
-            ticketPriceApe: priceWei,
-          };
-        }
-        return d;
-      });
-      try {
-        localStorage.setItem('apebroker_lucky_draws_cache', JSON.stringify(updated, (k, v) => typeof v === 'bigint' ? v.toString() : v));
-      } catch (e) {}
-      return updated;
-    });
+    if (publicClient) {
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      if (receipt.status !== 'success') {
+        throw new Error('Set ticket price reverted on-chain.');
+      }
+    }
 
+    await fetchDraws();
     return { hash: txHash };
   };
 
   // Admin Action: Cancel Draw
   const adminCancelDraw = async (drawId, reason = 'Cancelled by admin') => {
     if (!walletClient || !address) throw new Error('Wallet not connected.');
+
     let txHash = '';
     try {
       txHash = await walletClient.writeContract({
@@ -664,67 +675,65 @@ export function useApeBrokerLuckyDraw() {
         functionName: 'cancelDraw',
         args: [BigInt(drawId), reason],
       });
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
-      }
     } catch (err) {
-      console.warn('On-chain cancelDraw error:', err.message);
+      throw new Error(formatWeb3Error(err));
     }
 
-    setDraws((prev) => {
-      const updated = prev.map((d) => (d.drawId === drawId ? { ...d, status: 3 } : d));
-      try {
-        localStorage.setItem(
-          'apebroker_lucky_draws_cache',
-          JSON.stringify(updated, (k, v) => (typeof v === 'bigint' ? v.toString() : v))
-        );
-      } catch (e) {}
-      return updated;
-    });
+    if (publicClient) {
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      if (receipt.status !== 'success') {
+        throw new Error('Cancel draw reverted on-chain.');
+      }
+    }
 
+    await fetchDraws();
     return { success: true, hash: txHash };
   };
 
   // Admin Action: Delete Draw
   const adminDeleteDraw = async (drawId) => {
-    // Attempt on-chain cancel if active
-    if (walletClient && address) {
+    if (!walletClient || !address) throw new Error('Wallet not connected.');
+
+    const target = draws.find((d) => d.drawId === drawId);
+    let txHash = '';
+    if (target && (target.status === 0 || target.status === 1)) {
       try {
-        const target = draws.find((d) => d.drawId === drawId);
-        if (target && (target.status === 0 || target.status === 1)) {
-          const tx = await walletClient.writeContract({
-            address: LUCKY_DRAW_CONTRACT_ADDRESS,
-            abi: luckyDrawDeployConfig.abi,
-            functionName: 'cancelDraw',
-            args: [BigInt(drawId), 'Deleted by admin'],
-          });
-          if (publicClient) {
-            await publicClient.waitForTransactionReceipt({ hash: tx });
+        txHash = await walletClient.writeContract({
+          address: LUCKY_DRAW_CONTRACT_ADDRESS,
+          abi: luckyDrawDeployConfig.abi,
+          functionName: 'cancelDraw',
+          args: [BigInt(drawId), 'Deleted by admin'],
+        });
+        if (publicClient) {
+          const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+          if (receipt.status !== 'success') {
+            throw new Error('Cancel draw reverted on-chain.');
           }
         }
-      } catch (e) {
-        console.warn('On-chain cancel during delete warning:', e.message);
+      } catch (err) {
+        throw new Error(formatWeb3Error(err));
       }
     }
 
-    setDraws((prev) => {
-      const updated = prev.filter((d) => d.drawId !== drawId);
-      setTotalDraws(updated.length);
-      try {
-        localStorage.setItem(
-          'apebroker_lucky_draws_cache',
-          JSON.stringify(updated, (k, v) => (typeof v === 'bigint' ? v.toString() : v))
-        );
-      } catch (e) {}
-      return updated;
-    });
-    return { success: true };
+    // Save as deleted in local storage
+    try {
+      const deletedIds = JSON.parse(localStorage.getItem('apebroker_deleted_draw_ids') || '[]');
+      if (!deletedIds.includes(drawId)) {
+        deletedIds.push(drawId);
+        localStorage.setItem('apebroker_deleted_draw_ids', JSON.stringify(deletedIds));
+      }
+    } catch (e) {}
+
+    await fetchDraws();
+    return { success: true, hash: txHash };
   };
 
   // Admin Action: Edit Draw
   const adminEditDraw = async (drawId, updatedData) => {
+    if (!walletClient || !address) throw new Error('Wallet not connected.');
+
     // If ticket fee changed, update on-chain via setTicketPrice
-    if (walletClient && address && updatedData.ticketPriceApe) {
+    if (updatedData.ticketPriceApe) {
       const newPriceWei = parseEther(String(updatedData.ticketPriceApe));
       try {
         const tx = await walletClient.writeContract({
@@ -734,67 +743,32 @@ export function useApeBrokerLuckyDraw() {
           args: [BigInt(drawId), newPriceWei],
         });
         if (publicClient) {
-          await publicClient.waitForTransactionReceipt({ hash: tx });
+          const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+          if (receipt.status !== 'success') {
+            throw new Error('Set ticket price reverted on-chain.');
+          }
         }
       } catch (e) {
-        console.warn('On-chain setTicketPrice error during edit:', e.message);
+        throw new Error(formatWeb3Error(e));
       }
     }
 
-    setDraws((prev) => {
-      const updated = prev.map((d) => {
-        if (d.drawId === drawId) {
-          const newPriceWei = updatedData.ticketPriceApe
-            ? parseEther(String(updatedData.ticketPriceApe))
-            : d.ticketPriceApe;
-          const isNoDead =
-            updatedData.noDeadline !== undefined ? Boolean(updatedData.noDeadline) : d.noDeadline;
-          const durSec = isNoDead
-            ? 315360000
-            : Number(updatedData.durationDays || 2) * 86400;
+    // Save updated image offchain
+    if (updatedData.imageUrl) {
+      await saveDrawImageOffchain(drawId, updatedData.imageUrl);
+    }
 
-          return {
-            ...d,
-            title: updatedData.title || d.title,
-            prizeDescription: updatedData.prizeDescription || d.prizeDescription,
-            prizeCategory:
-              updatedData.prizeCategory !== undefined
-                ? Number(updatedData.prizeCategory)
-                : d.prizeCategory,
-            imageUrl: updatedData.imageUrl || d.imageUrl,
-            ticketPriceApe: newPriceWei,
-            maxTickets:
-              updatedData.maxTickets !== undefined
-                ? Number(updatedData.maxTickets)
-                : d.maxTickets,
-            maxTicketsPerWallet:
-              updatedData.maxTicketsPerWallet !== undefined
-                ? Number(updatedData.maxTicketsPerWallet)
-                : d.maxTicketsPerWallet,
-            minNftRequired:
-              updatedData.minNftRequired !== undefined
-                ? Number(updatedData.minNftRequired)
-                : d.minNftRequired,
-            noDeadline: isNoDead,
-            endTime: isNoDead
-              ? d.startTime + durSec
-              : updatedData.durationDays
-              ? d.startTime + durSec
-              : d.endTime,
-          };
-        }
-        return d;
-      });
+    // Save custom metadata overrides
+    try {
+      const overrides = JSON.parse(localStorage.getItem('apebroker_draw_metadata_overrides') || '{}');
+      overrides[String(drawId)] = {
+        ...overrides[String(drawId)],
+        ...updatedData,
+      };
+      localStorage.setItem('apebroker_draw_metadata_overrides', JSON.stringify(overrides));
+    } catch (e) {}
 
-      try {
-        localStorage.setItem(
-          'apebroker_lucky_draws_cache',
-          JSON.stringify(updated, (k, v) => (typeof v === 'bigint' ? v.toString() : v))
-        );
-      } catch (e) {}
-      return updated;
-    });
-
+    await fetchDraws();
     return { success: true };
   };
 

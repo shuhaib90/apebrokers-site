@@ -178,16 +178,55 @@ export function LuckyDrawAdminDashboard({
     }
   };
 
-  // Image upload handler
-  const handleImageFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  // Image compression and resize helper (keeps images crisp while staying lightweight)
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-        setFormData((prev) => ({ ...prev, imageUrl: reader.result }));
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 800;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        };
+        img.onerror = () => resolve(e.target.result);
+        img.src = e.target.result;
       };
       reader.readAsDataURL(file);
+    });
+  };
+
+  // Image upload handler
+  const handleImageFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const compressedDataUrl = await compressImage(file);
+        setImagePreview(compressedDataUrl);
+        setFormData((prev) => ({ ...prev, imageUrl: compressedDataUrl }));
+      } catch (err) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result);
+          setFormData((prev) => ({ ...prev, imageUrl: reader.result }));
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -945,14 +984,19 @@ export function LuckyDrawAdminDashboard({
                       </span>
                       <input
                         type="url"
-                        placeholder="https://..."
-                        value={formData.imageUrl}
+                        placeholder={formData.imageUrl?.startsWith('data:') ? 'Image file selected (stored off-chain)' : 'https://...'}
+                        value={formData.imageUrl?.startsWith('data:') ? '' : (formData.imageUrl || '')}
                         onChange={(e) => {
                           setImagePreview(e.target.value);
                           setFormData({ ...formData, imageUrl: e.target.value });
                         }}
                         className="w-full px-2.5 py-1.5 text-[10px] rounded bg-black/80 border border-purple-800 text-white focus:outline-none"
                       />
+                      {formData.imageUrl?.startsWith('data:') && (
+                        <div className="text-[9px] text-[#00FF66] font-mono mt-1 text-left">
+                          ✓ Image file attached (stored off-chain)
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1656,14 +1700,44 @@ export function LuckyDrawAdminDashboard({
 
               <div className="space-y-1">
                 <label className="block text-gray-300 font-bold uppercase text-[10px]">
-                  Image URL
+                  Prize Image
                 </label>
+                {editModal.imageUrl && (
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <img
+                      src={editModal.imageUrl}
+                      alt="Preview"
+                      className="w-14 h-14 object-cover rounded border border-[#FFD700]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEditModal({ ...editModal, imageUrl: '' })}
+                      className="text-[9px] text-red-400 hover:text-red-300 underline"
+                    >
+                      [ Remove Image ]
+                    </button>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      try {
+                        const compressed = await compressImage(file);
+                        setEditModal((prev) => ({ ...prev, imageUrl: compressed }));
+                      } catch (err) {}
+                    }
+                  }}
+                  className="text-xs text-gray-400 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-[#FFD700] file:text-black cursor-pointer block"
+                />
                 <input
                   type="url"
-                  placeholder="https://..."
-                  value={editModal.imageUrl}
+                  placeholder={editModal.imageUrl?.startsWith('data:') ? 'Image attached (stored off-chain)' : 'Or paste URL: https://...'}
+                  value={editModal.imageUrl?.startsWith('data:') ? '' : (editModal.imageUrl || '')}
                   onChange={(e) => setEditModal({ ...editModal, imageUrl: e.target.value })}
-                  className="w-full px-3 py-2 rounded bg-black/80 border border-purple-700 text-xs text-white focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-1.5 rounded bg-black/80 border border-purple-700 text-xs text-white focus:outline-none focus:border-blue-500 mt-1"
                 />
               </div>
 
