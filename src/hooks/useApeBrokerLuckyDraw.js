@@ -154,7 +154,21 @@ export function useApeBrokerLuckyDraw() {
     (address.toLowerCase() === ADMIN_ADDRESS.toLowerCase() ||
      address.toLowerCase() === '0xb8e3dfdd19b6bf35b9fd87f8373f7f82c53bc93c');
 
-  // Load User Balances & NFT gating check
+  // Sync cached tickets when address is available
+  useEffect(() => {
+    if (address) {
+      try {
+        const cached = localStorage.getItem(`apebroker_user_tickets_${address.toLowerCase()}`);
+        if (cached) {
+          setUserTicketsByDraw(JSON.parse(cached));
+        }
+      } catch (e) {}
+    } else {
+      setUserTicketsByDraw({});
+    }
+  }, [address]);
+
+  // Load User Balances, NFT gating check, and on-chain tickets per draw
   const fetchUserData = useCallback(async () => {
     if (!address || !publicClient) {
       setUserBalances({
@@ -164,11 +178,12 @@ export function useApeBrokerLuckyDraw() {
         allowance: 0n,
         isEligible: false,
       });
+      setUserTicketsByDraw({});
       return;
     }
 
     try {
-      const [tokenBal, ethBal, nftBal, allowance] = await Promise.all([
+      const [tokenBal, ethBal, nftBal, allowance, totalCount] = await Promise.all([
         publicClient
           .readContract({
             address: APEBROKE_TOKEN_ADDRESS,
@@ -194,6 +209,13 @@ export function useApeBrokerLuckyDraw() {
             args: [address, LUCKY_DRAW_CONTRACT_ADDRESS],
           })
           .catch(() => 0n),
+        publicClient
+          .readContract({
+            address: LUCKY_DRAW_CONTRACT_ADDRESS,
+            abi: luckyDrawDeployConfig.abi,
+            functionName: 'totalDrawsCount',
+          })
+          .catch(() => 0n),
       ]);
 
       setUserBalances({
@@ -203,6 +225,36 @@ export function useApeBrokerLuckyDraw() {
         allowance: allowance,
         isEligible: nftBal >= 1n,
       });
+
+      // Query on-chain user ticket balance for all draws
+      if (totalCount && totalCount > 0n) {
+        const ticketPromises = [];
+        for (let i = 1n; i <= totalCount; i++) {
+          const drawIdNum = Number(i);
+          ticketPromises.push(
+            publicClient
+              .readContract({
+                address: LUCKY_DRAW_CONTRACT_ADDRESS,
+                abi: luckyDrawDeployConfig.abi,
+                functionName: 'getUserTickets',
+                args: [i, address],
+              })
+              .then((t) => ({ drawId: drawIdNum, count: Number(t || 0n) }))
+              .catch(() => ({ drawId: drawIdNum, count: 0 }))
+          );
+        }
+
+        const ticketResults = await Promise.all(ticketPromises);
+        const map = {};
+        ticketResults.forEach((r) => {
+          map[r.drawId] = r.count;
+        });
+
+        setUserTicketsByDraw(map);
+        try {
+          localStorage.setItem(`apebroker_user_tickets_${address.toLowerCase()}`, JSON.stringify(map));
+        } catch (e) {}
+      }
     } catch (err) {
       console.warn('Error reading lucky draw user data:', err);
     }
