@@ -1,20 +1,15 @@
 import React from 'react';
-import { sound } from '../utils/audio';
-import { TypewriterText } from './TypewriterText';
 
 export const Hero = ({ onDeskClick }) => {
   const handleOpenSea = () => {
-    sound?.playClick?.();
     window.open('https://opensea.io/collection/brokerdesk-583588970', '_blank', 'noopener,noreferrer');
   };
 
   const handleApebroke = () => {
-    sound?.playClick?.();
     window.open('https://www.letscash.fun/token/0xe0F384ebCede975342c5431aCad515b4A1B862cc', '_blank', 'noopener,noreferrer');
   };
 
   const handleLaunchDesk = () => {
-    sound?.playZoom?.();
     if (onDeskClick) {
       onDeskClick();
     } else {
@@ -28,7 +23,7 @@ export const Hero = ({ onDeskClick }) => {
       <div className="max-w-3xl mx-auto flex flex-col items-center text-center space-y-6 sm:space-y-7">
         {/* Live Protocol Status Badge */}
         <div className="inline-flex items-center gap-2 bg-[#160a2c]/90 text-[#00FF66] px-4 py-2 border-2 border-[#00FF66] font-pixel text-[10px] sm:text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-md">
-          <span className="w-2.5 h-2.5 bg-[#00FF66] inline-block animate-ping rounded-full shadow-[0_0_8px_#00FF66]" />
+          <span className="w-2.5 h-2.5 bg-[#00FF66] inline-block rounded-full shadow-[0_0_8px_#00FF66]" />
           <span className="tracking-wide">● LIVE REVENUE PROTOCOL • ROBINHOOD EVM</span>
         </div>
 
@@ -37,36 +32,17 @@ export const Hero = ({ onDeskClick }) => {
           <h1 className="font-pixel text-[clamp(1.5rem,8vw,4.5rem)] pixel-text-3d-lime tracking-tight font-extrabold leading-tight whitespace-nowrap select-none max-w-full text-center">
             BROKERDESK
           </h1>
-          <div className="inline-block max-w-full bg-[#120729]/95 border-2 border-[#00F0FF] px-2.5 sm:px-4 py-2 sm:py-2.5 shadow-[4px_4px_0px_0px_#FF007F] rounded-lg">
-            <h2 className="font-pixel text-[8px] min-[360px]:text-[9px] min-[400px]:text-[10px] sm:text-base md:text-xl text-[#00F0FF] tracking-tight font-extrabold min-h-[26px] sm:min-h-[32px] flex items-center justify-center">
-              <TypewriterText
-                text={[
-                  '1 NFT = 1 OPERATING BROKERDESK.',
-                  'AUTOMATED 5-HOUR ETH YIELDS.',
-                  'SCALE UP TO 600 WGT WITH $APEBROKE.',
-                  'ROBINHOOD CHAIN MAINNET.',
-                ]}
-                speed={50}
-                delay={300}
-                pauseBetween={2500}
-                loop={true}
-                playSound={true}
-                cursorChar="▌"
-              />
+          <div className="inline-block max-w-full bg-[#120729]/95 border-2 border-[#00F0FF] px-3 sm:px-5 py-2 sm:py-2.5 shadow-[4px_4px_0px_0px_#FF007F] rounded-lg">
+            <h2 className="font-pixel text-[9px] min-[360px]:text-[10px] min-[400px]:text-xs sm:text-base md:text-lg text-[#00F0FF] tracking-tight font-extrabold flex items-center justify-center text-center">
+              1 NFT = 1 OPERATING BROKERDESK • AUTOMATED 5-HOUR ETH YIELDS
             </h2>
           </div>
         </div>
 
-        {/* Description Box with Typewriter Animation */}
-        <div className="bg-[#12082b]/95 backdrop-blur-md p-3.5 sm:p-5 border-3 border-[#A855F7] shadow-[5px_5px_0px_0px_#000] max-w-xl mx-auto min-h-[85px] sm:min-h-[80px] flex items-center justify-center rounded-lg">
+        {/* Description Box */}
+        <div className="bg-[#12082b]/95 backdrop-blur-md p-3.5 sm:p-5 border-3 border-[#A855F7] shadow-[5px_5px_0px_0px_#000] max-w-xl mx-auto flex items-center justify-center rounded-lg">
           <p className="font-mono text-xs sm:text-sm md:text-base text-gray-100 font-semibold leading-relaxed">
-            <TypewriterText
-              text="Welcome to BrokerDesk, the premier decentralized NFT revenue protocol on Robinhood Chain. Activate your NFT as an active trading desk, amplify your yields with deflationary $APEBROKE boosts, and claim continuous 5-hour ETH distributions."
-              speed={12}
-              delay={500}
-              playSound={false}
-              cursor={false}
-            />
+            Welcome to BrokerDesk, the premier decentralized NFT revenue protocol on Robinhood Chain. Activate your NFT as an active trading desk, amplify your yields with deflationary $APEBROKE boosts, and claim continuous 5-hour ETH distributions.
           </p>
         </div>
 
@@ -77,7 +53,7 @@ export const Hero = ({ onDeskClick }) => {
             onClick={handleLaunchDesk}
             className="w-full sm:w-auto min-h-[48px] sm:min-h-[52px] pixel-btn pixel-btn-vibrant-lime px-6 sm:px-8 py-3 sm:py-3.5 font-pixel text-xs sm:text-sm font-extrabold rounded-lg shadow-[4px_4px_0px_0px_#000] flex items-center justify-center gap-2 whitespace-nowrap"
           >
-            <span className="w-2 h-2 rounded-full bg-black animate-ping shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-black shrink-0" />
             <span className="whitespace-nowrap">[ BROKERDESK ]</span>
           </button>
 
