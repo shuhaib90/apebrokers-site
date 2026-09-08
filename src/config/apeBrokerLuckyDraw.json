@@ -1,11 +1,13 @@
 {
-  "contractAddress": "0x3D7344b1c8f352166642A9e53b23616EbEBcf1B1",
+  "contractAddress": "0xA3a3eA40cB33a6B1Bcdc791FfC4d4f4022bC7179",
   "network": "robinhood",
   "chainId": 4663,
   "apeBrokeTokenAddress": "0xe0F384ebCede975342c5431aCad515b4A1B862cc",
   "apeBrokerNftAddress": "0xd3b030e9281fcd8797af6dc437636b24bdfe7902",
   "adminAddress": "0xb8E3DfDd19b6Bf35b9Fd87F8373F7f82C53bc93C",
   "treasuryAddress": "0xb8E3DfDd19b6Bf35b9Fd87F8373F7f82C53bc93C",
+  "deployedAt": "2026-09-08T03:10:02.611Z",
+  "txHash": "0xe26931c86800814355e0027e23248299187a213ff4f1b76a739868f33ada94e0",
   "abi": [
     {
       "inputs": [

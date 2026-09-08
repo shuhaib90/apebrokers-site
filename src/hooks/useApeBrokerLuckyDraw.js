@@ -7,7 +7,7 @@ import { APEBROKE_TOKEN_ADDRESS, APE_BROKER_NFT_ADDRESS, ADMIN_ADDRESS } from '.
 export const LUCKY_DRAW_CONTRACT_ADDRESS =
   import.meta.env.VITE_LUCKY_DRAW_CONTRACT_ADDRESS ||
   luckyDrawDeployConfig.contractAddress ||
-  '0x3D7344b1c8f352166642A9e53b23616EbEBcf1B1';
+  '0xA3a3eA40cB33a6B1Bcdc791FfC4d4f4022bC7179';
 
 const ERC20_ABI = [
   {
