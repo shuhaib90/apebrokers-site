@@ -84,7 +84,6 @@ export const Header = ({ onDeskClick, onStakingClick, onLuckyDrawClick, onApplyC
               className="pixel-btn pixel-btn-black px-2 lg:px-2.5 xl:px-3 py-1.5 text-[10px] xl:text-xs whitespace-nowrap font-extrabold text-[#FFD700] bg-black hover:bg-[#111] shadow-[2px_2px_0px_#000] border-2 border-black flex items-center gap-1.5 rounded-md"
               title="Lucky Draw Protocol (Locked for Public)"
             >
-              <span className="text-[10px]">🔒</span>
               <span className="hidden xl:inline">[ LUCKY DRAW ]</span>
               <span className="xl:hidden">[ DRAWS ]</span>
             </button>
@@ -187,7 +186,6 @@ export const Header = ({ onDeskClick, onStakingClick, onLuckyDrawClick, onApplyC
               className="w-full text-left px-3 py-2 text-xs font-bold text-[#FFD700] bg-black rounded border-2 border-black flex items-center justify-between shadow-[2px_2px_0px_#000]"
             >
               <span className="flex items-center gap-2">
-                <span>🔒</span>
                 <span>LUCKY DRAW (LOCKED)</span>
               </span>
               <span className="text-[10px] text-gray-400">↗</span>

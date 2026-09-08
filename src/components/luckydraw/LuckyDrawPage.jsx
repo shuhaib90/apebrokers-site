@@ -8,6 +8,7 @@ import { useApeBrokerLuckyDraw } from '../../hooks/useApeBrokerLuckyDraw';
 import { useEthPrice } from '../../hooks/useEthPrice';
 import { LuckyDrawAdminDashboard } from './LuckyDrawAdminDashboard';
 import { LuckyDrawLockedScreen } from './LuckyDrawLockedScreen';
+import { PixelFluidBackground } from '../PixelFluidBackground';
 
 export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
   const { openConnectModal } = useConnectModal();
@@ -150,12 +151,15 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
   const hasEnoughGas = userBalances.ethBalance >= 50000000000000n;
 
   return (
-    <div className="min-h-screen bg-[#070314] text-white font-pixel selection:bg-[#FFD700] selection:text-black relative pb-20 select-none">
-      {/* Background CRT Scanlines */}
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#24084a]/30 via-[#070314]/90 to-[#04010a] opacity-80" />
+    <div className="min-h-screen text-white font-pixel selection:bg-[#FFD700] selection:text-black relative pb-20 select-none overflow-x-hidden">
+      {/* Interactive Pixel Fluid Background */}
+      <PixelFluidBackground />
+
+      {/* Background Soft Scanline Vignette Overlay */}
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[#070314]/75 backdrop-blur-[1.5px]" />
 
       {/* Top Navbar */}
-      <nav className="sticky top-0 z-40 w-full bg-[#0a051d]/95 backdrop-blur-md border-b-3 border-[#FFD700] px-4 sm:px-8 py-3 select-none">
+      <nav className="sticky top-0 z-40 w-full bg-[#0a051d]/90 backdrop-blur-md border-b-3 border-[#FFD700] px-4 sm:px-8 py-3 select-none">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           {/* Brand */}
           <div className="flex items-center gap-3">
@@ -171,7 +175,7 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                 alt="ApeSyndicate"
                 className="w-8 h-8 object-contain pixelated"
               />
-              <span className="text-sm sm:text-base font-extrabold text-[#FFD700] tracking-wider">
+              <span className="text-sm sm:text-base font-extrabold text-[#FFD700] tracking-wider drop-shadow-[0_0_8px_rgba(255,215,0,0.3)]">
                 APE BROKER LUCKY DRAW
               </span>
             </button>
@@ -184,9 +188,8 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Public Lock Indicator */}
             {isPublicLocked && (
-              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-amber-900/50 border border-amber-500/70 text-[8px] text-amber-200 rounded font-mono font-bold">
-                <span>🔒</span>
-                <span>PUBLIC LOCKED</span>
+              <span className="hidden sm:inline-flex items-center px-2 py-0.5 bg-amber-950/70 border border-amber-500/70 text-[8px] text-amber-300 rounded font-mono font-bold">
+                [ PUBLIC LOCKED ]
               </span>
             )}
 
@@ -303,40 +306,40 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
         ) : (
           <>
             {/* Hero Executive Banner */}
-            <div className="bg-gradient-to-r from-[#200a46] via-[#12072e] to-[#200a46] border-3 border-[#FFD700] rounded-xl p-5 sm:p-7 shadow-[6px_6px_0px_#000] relative overflow-hidden">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded bg-[#FFD700] text-black text-[9px] font-extrabold tracking-wider">
-                      EXCLUSIVE HOLDER PROTOCOL
+            <div className="bg-[#12072e]/85 backdrop-blur-md border-3 border-[#FFD700] rounded-2xl p-6 sm:p-8 shadow-[6px_6px_0px_#000] relative overflow-hidden space-y-6">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="space-y-2.5 max-w-2xl">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-2.5 py-0.5 rounded bg-[#FFD700] text-black text-[9px] font-extrabold tracking-wider">
+                      [ EXCLUSIVE HOLDER PROTOCOL ]
                     </span>
                     <span className="text-[10px] text-gray-300 font-mono">
-                      Gated to Ape Broker NFT Holders
+                      Gated to Ape Broker NFT Holders • Chain 4663
                     </span>
                   </div>
-                  <h1 className="text-xl sm:text-3xl font-extrabold text-white tracking-wider uppercase">
-                    WIN HIGH-VALUE PRIZES WITH <span className="text-[#FFD700]">$APEBROKE</span>
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-wider uppercase leading-tight">
+                    WIN HIGH-VALUE PRIZES WITH <span className="text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.4)]">$APEBROKE</span>
                   </h1>
-                  <p className="text-xs font-mono text-gray-300 max-w-2xl">
-                    Enter community prize draws for gaming consoles (PS5), native ETH jackpots, token whale bundles, and NFTs. Verified on-chain winner selection.
+                  <p className="text-xs sm:text-sm font-mono text-gray-300 leading-relaxed">
+                    Enter community prize draws for gaming consoles (PS5), native ETH jackpots, whale token bundles, and Ape Broker NFTs. 100% on-chain ticket purchases and verified transparent winner selection.
                   </p>
                 </div>
 
                 {/* NFT Gating Status Card */}
-                <div className="bg-black/60 border-2 border-purple-800 p-4 rounded-xl shrink-0 font-mono text-xs space-y-2 max-w-xs">
-                  <div className="text-[10px] text-gray-400 uppercase">MEMBERSHIP VALIDATION</div>
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2.5 h-2.5 rounded-full ${userBalances.isEligible ? 'bg-[#00FF66] animate-pulse' : 'bg-[#FF2247]'}`} />
-                    <span className="font-bold text-white text-sm">
+                <div className="bg-black/70 border-2 border-purple-700/80 p-5 rounded-xl shrink-0 font-mono text-xs space-y-2.5 w-full lg:w-72 shadow-[4px_4px_0px_#000]">
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">MEMBERSHIP VALIDATION</div>
+                  <div className="flex items-center gap-2.5">
+                    <span className={`w-3 h-3 rounded-full ${userBalances.isEligible ? 'bg-[#00FF66]' : 'bg-[#FF2247]'}`} />
+                    <span className="font-bold text-white text-sm sm:text-base">
                       {Number(userBalances.nftBalance)} Ape Broker NFTs
                     </span>
                   </div>
                   {userBalances.isEligible ? (
-                    <div className="text-[10px] text-[#00FF66] font-bold">
-                      ✓ ELIGIBLE TO ENTER DRAWS
+                    <div className="text-[10px] text-[#00FF66] font-bold bg-[#00FF66]/10 px-2 py-1 rounded border border-[#00FF66]/40">
+                      [ ELIGIBLE TO ENTER DRAWS ]
                     </div>
                   ) : (
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <div className="text-[10px] text-amber-300">
                         Requires ≥ 1 Ape Broker NFT
                       </div>
@@ -352,13 +355,33 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                   )}
                 </div>
               </div>
+
+              {/* 4 Protocol Feature Badges */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t border-purple-900/60 font-mono text-xs">
+                <div className="bg-black/50 p-3 rounded-lg border border-purple-900/60 text-center space-y-0.5">
+                  <div className="text-[#00FF66] font-bold text-xs">100% ON-CHAIN</div>
+                  <div className="text-[9px] text-gray-400">Verifiable Winner Selection</div>
+                </div>
+                <div className="bg-black/50 p-3 rounded-lg border border-purple-900/60 text-center space-y-0.5">
+                  <div className="text-[#00F0FF] font-bold text-xs">HOLDERS ONLY</div>
+                  <div className="text-[9px] text-gray-400">Ape Broker NFT Gated</div>
+                </div>
+                <div className="bg-black/50 p-3 rounded-lg border border-purple-900/60 text-center space-y-0.5">
+                  <div className="text-[#FFD700] font-bold text-xs">$APEBROKE SINK</div>
+                  <div className="text-[9px] text-gray-400">Deflationary Protocol Token</div>
+                </div>
+                <div className="bg-black/50 p-3 rounded-lg border border-purple-900/60 text-center space-y-0.5">
+                  <div className="text-[#FF007F] font-bold text-xs">DIRECT DELIVERY</div>
+                  <div className="text-[9px] text-gray-400">Admin Fulfills to Winner</div>
+                </div>
+              </div>
             </div>
 
             {/* SECTION 1: ACTIVE DRAWS */}
-            <section className="space-y-4">
+            <section className="space-y-4 pt-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#00FF66] animate-ping" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#00FF66]" />
                   <h2 className="text-sm sm:text-base font-extrabold text-[#00FF66] tracking-wider uppercase">
                     LIVE ACTIVE DRAWS ({activeDraws.length})
                   </h2>
@@ -369,9 +392,45 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
               </div>
 
               {activeDraws.length === 0 ? (
-                <div className="bg-[#12072e] border-2 border-purple-900 p-8 rounded-xl text-center font-mono text-gray-400 space-y-2 shadow-[4px_4px_0px_#000]">
-                  <div className="text-sm font-bold text-gray-300">No active draws currently running.</div>
-                  <div className="text-xs text-gray-500">Upcoming lucky draws will appear here once launched by the protocol admin.</div>
+                <div className="bg-[#12072e]/85 backdrop-blur-md border-3 border-purple-800 p-8 sm:p-12 rounded-2xl text-center font-mono space-y-5 shadow-[6px_6px_0px_#000] max-w-2xl mx-auto">
+                  {/* Retro Cyber Radar Animation */}
+                  <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
+                    <div className="absolute inset-0 rounded-full border-2 border-purple-700/60 animate-ping opacity-30" />
+                    <div className="w-16 h-16 rounded-full border-2 border-dashed border-[#00FF66] flex items-center justify-center animate-spin" style={{ animationDuration: '8s' }}>
+                      <div className="w-8 h-8 rounded-full border border-[#FFD700] flex items-center justify-center">
+                        <div className="w-2 h-2 rounded-full bg-[#00FF66]" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="text-xs font-bold text-[#00FF66] tracking-widest uppercase">
+                      [ RADAR STATUS: SCANNING FOR NEW DRAWS ]
+                    </div>
+                    <h3 className="text-base sm:text-lg font-bold text-white font-pixel">
+                      NO ACTIVE DRAWS CURRENTLY RUNNING
+                    </h3>
+                    <p className="text-xs text-gray-300 max-w-md mx-auto leading-relaxed">
+                      Upcoming lucky draws will appear here once launched by the protocol admin. You can operate your active desks or stake tokens while waiting.
+                    </p>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-center gap-3 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={onGoToDesk}
+                      className="pixel-btn pixel-btn-vibrant-lime px-4 py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000]"
+                    >
+                      [ OPERATE BROKERDESK ]
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onGoToStaking}
+                      className="pixel-btn pixel-btn-vibrant-cyan px-4 py-2.5 text-xs font-bold rounded-lg shadow-[3px_3px_0px_#000]"
+                    >
+                      [ STAKE $APEBROKE ]
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -391,10 +450,10 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                     return (
                       <div
                         key={draw.drawId}
-                        className="bg-[#12072e] border-2 border-purple-800 hover:border-[#FFD700] rounded-xl overflow-hidden shadow-[4px_4px_0px_#000] flex flex-col transition-all group"
+                        className="bg-[#12072e]/85 backdrop-blur-md border-2 border-purple-800 hover:border-[#FFD700] rounded-xl overflow-hidden shadow-[4px_4px_0px_#000] flex flex-col transition-all group"
                       >
                         {/* Image Banner */}
-                        <div className="relative h-44 w-full bg-black overflow-hidden">
+                        <div className="relative h-48 w-full bg-black overflow-hidden">
                           <img
                             src={draw.imageUrl}
                             alt={draw.title}
@@ -409,7 +468,7 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                             </span>
                             {isNoDead && (
                               <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-950/90 text-[#00FF66] border border-[#00FF66]/60 shadow-md">
-                                ♾️ NO DEADLINE
+                                NO DEADLINE
                               </span>
                             )}
                           </div>
@@ -442,7 +501,7 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                               <span className="text-gray-400">Duration:</span>
                               {isNoDead ? (
                                 <span className="text-[#00FF66] font-bold">
-                                  ♾️ Open until drawn
+                                  Open until drawn
                                 </span>
                               ) : (
                                 <span className="text-cyan-300 font-mono">
@@ -482,7 +541,7 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                               onClick={() => handleOpenBuyModal(draw)}
                               className="w-full py-2.5 pixel-btn pixel-btn-vibrant-gold text-xs font-extrabold rounded-lg shadow-[2px_2px_0px_#000] text-center uppercase"
                             >
-                              [ 🎟️ GET TICKETS ]
+                              [ ENTER LUCKY DRAW ]
                             </button>
                           </div>
                         </div>
@@ -497,7 +556,7 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
             <section className="space-y-4 pt-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">🏆</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#00F0FF]" />
                   <h2 className="text-sm sm:text-base font-extrabold text-[#00F0FF] tracking-wider uppercase">
                     WINNERS HALL OF FAME ({completedDraws.length})
                   </h2>
@@ -508,15 +567,15 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
               </div>
 
               {completedDraws.length === 0 ? (
-                <div className="bg-[#12072e] border-2 border-purple-900 p-8 rounded-xl text-center font-mono text-gray-400">
-                  No completed draws recorded yet. Once winners are chosen, they will appear here.
+                <div className="bg-[#12072e]/85 backdrop-blur-md border-2 border-purple-900 p-8 rounded-xl text-center font-mono text-gray-400">
+                  [ ARCHIVE STATUS: ZERO COMPLETED DRAWS RECORDED YET ]
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {completedDraws.map((draw) => (
                     <div
                       key={draw.drawId}
-                      className="bg-[#140833] border-2 border-cyan-800 rounded-xl p-4 sm:p-5 shadow-[4px_4px_0px_#000] space-y-3 font-mono"
+                      className="bg-[#140833]/85 backdrop-blur-md border-2 border-cyan-800 rounded-xl p-4 sm:p-5 shadow-[4px_4px_0px_#000] space-y-3 font-mono"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -528,7 +587,7 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                           </h3>
                         </div>
                         <span className="px-2 py-0.5 bg-black/60 border border-purple-700 text-[9px] text-gray-300 rounded shrink-0">
-                          {draw.selectionMode === 1 ? '🎲 RANDOM DRAW' : '✍️ MANUAL PICK'}
+                          {draw.selectionMode === 1 ? '[ RANDOM DRAW ]' : '[ MANUAL PICK ]'}
                         </span>
                       </div>
 
@@ -563,7 +622,7 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                         <div className="flex justify-between">
                           <span className="text-gray-400">Fulfillment Status:</span>
                           <span className="text-[#00F0FF] font-bold">
-                            {draw.prizeStatus === 3 ? '✓ COMPLETED' : draw.prizeStatus === 2 ? 'PRIZE SENT' : 'IN PROGRESS'}
+                            {draw.prizeStatus === 3 ? 'COMPLETED' : draw.prizeStatus === 2 ? 'PRIZE SENT' : 'IN PROGRESS'}
                           </span>
                         </div>
                         <div className="text-[10px] text-gray-400 pt-1 border-t border-purple-900/40 flex justify-between items-center">
@@ -609,7 +668,7 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
             <div className="p-5 sm:p-6 space-y-4 font-mono text-xs">
               {buyStep === 'success' ? (
                 <div className="text-center py-6 space-y-3 font-pixel">
-                  <div className="text-4xl text-[#00FF66] animate-bounce">✓</div>
+                  <div className="text-lg text-[#00FF66] font-bold border border-[#00FF66] inline-block px-3 py-1 rounded bg-[#00FF66]/10">[ TRANSACTION CONFIRMED ]</div>
                   <div className="text-base text-[#00FF66] font-bold">
                     TICKETS PURCHASED SUCCESSFULLY!
                   </div>
@@ -693,7 +752,7 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                   {/* Gas Alert */}
                   {!hasEnoughGas && (
                     <div className="bg-amber-950/80 border border-amber-500 p-2.5 rounded text-[10px] text-amber-200">
-                      ⚠️ <strong>Insufficient ETH for gas:</strong> Robinhood EVM transactions require a tiny amount of ETH (&lt; $0.05) to pay network fees.
+                      <strong>Notice:</strong> Insufficient ETH for gas. Robinhood EVM transactions require a tiny amount of ETH (&lt; $0.05) to pay network fees.
                     </div>
                   )}
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { sound } from '../../utils/audio';
+import { PixelFluidBackground } from '../PixelFluidBackground';
 
 export function LuckyDrawLockedScreen({
   onBackHome,
@@ -48,9 +49,12 @@ export function LuckyDrawLockedScreen({
   };
 
   return (
-    <div className="min-h-screen bg-[#070314] text-white font-pixel selection:bg-[#FFD700] selection:text-black flex flex-col justify-between relative overflow-hidden select-none">
+    <div className="min-h-screen text-white font-pixel selection:bg-[#FFD700] selection:text-black flex flex-col justify-between relative overflow-hidden select-none">
+      {/* Interactive Pixel Fluid Background */}
+      <PixelFluidBackground />
+
       {/* Background Subtle Gradient & Scanlines */}
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#24084a]/30 via-[#070314]/90 to-[#04010a] opacity-80" />
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[#070314]/75 backdrop-blur-[2px]" />
 
       {/* Minimal Top Header */}
       <header className="relative z-10 w-full px-6 py-5 flex items-center justify-between">
@@ -84,17 +88,19 @@ export function LuckyDrawLockedScreen({
 
       {/* Center Hero: Pure Coming Soon */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-4 -mt-8">
-        <div className="space-y-6 max-w-lg">
-          {/* Animated Ticket Icon */}
-          <div className="inline-block text-6xl sm:text-7xl animate-bounce drop-shadow-[0_0_25px_rgba(255,215,0,0.4)]">
-            🎟️
+        <div className="space-y-6 max-w-lg bg-[#12072e]/85 backdrop-blur-md border-3 border-[#FFD700] p-8 rounded-2xl shadow-[6px_6px_0px_#000]">
+          {/* Cyber Ticket Emblem */}
+          <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-black/60 border-2 border-[#FFD700] shadow-[0_0_25px_rgba(255,215,0,0.3)]">
+            <svg className="w-10 h-10 sm:w-12 sm:h-12 text-[#FFD700] fill-current" viewBox="0 0 24 24">
+              <path d="M4 4h16v4a2 2 0 0 0 0 4v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4a2 2 0 0 0 0-4V4zm2 2v2.5a4 4 0 0 1 0 7V16h12v-2.5a4 4 0 0 1 0-7V6H6zm3 4h6v2H9v-2z" />
+            </svg>
           </div>
 
           <div className="space-y-3">
             <h2 className="text-xs sm:text-sm font-mono text-[#FFD700] tracking-widest uppercase">
-              LUCKY DRAW
+              [ LUCKY DRAW PROTOCOL ]
             </h2>
-            <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold text-[#FFD700] tracking-tight drop-shadow-[4px_4px_0px_#000]">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-[#FFD700] tracking-tight drop-shadow-[4px_4px_0px_#000]">
               COMING SOON
             </h1>
           </div>

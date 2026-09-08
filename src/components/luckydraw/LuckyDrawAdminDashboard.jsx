@@ -420,7 +420,7 @@ export function LuckyDrawAdminDashboard({
                 <span className={`w-2 h-2 rounded-full ${isPublicLocked ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
                 <span className="text-[10px] font-mono text-gray-300">PUBLIC ACCESS:</span>
                 <span className={`text-[10px] font-mono font-extrabold ${isPublicLocked ? 'text-amber-400' : 'text-emerald-400'}`}>
-                  {isPublicLocked ? '🔒 LOCKED' : '🔓 OPEN'}
+                  {isPublicLocked ? '[ LOCKED ]' : '[ OPEN ]'}
                 </span>
               </div>
               {onTogglePublicLock && (
@@ -447,7 +447,6 @@ export function LuckyDrawAdminDashboard({
               onClick={handleClaimRevenue}
               className="pixel-btn pixel-btn-vibrant-gold px-3.5 py-2 text-xs font-extrabold rounded-lg shadow-[3px_3px_0px_#000] flex items-center gap-1.5"
             >
-              <span>💰</span>
               <span>CLAIM REVENUE (${totalRevenueUsd.toFixed(2)})</span>
             </button>
 
@@ -509,7 +508,6 @@ export function LuckyDrawAdminDashboard({
               : 'bg-[#12072e] text-gray-300 border-purple-900 hover:border-gray-500'
           }`}
         >
-          <span>🎯</span>
           <span>ACTIVE DRAWS ({activeDraws.length})</span>
         </button>
 
@@ -525,7 +523,6 @@ export function LuckyDrawAdminDashboard({
               : 'bg-[#12072e] text-gray-300 border-purple-900 hover:border-gray-500'
           }`}
         >
-          <span>➕</span>
           <span>CREATE DRAW WIZARD</span>
         </button>
 
@@ -541,7 +538,6 @@ export function LuckyDrawAdminDashboard({
               : 'bg-[#12072e] text-gray-300 border-purple-900 hover:border-gray-500'
           }`}
         >
-          <span>🏆</span>
           <span>WINNERS & PRIZE FULFILLMENT ({completedDraws.length})</span>
         </button>
       </div>
@@ -655,7 +651,6 @@ export function LuckyDrawAdminDashboard({
                           className="px-2 py-0.5 rounded bg-[#00F0FF]/20 hover:bg-[#00F0FF]/40 text-[#00F0FF] text-[9px] font-bold border border-[#00F0FF]/60 transition-colors flex items-center gap-1 shadow-[1px_1px_0px_#000]"
                           title="Admin can customize / update the ticket fee for this active draw"
                         >
-                          <span>⚙️</span>
                           <span>CUSTOMIZE FEE</span>
                         </button>
                       </div>
@@ -669,14 +664,13 @@ export function LuckyDrawAdminDashboard({
                           <span className="text-gray-400">Deadline:</span>
                           {isNoDead ? (
                             <span className="text-[#00FF66] font-bold flex items-center gap-1">
-                              <span>♾️</span>
                               <span>NO DEADLINE (OPEN UNTIL DRAWN)</span>
                             </span>
                           ) : (
                             <span className="text-cyan-300 font-mono">
                               {draw.endTime * 1000 > Date.now()
-                                ? `⏳ Ends in ${Math.max(1, Math.ceil((draw.endTime * 1000 - Date.now()) / 86400000))}d`
-                                : '⚠️ Expired / Ready to Draw'}
+                                ? `Ends in ${Math.max(1, Math.ceil((draw.endTime * 1000 - Date.now()) / 86400000))}d`
+                                : 'EXPIRED / READY TO DRAW'}
                             </span>
                           )}
                         </div>
@@ -691,7 +685,7 @@ export function LuckyDrawAdminDashboard({
                         className="pixel-btn pixel-btn-vibrant-lime py-2 px-2 text-[10px] sm:text-xs font-extrabold rounded-lg shadow-[2px_2px_0px_#000] text-center"
                         title={`Contract selects ${draw.winnerCount || 1} random unique winner(s) using on-chain seed`}
                       >
-                        [ 🎲 RANDOM DRAW {draw.winnerCount > 1 ? `(${draw.winnerCount})` : ''} ]
+                        [ RANDOM DRAW {draw.winnerCount > 1 ? `(${draw.winnerCount})` : ''} ]
                       </button>
 
                       <button
@@ -709,7 +703,7 @@ export function LuckyDrawAdminDashboard({
                         className="pixel-btn pixel-btn-vibrant-gold py-2 px-2 text-[10px] sm:text-xs font-extrabold rounded-lg shadow-[2px_2px_0px_#000] text-center"
                         title={`Pick ${draw.winnerCount || 1} specific ticket holder wallet(s)`}
                       >
-                        [ ✍️ MANUAL PICK {draw.winnerCount > 1 ? `(${draw.winnerCount})` : ''} ]
+                        [ MANUAL PICK {draw.winnerCount > 1 ? `(${draw.winnerCount})` : ''} ]
                       </button>
                     </div>
 
@@ -739,7 +733,6 @@ export function LuckyDrawAdminDashboard({
                         }}
                         className="px-2.5 py-1.5 rounded-lg bg-blue-950/80 hover:bg-blue-900/90 text-blue-300 hover:text-white border border-blue-600/80 text-[10px] font-bold flex items-center justify-center gap-1.5 shadow-[1px_1px_0px_#000] transition-colors"
                       >
-                        <span>✏️</span>
                         <span>EDIT DRAW</span>
                       </button>
 
@@ -748,7 +741,6 @@ export function LuckyDrawAdminDashboard({
                         onClick={() => handleDeleteDraw(draw.drawId, draw.title)}
                         className="px-2.5 py-1.5 rounded-lg bg-red-950/80 hover:bg-red-900/90 text-red-300 hover:text-white border border-red-600/80 text-[10px] font-bold flex items-center justify-center gap-1.5 shadow-[1px_1px_0px_#000] transition-colors"
                       >
-                        <span>🗑️</span>
                         <span>DELETE DRAW</span>
                       </button>
                     </div>
@@ -765,7 +757,6 @@ export function LuckyDrawAdminDashboard({
         <section className="bg-[#12072e] border-3 border-[#FFD700] rounded-xl p-5 sm:p-7 shadow-[6px_6px_0px_#000] space-y-6">
           <div className="space-y-1">
             <h2 className="text-sm sm:text-base font-extrabold text-[#FFD700] tracking-wider uppercase flex items-center gap-2">
-              <span>➕</span>
               <span>LAUNCH NEW CUSTOM LUCKY DRAW</span>
             </h2>
             <p className="text-xs font-mono text-gray-300">
@@ -880,13 +871,12 @@ export function LuckyDrawAdminDashboard({
                           className="accent-[#00FF66] w-3 h-3 cursor-pointer rounded"
                         />
                         <span className={`text-[10px] font-bold font-mono ${formData.noDeadline ? 'text-[#00FF66]' : 'text-gray-400'}`}>
-                          ♾️ NO DEADLINE
+                          NO DEADLINE
                         </span>
                       </label>
                     </div>
                     {formData.noDeadline ? (
                       <div className="px-3 py-2 rounded-lg bg-[#00FF66]/10 border border-[#00FF66]/50 text-[#00FF66] text-[10px] font-mono flex items-center gap-1.5">
-                        <span>♾️</span>
                         <span>Open indefinitely until Admin manually triggers draw</span>
                       </div>
                     ) : (
@@ -937,7 +927,6 @@ export function LuckyDrawAdminDashboard({
                       </div>
                     ) : (
                       <div className="space-y-1">
-                        <span className="text-2xl">📸</span>
                         <div className="text-[11px] text-gray-300">
                           Click to select image file from desktop
                         </div>
@@ -1065,7 +1054,7 @@ export function LuckyDrawAdminDashboard({
                 disabled={isSubmitting}
                 className="pixel-btn pixel-btn-vibrant-gold px-6 py-2.5 text-xs font-extrabold rounded-lg shadow-[3px_3px_0px_#000] disabled:opacity-50"
               >
-                {isSubmitting ? '[ LAUNCHING DRAW... ]' : '[ 🚀 LAUNCH LUCKY DRAW ]'}
+                {isSubmitting ? '[ LAUNCHING DRAW... ]' : '[ LAUNCH LUCKY DRAW ]'}
               </button>
             </div>
           </form>
@@ -1087,7 +1076,6 @@ export function LuckyDrawAdminDashboard({
           {/* Explicit Architecture Principle Banner */}
           <div className="bg-[#190938] border-2 border-amber-500 rounded-xl p-4 space-y-1.5 font-mono shadow-[3px_3px_0px_#000]">
             <div className="flex items-center gap-2 text-amber-300 font-bold text-xs sm:text-sm">
-              <span className="text-base">📢</span>
               <span>ADMIN DIRECT PRIZE DELIVERY — NO CONTRACT AUTO-DISTRIBUTIONS</span>
             </div>
             <p className="text-gray-300 text-[11px] leading-relaxed">
@@ -1121,7 +1109,7 @@ export function LuckyDrawAdminDashboard({
                             {draw.title}
                           </span>
                           <span className="px-2 py-0.5 bg-black/60 border border-purple-700 text-[9px] text-gray-300 rounded">
-                            {draw.selectionMode === 1 ? '🎲 RANDOM DRAW' : '✍️ MANUAL PICK'}
+                            {draw.selectionMode === 1 ? 'RANDOM DRAW' : 'MANUAL PICK'}
                           </span>
                         </div>
                         <p className="text-[11px] text-gray-300">
@@ -1149,7 +1137,7 @@ export function LuckyDrawAdminDashboard({
                         <div className="space-y-3">
                           <div className="flex items-center justify-between text-[11px] font-bold text-gray-300">
                             <span className="flex items-center gap-2">
-                              <span className="text-[#FFD700]">🏆 OFFICIAL WINNERS ({allWinners.length})</span>
+                              <span className="text-[#FFD700]">OFFICIAL WINNERS ({allWinners.length})</span>
                               <span className="px-1.5 py-0.5 bg-purple-900/60 border border-purple-600 text-[9px] text-cyan-300 font-normal rounded">
                                 {draw.winnerCount || allWinners.length} Winner{(draw.winnerCount || allWinners.length) > 1 ? 's' : ''} Configured
                               </span>
@@ -1200,7 +1188,7 @@ export function LuckyDrawAdminDashboard({
                                       onClick={() => handleCopyAddress(winnerAddr)}
                                       className="px-2.5 py-1 text-[10px] font-bold text-[#00FF66] bg-black/60 border border-[#00FF66]/50 rounded hover:bg-[#00FF66]/10 flex items-center gap-1"
                                     >
-                                      {copiedAddress === winnerAddr ? '✓ COPIED!' : '📋 COPY'}
+                                      {copiedAddress === winnerAddr ? '✓ COPIED!' : 'COPY'}
                                     </button>
 
                                     {(draw.prizeCategory === 1 || draw.prizeCategory === 2) ? (
@@ -1222,12 +1210,10 @@ export function LuckyDrawAdminDashboard({
                                         className="pixel-btn pixel-btn-vibrant-lime px-2.5 py-1 text-[10px] font-bold rounded flex items-center gap-1 shadow-[2px_2px_0px_#000]"
                                         title={`Directly send crypto to Winner #${idx + 1}`}
                                       >
-                                        <span>💸</span>
                                         <span>SEND {draw.prizeCategory === 1 ? 'ETH' : '$APEBROKE'}</span>
                                       </button>
                                     ) : (
                                       <div className="px-2 py-1 text-[9px] text-amber-300 bg-amber-950/40 border border-amber-700/60 rounded flex items-center gap-1">
-                                        <span>📦</span>
                                         <span>Physical Delivery</span>
                                       </div>
                                     )}
@@ -1307,7 +1293,7 @@ export function LuckyDrawAdminDashboard({
           <div className="relative w-full max-w-md bg-[#12072e] border-3 border-[#FFD700] rounded-xl p-5 shadow-[0_0_30px_rgba(255,215,0,0.3)] space-y-4 font-mono text-white">
             <div className="flex items-center justify-between border-b border-purple-800 pb-3">
               <h3 className="text-xs sm:text-sm font-bold text-[#FFD700] font-pixel">
-                ✍️ SELECT MANUAL WINNER{manualModal.winnerCount > 1 ? `S (${manualModal.winnerCount} SLOTS)` : ''}
+                SELECT MANUAL WINNER{manualModal.winnerCount > 1 ? `S (${manualModal.winnerCount} SLOTS)` : ''}
               </h3>
               <button
                 type="button"
@@ -1324,7 +1310,7 @@ export function LuckyDrawAdminDashboard({
                 <span className="text-[#00F0FF] font-bold">Max: {manualModal.winnerCount} Winner{manualModal.winnerCount > 1 ? 's' : ''}</span>
               </div>
               <div className="bg-amber-950/80 border border-amber-600 p-2.5 rounded text-[10px] text-amber-200 leading-normal">
-                ⚠️ <strong>Strict Protocol Rule:</strong> Every candidate winner wallet must own at least 1 valid ticket for this draw. Duplicate addresses and non-ticket holders will be strictly rejected on-chain.
+                <strong>Strict Protocol Rule:</strong> Every candidate winner wallet must own at least 1 valid ticket for this draw. Duplicate addresses and non-ticket holders will be strictly rejected on-chain.
               </div>
 
               <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
@@ -1402,7 +1388,6 @@ export function LuckyDrawAdminDashboard({
           <div className="relative w-full max-w-md bg-[#12072e] border-3 border-[#00F0FF] rounded-xl p-5 shadow-[0_0_30px_rgba(0,240,255,0.3)] space-y-4 font-mono text-white">
             <div className="flex items-center justify-between border-b border-purple-800 pb-3">
               <h3 className="text-xs sm:text-sm font-bold text-[#00F0FF] font-pixel flex items-center gap-2">
-                <span>⚙️</span>
                 <span>CUSTOMIZE TICKET FEE</span>
               </h3>
               <button
@@ -1423,7 +1408,7 @@ export function LuckyDrawAdminDashboard({
               </div>
 
               <div className="bg-[#170a36] border border-cyan-800/80 p-2.5 rounded text-[10px] text-cyan-200">
-                💡 <strong>Dynamic Fee Customization:</strong> You can customize or discount the ticket fee anytime. Any new ticket purchases will immediately charge the new fee.
+                <strong>Dynamic Fee Customization:</strong> You can customize or discount the ticket fee anytime. Any new ticket purchases will immediately charge the new fee.
               </div>
 
               <div>
@@ -1484,7 +1469,6 @@ export function LuckyDrawAdminDashboard({
           <div className="relative w-full max-w-md bg-[#12072e] border-3 border-[#00FF66] rounded-xl p-5 shadow-[0_0_30px_rgba(0,255,102,0.3)] space-y-4 font-mono text-white">
             <div className="flex items-center justify-between border-b border-purple-800 pb-3">
               <h3 className="text-xs sm:text-sm font-bold text-[#00FF66] font-pixel flex items-center gap-2">
-                <span>💸</span>
                 <span>DIRECT SEND PRIZE TO WINNER</span>
               </h3>
               <button
@@ -1509,7 +1493,7 @@ export function LuckyDrawAdminDashboard({
 
             <div className="space-y-3 text-xs">
               <div className="bg-[#170a36] border border-[#00FF66]/50 p-2.5 rounded text-[10px] text-green-200">
-                ✅ <strong>Direct Fulfillment:</strong> You are transferring the prize directly from your admin wallet to the winner address. Once confirmed, the transaction hash will automatically be recorded as on-chain proof and status updated to <strong>PRIZE SENT</strong>.
+                <strong>Direct Fulfillment:</strong> You are transferring the prize directly from your admin wallet to the winner address. Once confirmed, the transaction hash will automatically be recorded as on-chain proof and status updated to <strong>PRIZE SENT</strong>.
               </div>
 
               <div className="space-y-1">
@@ -1584,7 +1568,7 @@ export function LuckyDrawAdminDashboard({
                 onClick={handleDirectSendCryptoSubmit}
                 className="pixel-btn pixel-btn-vibrant-lime px-4 py-2 text-xs font-bold rounded disabled:opacity-50"
               >
-                {directSendModal.isSending ? '[ SENDING VIA WALLET... ]' : `[ 🚀 SEND ${directSendModal.assetType} TO WINNER ]`}
+                {directSendModal.isSending ? '[ SENDING VIA WALLET... ]' : `[ SEND ${directSendModal.assetType} TO WINNER ]`}
               </button>
             </div>
           </div>
@@ -1597,7 +1581,6 @@ export function LuckyDrawAdminDashboard({
           <div className="relative w-full max-w-xl bg-[#12072e] border-3 border-blue-500 rounded-xl overflow-hidden shadow-[0_0_40px_rgba(59,130,246,0.3)] font-mono text-white p-5 sm:p-6 space-y-4 my-8">
             <div className="flex items-center justify-between border-b border-purple-800 pb-3">
               <div className="flex items-center gap-2">
-                <span className="text-base">✏️</span>
                 <h3 className="text-xs sm:text-sm font-bold text-blue-400 uppercase tracking-wider">
                   EDIT DRAW #{editModal.drawId}
                 </h3>
@@ -1729,13 +1712,12 @@ export function LuckyDrawAdminDashboard({
                       className="accent-[#00FF66] w-3 h-3 cursor-pointer rounded"
                     />
                     <span className={`text-[10px] font-bold font-mono ${editModal.noDeadline ? 'text-[#00FF66]' : 'text-gray-400'}`}>
-                      ♾️ NO DEADLINE
+                      NO DEADLINE
                     </span>
                   </label>
                 </div>
                 {editModal.noDeadline ? (
                   <div className="px-2.5 py-1.5 rounded bg-[#00FF66]/10 border border-[#00FF66]/40 text-[#00FF66] text-[10px] font-mono flex items-center gap-1.5">
-                    <span>♾️</span>
                     <span>No deadline: draw will stay active until admin manually executes winner selection</span>
                   </div>
                 ) : (
@@ -1767,7 +1749,7 @@ export function LuckyDrawAdminDashboard({
                   disabled={editModal.isSubmitting}
                   className="pixel-btn pixel-btn-vibrant-lime px-4 py-2 text-xs font-bold rounded disabled:opacity-50"
                 >
-                  {editModal.isSubmitting ? '[ SAVING CHANGES... ]' : '[ 💾 SAVE DRAW CHANGES ]'}
+                  {editModal.isSubmitting ? '[ SAVING CHANGES... ]' : '[ SAVE DRAW CHANGES ]'}
                 </button>
               </div>
             </form>
