@@ -311,9 +311,28 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
           <>
             {/* Hero Executive Banner */}
             <div className="bg-[#12072e]/85 backdrop-blur-md border-3 border-[#FFD700] rounded-2xl p-5 sm:p-6 shadow-[6px_6px_0px_#000] relative overflow-hidden">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-wider uppercase leading-tight">
-                WIN HIGH-VALUE PRIZES WITH <span className="text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.4)]">$APEBROKE</span>
-              </h1>
+              <div className="space-y-4">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-wider uppercase leading-tight">
+                  WIN HIGH-VALUE PRIZES WITH
+                  <span className="block text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.4)] mt-1">
+                    APE BROKER
+                  </span>
+                </h1>
+
+                {/* Animated Ape Broker Mascot Display */}
+                <div className="pt-1 flex items-center gap-3">
+                  <div className="relative p-1 bg-black/90 border-2 border-[#FFD700] rounded-xl shadow-[4px_4px_0px_#000] inline-block">
+                    <img
+                      src="/gifs/1.gif"
+                      alt="Ape Broker #1"
+                      className="w-16 h-16 sm:w-20 sm:h-20 object-cover pixelated rounded-lg"
+                    />
+                    <div className="absolute bottom-1.5 left-1.5 bg-black/90 border border-[#FFD700] px-1 py-0.5 font-pixel text-[7px] text-[#FFD700]">
+                      APE #1
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* SECTION 1: ACTIVE DRAWS */}
