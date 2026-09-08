@@ -49,17 +49,16 @@ export const Header = ({ onDeskClick, onStakingClick, onLuckyDrawClick, onApplyC
         </a>
 
         {/* Desktop & Tablet Navigation (visible on md+) */}
-        <nav className="hidden md:flex items-center gap-1.5 lg:gap-2 overflow-x-auto no-scrollbar py-0.5">
+        <nav className="hidden md:flex items-center gap-1.5 lg:gap-2 shrink-0">
           {onDeskClick && (
             <button
               type="button"
               onClick={handleDesk}
               aria-label="Ape Broker Desk"
-              className="pixel-btn pixel-btn-black px-2 lg:px-2.5 xl:px-3 py-1.5 text-[10px] xl:text-xs whitespace-nowrap font-extrabold text-[#00FF66] bg-black hover:bg-[#111] shadow-[2px_2px_0px_#000] border-2 border-black flex items-center gap-1.5 rounded-md"
+              className="pixel-btn pixel-btn-sm pixel-btn-black text-[#00FF66] font-extrabold flex items-center gap-1"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-[#00FF66]" />
-              <span className="hidden xl:inline">[ BROKERDESK ]</span>
-              <span className="xl:hidden">[ DESK ]</span>
+              <span>[ DESK ]</span>
             </button>
           )}
 
@@ -68,11 +67,10 @@ export const Header = ({ onDeskClick, onStakingClick, onLuckyDrawClick, onApplyC
               type="button"
               onClick={handleStaking}
               aria-label="Ape Broker Staking"
-              className="pixel-btn pixel-btn-black px-2 lg:px-2.5 xl:px-3 py-1.5 text-[10px] xl:text-xs whitespace-nowrap font-extrabold text-[#00F0FF] bg-black hover:bg-[#111] shadow-[2px_2px_0px_#000] border-2 border-black flex items-center gap-1.5 rounded-md"
+              className="pixel-btn pixel-btn-sm pixel-btn-black text-[#00F0FF] font-extrabold flex items-center gap-1"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF]" />
-              <span className="hidden lg:inline">[ STAKING ]</span>
-              <span className="lg:hidden">[ STAKE ]</span>
+              <span>[ STAKE ]</span>
             </button>
           )}
 
@@ -80,12 +78,10 @@ export const Header = ({ onDeskClick, onStakingClick, onLuckyDrawClick, onApplyC
             <button
               type="button"
               onClick={handleLuckyDraw}
-              aria-label="Ape Broker Lucky Draw (Locked)"
-              className="pixel-btn pixel-btn-black px-2 lg:px-2.5 xl:px-3 py-1.5 text-[10px] xl:text-xs whitespace-nowrap font-extrabold text-[#FFD700] bg-black hover:bg-[#111] shadow-[2px_2px_0px_#000] border-2 border-black flex items-center gap-1.5 rounded-md"
-              title="Lucky Draw Protocol (Locked for Public)"
+              aria-label="Ape Broker Lucky Draw"
+              className="pixel-btn pixel-btn-sm pixel-btn-black text-[#FFD700] font-extrabold flex items-center gap-1"
             >
-              <span className="hidden xl:inline">[ LUCKY DRAW ]</span>
-              <span className="xl:hidden">[ DRAWS ]</span>
+              <span>[ DRAWS ]</span>
             </button>
           )}
 
@@ -93,34 +89,30 @@ export const Header = ({ onDeskClick, onStakingClick, onLuckyDrawClick, onApplyC
             type="button"
             onClick={handleOpenSea}
             aria-label="OpenSea Collection"
-            className="pixel-btn pixel-btn-black px-2 lg:px-2.5 xl:px-3 py-1.5 text-[10px] xl:text-xs whitespace-nowrap font-bold text-white hover:text-[#00FF66] shadow-[2px_2px_0px_#000] border-2 border-black flex items-center gap-1 rounded-md"
+            className="pixel-btn pixel-btn-sm pixel-btn-black text-white hover:text-[#00FF66] font-bold flex items-center gap-1"
           >
-            <span className="hidden lg:inline">[ OPENSEA ]</span>
-            <span className="lg:hidden">[ OS ]</span>
+            <span>[ OPENSEA ]</span>
           </button>
 
           <button
             type="button"
             onClick={handleApebroke}
             aria-label="Buy $APEBROKE"
-            className="pixel-btn pixel-btn-black px-2 lg:px-2.5 xl:px-3 py-1.5 text-[10px] xl:text-xs whitespace-nowrap font-bold text-[#FFD700] hover:bg-[#FFD700] hover:text-black shadow-[2px_2px_0px_#000] border-2 border-black flex items-center gap-1 rounded-md"
+            className="pixel-btn pixel-btn-sm pixel-btn-black text-[#FFD700] hover:bg-[#FFD700] hover:text-black font-bold flex items-center gap-1"
           >
-            <span className="hidden 2xl:inline">[ BUY NOW $APEBROKE ]</span>
-            <span className="hidden lg:inline 2xl:hidden">[ BUY $APEBROKE ]</span>
-            <span className="lg:hidden">[ BUY $APE ]</span>
+            <span>[ BUY $APEBROKE ]</span>
           </button>
 
           <button
             type="button"
             onClick={handleFollowX}
             aria-label="Official X"
-            className="pixel-btn pixel-btn-black px-2 lg:px-2.5 xl:px-3 py-1.5 text-[10px] xl:text-xs whitespace-nowrap font-extrabold text-[#00FF66] shadow-[2px_2px_0px_#000] border-2 border-black flex items-center gap-1 rounded-md"
+            className="pixel-btn pixel-btn-sm pixel-btn-black text-[#00FF66] font-extrabold flex items-center gap-1"
           >
-            <svg className="w-3 h-3 lg:w-3.5 lg:h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
+            <svg className="w-3 h-3 fill-current shrink-0" viewBox="0 0 24 24">
               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
             </svg>
-            <span className="hidden xl:inline">[ OFFICIAL X ]</span>
-            <span className="xl:hidden">[ X ]</span>
+            <span>[ X ]</span>
           </button>
         </nav>
 
@@ -130,7 +122,7 @@ export const Header = ({ onDeskClick, onStakingClick, onLuckyDrawClick, onApplyC
             <button
               type="button"
               onClick={handleDesk}
-              className="pixel-btn pixel-btn-black px-2.5 py-1.5 text-[9px] font-extrabold text-[#00FF66] bg-black border-2 border-black rounded-md flex items-center gap-1 shadow-[2px_2px_0px_#000]"
+              className="pixel-btn pixel-btn-sm pixel-btn-black text-[#00FF66] font-extrabold flex items-center gap-1"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-[#00FF66]" />
               <span>[ DESK ]</span>
@@ -141,7 +133,7 @@ export const Header = ({ onDeskClick, onStakingClick, onLuckyDrawClick, onApplyC
             type="button"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
             aria-label="Toggle Navigation Menu"
-            className="pixel-btn pixel-btn-black px-2.5 py-1.5 text-[9px] font-bold text-white bg-black border-2 border-black rounded-md flex items-center gap-1 shadow-[2px_2px_0px_#000]"
+            className="pixel-btn pixel-btn-sm pixel-btn-black text-white font-bold flex items-center gap-1"
           >
             {mobileMenuOpen ? '✕ CLOSE' : '☰ MENU'}
           </button>

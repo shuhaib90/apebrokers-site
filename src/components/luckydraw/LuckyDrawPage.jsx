@@ -185,26 +185,26 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
           </div>
 
           {/* Right Navigation & Wallet */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Public Lock Indicator */}
             {isPublicLocked && (
-              <span className="hidden sm:inline-flex items-center px-2 py-0.5 bg-amber-950/70 border border-amber-500/70 text-[8px] text-amber-300 rounded font-mono font-bold">
-                [ PUBLIC LOCKED ]
+              <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 bg-amber-950/70 border border-amber-500/70 text-[8px] text-amber-300 rounded font-mono font-bold">
+                [ LOCKED ]
               </span>
             )}
 
             {/* View Switcher for Admins */}
             {(isAdmin || hasPasscodeBypass) && (
-              <div className="flex items-center gap-1 bg-[#13072b] p-1 rounded-lg border border-[#FFD700]/70 shadow-[2px_2px_0px_#000]">
+              <div className="flex items-center gap-0.5 bg-[#13072b] p-0.5 rounded border border-[#FFD700]/70">
                 <button
                   type="button"
                   onClick={() => {
                     sound?.playClick?.();
                     setActiveView('terminal');
                   }}
-                  className={`px-2.5 py-1 text-[9px] sm:text-xs font-bold rounded transition-colors ${
+                  className={`px-2 py-0.5 text-[9px] font-bold rounded ${
                     activeView === 'terminal'
-                      ? 'bg-[#FFD700] text-black shadow-[1px_1px_0px_#000]'
+                      ? 'bg-[#FFD700] text-black'
                       : 'text-gray-300 hover:text-white'
                   }`}
                 >
@@ -216,9 +216,9 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                     sound?.playClick?.();
                     setActiveView('admin');
                   }}
-                  className={`px-2.5 py-1 text-[9px] sm:text-xs font-bold rounded transition-colors ${
+                  className={`px-2 py-0.5 text-[9px] font-bold rounded ${
                     activeView === 'admin'
-                      ? 'bg-[#00FF66] text-black shadow-[1px_1px_0px_#000]'
+                      ? 'bg-[#00FF66] text-black'
                       : 'text-[#00FF66] hover:bg-[#00FF66]/20'
                   }`}
                 >
@@ -233,7 +233,7 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                 sound?.playClick?.();
                 onGoToDesk();
               }}
-              className="pixel-btn pixel-btn-black px-2.5 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold text-[#00FF66] hover:text-white rounded border border-[#00FF66]/80 shadow-[1px_1px_0px_#000]"
+              className="pixel-btn pixel-btn-sm pixel-btn-black text-[#00FF66] font-bold"
             >
               [ DESK ]
             </button>
@@ -244,7 +244,7 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                 sound?.playClick?.();
                 onGoToStaking();
               }}
-              className="pixel-btn pixel-btn-black px-2.5 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold text-[#00F0FF] hover:text-white rounded border border-[#00F0FF]/80 shadow-[1px_1px_0px_#000]"
+              className="pixel-btn pixel-btn-sm pixel-btn-black text-[#00F0FF] font-bold"
             >
               [ STAKE ]
             </button>
@@ -255,12 +255,12 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                 sound?.playClick?.();
                 onBackHome();
               }}
-              className="pixel-btn pixel-btn-black px-2.5 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold text-gray-300 hover:text-white rounded border border-gray-700"
+              className="pixel-btn pixel-btn-sm pixel-btn-black text-gray-300 hover:text-white font-bold"
             >
               [ ← HOME ]
             </button>
 
-            {/* Wallet Connect */}
+            {/* Wallet Connect / NFT Indicator */}
             {!userBalances.apeBrokeBalance && !isAdmin ? (
               <button
                 type="button"
@@ -268,13 +268,17 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                   sound?.playClick?.();
                   openConnectModal?.();
                 }}
-                className="pixel-btn pixel-btn-vibrant-gold px-3 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-xs font-extrabold rounded-md sm:rounded-lg shadow-[2px_2px_0px_#000]"
+                className="pixel-btn pixel-btn-sm pixel-btn-gold font-extrabold"
               >
-                [ CONNECT WALLET ]
+                [ CONNECT ]
               </button>
             ) : (
-              <div className="bg-[#150a33] border border-[#FFD700]/70 px-2.5 py-1 rounded text-[10px] font-mono text-[#FFD700]">
-                {Number(userBalances.nftBalance)} NFTs
+              <div className="bg-[#150a33] border border-[#FFD700]/70 px-2 py-0.5 rounded text-[9px] font-mono text-[#FFD700] flex items-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full ${userBalances.isEligible ? 'bg-[#00FF66]' : 'bg-[#FF2247]'}`} />
+                <span>{Number(userBalances.nftBalance)} NFTs</span>
+                {userBalances.isEligible && (
+                  <span className="hidden md:inline text-[8px] text-[#00FF66] font-bold">[ELIGIBLE]</span>
+                )}
               </div>
             )}
           </div>
@@ -306,74 +310,22 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
         ) : (
           <>
             {/* Hero Executive Banner */}
-            <div className="bg-[#12072e]/85 backdrop-blur-md border-3 border-[#FFD700] rounded-2xl p-6 sm:p-8 shadow-[6px_6px_0px_#000] relative overflow-hidden space-y-6">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                <div className="space-y-2.5 max-w-2xl">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-2.5 py-0.5 rounded bg-[#FFD700] text-black text-[9px] font-extrabold tracking-wider">
-                      [ EXCLUSIVE HOLDER PROTOCOL ]
-                    </span>
-                    <span className="text-[10px] text-gray-300 font-mono">
-                      Gated to Ape Broker NFT Holders • Chain 4663
-                    </span>
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-wider uppercase leading-tight">
-                    WIN HIGH-VALUE PRIZES WITH <span className="text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.4)]">$APEBROKE</span>
-                  </h1>
-                  <p className="text-xs sm:text-sm font-mono text-gray-300 leading-relaxed">
-                    Enter community prize draws for gaming consoles (PS5), native ETH jackpots, whale token bundles, and Ape Broker NFTs. 100% on-chain ticket purchases and verified transparent winner selection.
-                  </p>
+            <div className="bg-[#12072e]/85 backdrop-blur-md border-3 border-[#FFD700] rounded-2xl p-6 sm:p-7 shadow-[6px_6px_0px_#000] relative overflow-hidden">
+              <div className="space-y-3 max-w-3xl">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 rounded bg-[#FFD700] text-black text-[9px] font-extrabold tracking-wider">
+                    [ EXCLUSIVE HOLDER PROTOCOL ]
+                  </span>
+                  <span className="text-[10px] text-gray-300 font-mono">
+                    Gated to Ape Broker NFT Holders • Chain 4663
+                  </span>
                 </div>
-
-                {/* NFT Gating Status Card */}
-                <div className="bg-black/70 border-2 border-purple-700/80 p-5 rounded-xl shrink-0 font-mono text-xs space-y-2.5 w-full lg:w-72 shadow-[4px_4px_0px_#000]">
-                  <div className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">MEMBERSHIP VALIDATION</div>
-                  <div className="flex items-center gap-2.5">
-                    <span className={`w-3 h-3 rounded-full ${userBalances.isEligible ? 'bg-[#00FF66]' : 'bg-[#FF2247]'}`} />
-                    <span className="font-bold text-white text-sm sm:text-base">
-                      {Number(userBalances.nftBalance)} Ape Broker NFTs
-                    </span>
-                  </div>
-                  {userBalances.isEligible ? (
-                    <div className="text-[10px] text-[#00FF66] font-bold bg-[#00FF66]/10 px-2 py-1 rounded border border-[#00FF66]/40">
-                      [ ELIGIBLE TO ENTER DRAWS ]
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      <div className="text-[10px] text-amber-300">
-                        Requires ≥ 1 Ape Broker NFT
-                      </div>
-                      <a
-                        href="https://opensea.io/collection/brokerdesk-583588970"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] text-cyan-400 hover:underline block font-bold"
-                      >
-                        [ GET NFT ON OPENSEA ↗ ]
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* 4 Protocol Feature Badges */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t border-purple-900/60 font-mono text-xs">
-                <div className="bg-black/50 p-3 rounded-lg border border-purple-900/60 text-center space-y-0.5">
-                  <div className="text-[#00FF66] font-bold text-xs">100% ON-CHAIN</div>
-                  <div className="text-[9px] text-gray-400">Verifiable Winner Selection</div>
-                </div>
-                <div className="bg-black/50 p-3 rounded-lg border border-purple-900/60 text-center space-y-0.5">
-                  <div className="text-[#00F0FF] font-bold text-xs">HOLDERS ONLY</div>
-                  <div className="text-[9px] text-gray-400">Ape Broker NFT Gated</div>
-                </div>
-                <div className="bg-black/50 p-3 rounded-lg border border-purple-900/60 text-center space-y-0.5">
-                  <div className="text-[#FFD700] font-bold text-xs">$APEBROKE SINK</div>
-                  <div className="text-[9px] text-gray-400">Deflationary Protocol Token</div>
-                </div>
-                <div className="bg-black/50 p-3 rounded-lg border border-purple-900/60 text-center space-y-0.5">
-                  <div className="text-[#FF007F] font-bold text-xs">DIRECT DELIVERY</div>
-                  <div className="text-[9px] text-gray-400">Admin Fulfills to Winner</div>
-                </div>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-wider uppercase leading-tight">
+                  WIN HIGH-VALUE PRIZES WITH <span className="text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.4)]">$APEBROKE</span>
+                </h1>
+                <p className="text-xs sm:text-sm font-mono text-gray-300 leading-relaxed">
+                  Enter community prize draws for gaming consoles (PS5), native ETH jackpots, whale token bundles, and Ape Broker NFTs. 100% on-chain ticket purchases and verified transparent winner selection.
+                </p>
               </div>
             </div>
 
