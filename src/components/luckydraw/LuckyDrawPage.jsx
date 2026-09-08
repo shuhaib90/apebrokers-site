@@ -310,23 +310,10 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
         ) : (
           <>
             {/* Hero Executive Banner */}
-            <div className="bg-[#12072e]/85 backdrop-blur-md border-3 border-[#FFD700] rounded-2xl p-6 sm:p-7 shadow-[6px_6px_0px_#000] relative overflow-hidden">
-              <div className="space-y-3 max-w-3xl">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2.5 py-0.5 rounded bg-[#FFD700] text-black text-[9px] font-extrabold tracking-wider">
-                    [ EXCLUSIVE HOLDER PROTOCOL ]
-                  </span>
-                  <span className="text-[10px] text-gray-300 font-mono">
-                    Gated to Ape Broker NFT Holders • Chain 4663
-                  </span>
-                </div>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-wider uppercase leading-tight">
-                  WIN HIGH-VALUE PRIZES WITH <span className="text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.4)]">$APEBROKE</span>
-                </h1>
-                <p className="text-xs sm:text-sm font-mono text-gray-300 leading-relaxed">
-                  Enter community prize draws for gaming consoles (PS5), native ETH jackpots, whale token bundles, and Ape Broker NFTs. 100% on-chain ticket purchases and verified transparent winner selection.
-                </p>
-              </div>
+            <div className="bg-[#12072e]/85 backdrop-blur-md border-3 border-[#FFD700] rounded-2xl p-5 sm:p-6 shadow-[6px_6px_0px_#000] relative overflow-hidden">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-wider uppercase leading-tight">
+                WIN HIGH-VALUE PRIZES WITH <span className="text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.4)]">$APEBROKE</span>
+              </h1>
             </div>
 
             {/* SECTION 1: ACTIVE DRAWS */}
