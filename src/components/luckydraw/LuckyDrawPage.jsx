@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useDisconnect } from 'wagmi';
 import { formatEther } from 'viem';
@@ -9,6 +9,7 @@ import { useEthPrice } from '../../hooks/useEthPrice';
 import { LuckyDrawAdminDashboard } from './LuckyDrawAdminDashboard';
 import { LuckyDrawLockedScreen } from './LuckyDrawLockedScreen';
 import { PixelFluidBackground } from '../PixelFluidBackground';
+import { supabase } from '../../utils/supabase';
 
 export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
   const { openConnectModal } = useConnectModal();
@@ -37,13 +38,13 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
     adminEditDraw,
   } = useApeBrokerLuckyDraw();
 
-  // Public Lock state - defaults to true (locked for public)
+  // Public Lock state - defaults to false (OPEN for public)
   const [isPublicLocked, setIsPublicLocked] = useState(() => {
     try {
       const stored = localStorage.getItem('APE_LUCKY_DRAW_PUBLIC_LOCKED');
-      return stored === null ? true : stored !== 'false';
+      return stored === 'true';
     } catch {
-      return true;
+      return false;
     }
   });
 
@@ -55,6 +56,30 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
     }
   });
 
+  // Sync public lock status from Supabase
+  useEffect(() => {
+    async function syncPublicLock() {
+      try {
+        const { data } = await supabase
+          .from('apebrokers_settings')
+          .select('value')
+          .eq('key', 'lucky_draw_public_locked')
+          .maybeSingle();
+
+        if (data?.value?.locked !== undefined) {
+          setIsPublicLocked(Boolean(data.value.locked));
+          localStorage.setItem('APE_LUCKY_DRAW_PUBLIC_LOCKED', String(data.value.locked));
+        } else {
+          setIsPublicLocked(false);
+          localStorage.setItem('APE_LUCKY_DRAW_PUBLIC_LOCKED', 'false');
+        }
+      } catch (e) {
+        setIsPublicLocked(false);
+      }
+    }
+    syncPublicLock();
+  }, []);
+
   const handleAdminPasscodeUnlock = () => {
     try {
       sessionStorage.setItem('APE_LUCKY_DRAW_ADMIN_UNLOCKED', 'true');
@@ -62,11 +87,15 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
     setHasPasscodeBypass(true);
   };
 
-  const handleTogglePublicLock = (lockedState) => {
+  const handleTogglePublicLock = async (lockedState) => {
     const nextVal = typeof lockedState === 'boolean' ? lockedState : !isPublicLocked;
     setIsPublicLocked(nextVal);
     try {
       localStorage.setItem('APE_LUCKY_DRAW_PUBLIC_LOCKED', String(nextVal));
+      await supabase.from('apebrokers_settings').upsert({
+        key: 'lucky_draw_public_locked',
+        value: { locked: nextVal },
+      });
     } catch {}
   };
 
@@ -223,6 +252,21 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                   }`}
                 >
                   ADMIN
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound?.playClick?.();
+                    handleTogglePublicLock();
+                  }}
+                  title={isPublicLocked ? 'Click to open for public' : 'Click to lock for public'}
+                  className={`px-1.5 py-0.5 text-[8px] font-bold rounded border ${
+                    isPublicLocked
+                      ? 'bg-amber-950/80 border-amber-500 text-amber-300'
+                      : 'bg-emerald-950/80 border-[#00FF66] text-[#00FF66]'
+                  }`}
+                >
+                  {isPublicLocked ? '🔒 LOCKED' : '🌐 PUBLIC'}
                 </button>
               </div>
             )}
