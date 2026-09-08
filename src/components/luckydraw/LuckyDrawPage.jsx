@@ -31,6 +31,9 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
     adminSelectWinnersManual,
     adminUpdatePrizeStatus,
     adminClaimAllTicketRevenue,
+    adminCancelDraw,
+    adminDeleteDraw,
+    adminEditDraw,
   } = useApeBrokerLuckyDraw();
 
   // Public Lock state - defaults to true (locked for public)
@@ -293,6 +296,9 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
             onClaimAllRevenue={adminClaimAllTicketRevenue}
             isPublicLocked={isPublicLocked}
             onTogglePublicLock={handleTogglePublicLock}
+            onCancelDraw={adminCancelDraw}
+            onDeleteDraw={adminDeleteDraw}
+            onEditDraw={adminEditDraw}
           />
         ) : (
           <>
@@ -362,99 +368,129 @@ export function LuckyDrawPage({ onBackHome, onGoToDesk, onGoToStaking }) {
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {activeDraws.map((draw) => {
-                  const sold = draw.totalTicketsSold;
-                  const max = draw.maxTickets || 100;
-                  const pct = Math.min(100, Math.round((sold / max) * 100));
-                  const userTkts = userTicketsByDraw[draw.drawId] || 0;
-                  const priceApe = Number(formatEther(draw.ticketPriceApe));
-                  const priceUsd = priceApe * apePriceUsd;
+              {activeDraws.length === 0 ? (
+                <div className="bg-[#12072e] border-2 border-purple-900 p-8 rounded-xl text-center font-mono text-gray-400 space-y-2 shadow-[4px_4px_0px_#000]">
+                  <div className="text-sm font-bold text-gray-300">No active draws currently running.</div>
+                  <div className="text-xs text-gray-500">Upcoming lucky draws will appear here once launched by the protocol admin.</div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {activeDraws.map((draw) => {
+                    const sold = draw.totalTicketsSold;
+                    const max = draw.maxTickets || 100;
+                    const pct = Math.min(100, Math.round((sold / max) * 100));
+                    const userTkts = userTicketsByDraw[draw.drawId] || 0;
+                    const priceApe = Number(formatEther(draw.ticketPriceApe));
+                    const priceUsd = priceApe * apePriceUsd;
 
-                  const categoryLabels = ['PHYSICAL REWARD', 'ETH JACKPOT', 'TOKEN BUNDLE', 'NFT PRIZE', 'CUSTOM'];
-                  const categoryColors = ['bg-pink-600', 'bg-cyan-600', 'bg-amber-600', 'bg-purple-600', 'bg-emerald-600'];
+                    const isNoDead = draw.noDeadline || (draw.endTime - draw.startTime >= 180 * 86400);
 
-                  return (
-                    <div
-                      key={draw.drawId}
-                      className="bg-[#12072e] border-2 border-purple-800 hover:border-[#FFD700] rounded-xl overflow-hidden shadow-[4px_4px_0px_#000] flex flex-col transition-all group"
-                    >
-                      {/* Image Banner */}
-                      <div className="relative h-44 w-full bg-black overflow-hidden">
-                        <img
-                          src={draw.imageUrl}
-                          alt={draw.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-white shadow-md ${categoryColors[draw.prizeCategory || 0]}`}>
-                            {categoryLabels[draw.prizeCategory || 0]}
-                          </span>
-                          <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-purple-950/90 text-[#FFD700] border border-[#FFD700]/60 shadow-md">
-                            {draw.winnerCount || 1} WINNER{(draw.winnerCount || 1) > 1 ? 'S' : ''}
-                          </span>
-                        </div>
-                        <div className="absolute top-2.5 right-2.5 bg-black/80 px-2 py-0.5 rounded text-[9px] font-mono font-bold text-[#FFD700] border border-[#FFD700]/50">
-                          DRAW #{draw.drawId}
-                        </div>
-                      </div>
+                    const categoryLabels = ['PHYSICAL REWARD', 'ETH JACKPOT', 'TOKEN BUNDLE', 'NFT PRIZE', 'CUSTOM'];
+                    const categoryColors = ['bg-pink-600', 'bg-cyan-600', 'bg-amber-600', 'bg-purple-600', 'bg-emerald-600'];
 
-                      {/* Content */}
-                      <div className="p-4 sm:p-5 space-y-4 flex-1 flex flex-col justify-between">
-                        <div className="space-y-1.5">
-                          <h3 className="text-sm font-extrabold text-white leading-snug line-clamp-2">
-                            {draw.title}
-                          </h3>
-                          <p className="text-[11px] font-mono text-gray-300 line-clamp-2">
-                            {draw.prizeDescription}
-                          </p>
-                        </div>
-
-                        <div className="space-y-3 font-mono text-xs pt-2 border-t border-purple-900/50">
-                          <div className="flex justify-between items-center text-gray-400 text-[11px]">
-                            <span>Ticket Price:</span>
-                            <span className="font-bold text-[#FFD700] text-xs">
-                              {priceApe.toLocaleString()} $APE (≈ ${priceUsd.toFixed(2)})
+                    return (
+                      <div
+                        key={draw.drawId}
+                        className="bg-[#12072e] border-2 border-purple-800 hover:border-[#FFD700] rounded-xl overflow-hidden shadow-[4px_4px_0px_#000] flex flex-col transition-all group"
+                      >
+                        {/* Image Banner */}
+                        <div className="relative h-44 w-full bg-black overflow-hidden">
+                          <img
+                            src={draw.imageUrl}
+                            alt={draw.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-white shadow-md ${categoryColors[draw.prizeCategory || 0]}`}>
+                              {categoryLabels[draw.prizeCategory || 0]}
                             </span>
+                            <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-purple-950/90 text-[#FFD700] border border-[#FFD700]/60 shadow-md">
+                              {draw.winnerCount || 1} WINNER{(draw.winnerCount || 1) > 1 ? 'S' : ''}
+                            </span>
+                            {isNoDead && (
+                              <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-950/90 text-[#00FF66] border border-[#00FF66]/60 shadow-md">
+                                ♾️ NO DEADLINE
+                              </span>
+                            )}
+                          </div>
+                          <div className="absolute top-2.5 right-2.5 bg-black/80 px-2 py-0.5 rounded text-[9px] font-mono font-bold text-[#FFD700] border border-[#FFD700]/50">
+                            DRAW #{draw.drawId}
+                          </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-4 sm:p-5 space-y-4 flex-1 flex flex-col justify-between">
+                          <div className="space-y-1.5">
+                            <h3 className="text-sm font-extrabold text-white leading-snug line-clamp-2">
+                              {draw.title}
+                            </h3>
+                            <p className="text-[11px] font-mono text-gray-300 line-clamp-2">
+                              {draw.prizeDescription}
+                            </p>
                           </div>
 
-                          {/* Progress */}
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-[10px] text-gray-300">
-                              <span>Tickets Sold:</span>
-                              <span className="text-[#00FF66] font-bold">
-                                {sold} / {draw.maxTickets > 0 ? draw.maxTickets : '∞'} ({pct}%)
+                          <div className="space-y-3 font-mono text-xs pt-2 border-t border-purple-900/50">
+                            <div className="flex justify-between items-center text-gray-400 text-[11px]">
+                              <span>Ticket Price:</span>
+                              <span className="font-bold text-[#FFD700] text-xs">
+                                {priceApe.toLocaleString()} $APE (≈ ${priceUsd.toFixed(2)})
                               </span>
                             </div>
-                            <div className="w-full h-2 bg-black/60 rounded-full overflow-hidden border border-purple-900">
-                              <div
-                                className="h-full bg-gradient-to-r from-[#FFD700] to-[#00FF66]"
-                                style={{ width: `${pct}%` }}
-                              />
+
+                            {/* Deadline / Duration Status */}
+                            <div className="flex justify-between items-center text-[10px]">
+                              <span className="text-gray-400">Duration:</span>
+                              {isNoDead ? (
+                                <span className="text-[#00FF66] font-bold">
+                                  ♾️ Open until drawn
+                                </span>
+                              ) : (
+                                <span className="text-cyan-300 font-mono">
+                                  {draw.endTime * 1000 > Date.now()
+                                    ? `Ends in ${Math.max(1, Math.ceil((draw.endTime * 1000 - Date.now()) / 86400000))}d`
+                                    : 'Ended'}
+                                </span>
+                              )}
                             </div>
-                          </div>
 
-                          {/* User Ticket Status */}
-                          <div className="bg-black/50 border border-purple-900/80 p-2 rounded flex justify-between items-center text-[10px]">
-                            <span className="text-gray-400">Your Tickets:</span>
-                            <span className="font-bold text-[#00F0FF]">
-                              {userTkts} Tickets {sold > 0 && userTkts > 0 ? `(${((userTkts / sold) * 100).toFixed(1)}% chance)` : ''}
-                            </span>
-                          </div>
+                            {/* Progress */}
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-[10px] text-gray-300">
+                                <span>Tickets Sold:</span>
+                                <span className="text-[#00FF66] font-bold">
+                                  {sold} / {draw.maxTickets > 0 ? draw.maxTickets : '∞'} ({pct}%)
+                                </span>
+                              </div>
+                              <div className="w-full h-2 bg-black/60 rounded-full overflow-hidden border border-purple-900">
+                                <div
+                                  className="h-full bg-gradient-to-r from-[#FFD700] to-[#00FF66]"
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                            </div>
 
-                          <button
-                            type="button"
-                            onClick={() => handleOpenBuyModal(draw)}
-                            className="w-full py-2.5 pixel-btn pixel-btn-vibrant-gold text-xs font-extrabold rounded-lg shadow-[2px_2px_0px_#000] text-center uppercase"
-                          >
-                            [ 🎟️ GET TICKETS ]
-                          </button>
+                            {/* User Ticket Status */}
+                            <div className="bg-black/50 border border-purple-900/80 p-2 rounded flex justify-between items-center text-[10px]">
+                              <span className="text-gray-400">Your Tickets:</span>
+                              <span className="font-bold text-[#00F0FF]">
+                                {userTkts} Tickets {sold > 0 && userTkts > 0 ? `(${((userTkts / sold) * 100).toFixed(1)}% chance)` : ''}
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenBuyModal(draw)}
+                              className="w-full py-2.5 pixel-btn pixel-btn-vibrant-gold text-xs font-extrabold rounded-lg shadow-[2px_2px_0px_#000] text-center uppercase"
+                            >
+                              [ 🎟️ GET TICKETS ]
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </section>
 
             {/* SECTION 2: WINNERS HALL OF FAME */}

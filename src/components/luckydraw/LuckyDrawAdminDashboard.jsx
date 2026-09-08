@@ -19,6 +19,9 @@ export function LuckyDrawAdminDashboard({
   onClaimAllRevenue,
   isPublicLocked = true,
   onTogglePublicLock,
+  onCancelDraw,
+  onDeleteDraw,
+  onEditDraw,
 }) {
   const { ethPrice } = useEthPrice();
   const [activeTab, setActiveTab] = useState('active'); // 'create' | 'active' | 'winners' | 'revenue'
@@ -35,9 +38,27 @@ export function LuckyDrawAdminDashboard({
     minNftRequired: '1',
     durationDays: '2',
     winnerCount: '1',
+    noDeadline: false,
   });
   const [imagePreview, setImagePreview] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Edit Draw Modal State
+  const [editModal, setEditModal] = useState({
+    isOpen: false,
+    drawId: null,
+    title: '',
+    prizeDescription: '',
+    prizeCategory: 0,
+    imageUrl: '',
+    ticketPriceApe: '',
+    maxTickets: '',
+    maxTicketsPerWallet: '',
+    minNftRequired: '1',
+    durationDays: '2',
+    noDeadline: false,
+    isSubmitting: false,
+  });
 
   // Customize Ticket Fee Modal State
   const [feeModal, setFeeModal] = useState({
@@ -207,6 +228,62 @@ export function LuckyDrawAdminDashboard({
     } catch (err) {
       sound?.playError?.();
       alert('Failed to update ticket fee: ' + (err.message || 'Transaction rejected.'));
+    }
+  };
+
+  const handleDeleteDraw = async (drawId, title) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete / cancel Draw #${drawId} ("${title}")?\n\nIf tickets were purchased, participants can claim their refunds on-chain.`
+      )
+    ) {
+      return;
+    }
+    sound?.playClick?.();
+    try {
+      if (onDeleteDraw) {
+        await onDeleteDraw(drawId);
+      } else if (onCancelDraw) {
+        await onCancelDraw(drawId, 'Cancelled by admin');
+      }
+      sound?.playSuccess?.();
+      alert(`Draw #${drawId} deleted successfully!`);
+    } catch (err) {
+      sound?.playError?.();
+      alert('Failed to delete draw: ' + (err.message || 'Error occurred.'));
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editModal.title || !editModal.prizeDescription) {
+      alert('Please fill out the draw title and prize description.');
+      return;
+    }
+    sound?.playClick?.();
+    setEditModal((prev) => ({ ...prev, isSubmitting: true }));
+    try {
+      if (onEditDraw) {
+        await onEditDraw(editModal.drawId, {
+          title: editModal.title,
+          prizeDescription: editModal.prizeDescription,
+          prizeCategory: Number(editModal.prizeCategory),
+          imageUrl: editModal.imageUrl,
+          ticketPriceApe: editModal.ticketPriceApe,
+          maxTickets: Number(editModal.maxTickets || 0),
+          maxTicketsPerWallet: Number(editModal.maxTicketsPerWallet || 0),
+          minNftRequired: Number(editModal.minNftRequired || 1),
+          durationDays: Number(editModal.durationDays || 2),
+          noDeadline: Boolean(editModal.noDeadline),
+        });
+      }
+      sound?.playSuccess?.();
+      alert(`Draw #${editModal.drawId} updated successfully!`);
+      setEditModal((prev) => ({ ...prev, isOpen: false, isSubmitting: false }));
+    } catch (err) {
+      sound?.playError?.();
+      alert('Failed to update draw: ' + (err.message || 'Error occurred.'));
+      setEditModal((prev) => ({ ...prev, isSubmitting: false }));
     }
   };
 
@@ -584,7 +661,29 @@ export function LuckyDrawAdminDashboard({
                       </div>
                     </div>
 
-                    {/* Action Buttons for Winner Selection */}
+                    {/* Duration / Deadline Status */}
+                    {(() => {
+                      const isNoDead = Boolean(draw.noDeadline || (draw.endTime - draw.startTime >= 180 * 86400));
+                      return (
+                        <div className="flex items-center justify-between text-[10px] bg-black/40 px-2.5 py-1.5 rounded border border-purple-900/60 font-mono">
+                          <span className="text-gray-400">Deadline:</span>
+                          {isNoDead ? (
+                            <span className="text-[#00FF66] font-bold flex items-center gap-1">
+                              <span>♾️</span>
+                              <span>NO DEADLINE (OPEN UNTIL DRAWN)</span>
+                            </span>
+                          ) : (
+                            <span className="text-cyan-300 font-mono">
+                              {draw.endTime * 1000 > Date.now()
+                                ? `⏳ Ends in ${Math.max(1, Math.ceil((draw.endTime * 1000 - Date.now()) / 86400000))}d`
+                                : '⚠️ Expired / Ready to Draw'}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Winner Selection Actions */}
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-purple-900/60">
                       <button
                         type="button"
@@ -611,6 +710,46 @@ export function LuckyDrawAdminDashboard({
                         title={`Pick ${draw.winnerCount || 1} specific ticket holder wallet(s)`}
                       >
                         [ ✍️ MANUAL PICK {draw.winnerCount > 1 ? `(${draw.winnerCount})` : ''} ]
+                      </button>
+                    </div>
+
+                    {/* Admin Edit & Delete Options */}
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-purple-900/40">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sound?.playClick?.();
+                          const currentApe = Number(formatEther(draw.ticketPriceApe));
+                          const isNoDead = Boolean(draw.noDeadline || (draw.endTime - draw.startTime >= 180 * 86400));
+                          setEditModal({
+                            isOpen: true,
+                            drawId: draw.drawId,
+                            title: draw.title || '',
+                            prizeDescription: draw.prizeDescription || '',
+                            prizeCategory: draw.prizeCategory !== undefined ? Number(draw.prizeCategory) : 0,
+                            imageUrl: draw.imageUrl || '',
+                            ticketPriceApe: currentApe.toString(),
+                            maxTickets: String(draw.maxTickets || 0),
+                            maxTicketsPerWallet: String(draw.maxTicketsPerWallet || 0),
+                            minNftRequired: String(draw.minNftRequired || 1),
+                            durationDays: String(draw.durationDays || 2),
+                            noDeadline: isNoDead,
+                            isSubmitting: false,
+                          });
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg bg-blue-950/80 hover:bg-blue-900/90 text-blue-300 hover:text-white border border-blue-600/80 text-[10px] font-bold flex items-center justify-center gap-1.5 shadow-[1px_1px_0px_#000] transition-colors"
+                      >
+                        <span>✏️</span>
+                        <span>EDIT DRAW</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDraw(draw.drawId, draw.title)}
+                        className="px-2.5 py-1.5 rounded-lg bg-red-950/80 hover:bg-red-900/90 text-red-300 hover:text-white border border-red-600/80 text-[10px] font-bold flex items-center justify-center gap-1.5 shadow-[1px_1px_0px_#000] transition-colors"
+                      >
+                        <span>🗑️</span>
+                        <span>DELETE DRAW</span>
                       </button>
                     </div>
                   </div>
@@ -725,19 +864,46 @@ export function LuckyDrawAdminDashboard({
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-gray-300 font-bold mb-1 uppercase text-[10px]">
-                      Duration (Days) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      max="30"
-                      value={formData.durationDays}
-                      onChange={(e) => setFormData({ ...formData, durationDays: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-black/60 border border-purple-800 focus:border-[#FFD700] text-white focus:outline-none"
-                    />
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-gray-300 font-bold uppercase text-[10px]">
+                        Duration *
+                      </label>
+                      <label className="inline-flex items-center gap-1 cursor-pointer bg-black/50 px-2 py-0.5 rounded border border-purple-800 hover:border-[#00FF66]">
+                        <input
+                          type="checkbox"
+                          checked={formData.noDeadline}
+                          onChange={(e) => {
+                            sound?.playClick?.();
+                            setFormData((prev) => ({ ...prev, noDeadline: e.target.checked }));
+                          }}
+                          className="accent-[#00FF66] w-3 h-3 cursor-pointer rounded"
+                        />
+                        <span className={`text-[10px] font-bold font-mono ${formData.noDeadline ? 'text-[#00FF66]' : 'text-gray-400'}`}>
+                          ♾️ NO DEADLINE
+                        </span>
+                      </label>
+                    </div>
+                    {formData.noDeadline ? (
+                      <div className="px-3 py-2 rounded-lg bg-[#00FF66]/10 border border-[#00FF66]/50 text-[#00FF66] text-[10px] font-mono flex items-center gap-1.5">
+                        <span>♾️</span>
+                        <span>Open indefinitely until Admin manually triggers draw</span>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <input
+                          type="number"
+                          required={!formData.noDeadline}
+                          min="1"
+                          max="365"
+                          placeholder="e.g. 2"
+                          value={formData.durationDays}
+                          onChange={(e) => setFormData({ ...formData, durationDays: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg bg-black/60 border border-purple-800 focus:border-[#FFD700] text-white focus:outline-none"
+                        />
+                        <span className="absolute right-3 top-2 text-gray-400 text-[10px]">Days</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1421,6 +1587,190 @@ export function LuckyDrawAdminDashboard({
                 {directSendModal.isSending ? '[ SENDING VIA WALLET... ]' : `[ 🚀 SEND ${directSendModal.assetType} TO WINNER ]`}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Draw Modal */}
+      {editModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-xl bg-[#12072e] border-3 border-blue-500 rounded-xl overflow-hidden shadow-[0_0_40px_rgba(59,130,246,0.3)] font-mono text-white p-5 sm:p-6 space-y-4 my-8">
+            <div className="flex items-center justify-between border-b border-purple-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-base">✏️</span>
+                <h3 className="text-xs sm:text-sm font-bold text-blue-400 uppercase tracking-wider">
+                  EDIT DRAW #{editModal.drawId}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditModal((prev) => ({ ...prev, isOpen: false }))}
+                className="text-gray-400 hover:text-white text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="block text-gray-300 font-bold uppercase text-[10px]">
+                  Draw Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editModal.title}
+                  onChange={(e) => setEditModal({ ...editModal, title: e.target.value })}
+                  className="w-full px-3 py-2 rounded bg-black/80 border border-purple-700 text-xs text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-gray-300 font-bold uppercase text-[10px]">
+                    Prize Category
+                  </label>
+                  <select
+                    value={editModal.prizeCategory}
+                    onChange={(e) => setEditModal({ ...editModal, prizeCategory: Number(e.target.value) })}
+                    className="w-full px-3 py-2 rounded bg-black/80 border border-purple-700 text-xs text-white focus:outline-none"
+                  >
+                    <option value={0}>Physical Product</option>
+                    <option value={1}>Native ETH</option>
+                    <option value={2}>$APEBROKE Token Bundle</option>
+                    <option value={3}>Ape Broker NFT</option>
+                    <option value={4}>Custom</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-gray-300 font-bold uppercase text-[10px]">
+                    Ticket Fee ($APEBROKE) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    value={editModal.ticketPriceApe}
+                    onChange={(e) => setEditModal({ ...editModal, ticketPriceApe: e.target.value })}
+                    className="w-full px-3 py-2 rounded bg-black/80 border border-purple-700 text-xs text-[#FFD700] font-bold focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-gray-300 font-bold uppercase text-[10px]">
+                  Prize Description *
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={editModal.prizeDescription}
+                  onChange={(e) => setEditModal({ ...editModal, prizeDescription: e.target.value })}
+                  className="w-full px-3 py-2 rounded bg-black/80 border border-purple-700 text-xs text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-gray-300 font-bold uppercase text-[10px]">
+                  Image URL
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://..."
+                  value={editModal.imageUrl}
+                  onChange={(e) => setEditModal({ ...editModal, imageUrl: e.target.value })}
+                  className="w-full px-3 py-2 rounded bg-black/80 border border-purple-700 text-xs text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-gray-300 font-bold uppercase text-[10px]">
+                    Max Tickets (0=Uncapped)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editModal.maxTickets}
+                    onChange={(e) => setEditModal({ ...editModal, maxTickets: e.target.value })}
+                    className="w-full px-3 py-2 rounded bg-black/80 border border-purple-700 text-xs text-white focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-gray-300 font-bold uppercase text-[10px]">
+                    Max Per Wallet (0=Uncapped)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editModal.maxTicketsPerWallet}
+                    onChange={(e) => setEditModal({ ...editModal, maxTicketsPerWallet: e.target.value })}
+                    className="w-full px-3 py-2 rounded bg-black/80 border border-purple-700 text-xs text-white focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Duration / Deadline Settings */}
+              <div className="space-y-1.5 p-3 rounded-lg bg-black/40 border border-purple-900/80">
+                <div className="flex items-center justify-between">
+                  <label className="block text-gray-300 font-bold uppercase text-[10px]">
+                    Draw Duration & Deadline
+                  </label>
+                  <label className="inline-flex items-center gap-1 cursor-pointer bg-black/60 px-2 py-0.5 rounded border border-purple-800 hover:border-[#00FF66]">
+                    <input
+                      type="checkbox"
+                      checked={editModal.noDeadline}
+                      onChange={(e) => {
+                        sound?.playClick?.();
+                        setEditModal((prev) => ({ ...prev, noDeadline: e.target.checked }));
+                      }}
+                      className="accent-[#00FF66] w-3 h-3 cursor-pointer rounded"
+                    />
+                    <span className={`text-[10px] font-bold font-mono ${editModal.noDeadline ? 'text-[#00FF66]' : 'text-gray-400'}`}>
+                      ♾️ NO DEADLINE
+                    </span>
+                  </label>
+                </div>
+                {editModal.noDeadline ? (
+                  <div className="px-2.5 py-1.5 rounded bg-[#00FF66]/10 border border-[#00FF66]/40 text-[#00FF66] text-[10px] font-mono flex items-center gap-1.5">
+                    <span>♾️</span>
+                    <span>No deadline: draw will stay active until admin manually executes winner selection</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      placeholder="Days"
+                      value={editModal.durationDays}
+                      onChange={(e) => setEditModal({ ...editModal, durationDays: e.target.value })}
+                      className="w-24 px-3 py-1.5 rounded bg-black/80 border border-purple-700 text-xs text-white focus:outline-none"
+                    />
+                    <span className="text-gray-400 text-[10px]">Days from now</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-purple-800">
+                <button
+                  type="button"
+                  onClick={() => setEditModal((prev) => ({ ...prev, isOpen: false }))}
+                  className="px-3 py-2 text-xs text-gray-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editModal.isSubmitting}
+                  className="pixel-btn pixel-btn-vibrant-lime px-4 py-2 text-xs font-bold rounded disabled:opacity-50"
+                >
+                  {editModal.isSubmitting ? '[ SAVING CHANGES... ]' : '[ 💾 SAVE DRAW CHANGES ]'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

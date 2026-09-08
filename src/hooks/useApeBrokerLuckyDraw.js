@@ -49,98 +49,16 @@ const ERC721_ABI = [
   },
 ];
 
-// Initial demo draws to ensure rich cyber aesthetic while live draws populate
-const DEFAULT_SAMPLE_DRAWS = [
-  {
-    drawId: 1,
-    title: 'Sony PlayStation 5 Disc Edition + DualSense Controller',
-    prizeDescription: 'Brand new in box PS5 Slim Disc Console with extra controller, shipped worldwide.',
-    prizeCategory: 0, // PHYSICAL
-    imageUrl: 'https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=1200&q=80',
-    ticketPriceApe: 50000n * 10n ** 18n,
-    maxTickets: 250,
-    maxTicketsPerWallet: 25,
-    minNftRequired: 1,
-    startTime: Math.floor(Date.now() / 1000) - 86400,
-    endTime: Math.floor(Date.now() / 1000) + 86400 * 2.5,
-    status: 0, // ACTIVE
-    totalTicketsSold: 142,
-    totalRevenueCollected: 7100000n * 10n ** 18n,
-    selectionMode: 0,
-    winnerCount: 1,
-    winner: '0x0000000000000000000000000000000000000000',
-    winners: [],
-    winningTicketId: 0,
-    winningTicketIds: [],
-    selectedTimestamp: 0,
-    selectedByAdmin: '0x0000000000000000000000000000000000000000',
-    prizeStatus: 0,
-    prizeFulfillmentProof: '',
-    revenueWithdrawn: false,
-  },
-  {
-    drawId: 2,
-    title: '1.00 ETH Syndicate Miner Jackpot',
-    prizeDescription: 'Direct on-chain payout of 1.00 native ETH directly into the winning Ape Broker wallet.',
-    prizeCategory: 1, // ETH
-    imageUrl: 'https://images.unsplash.com/photo-1622979135225-d2ba269bc1df?auto=format&fit=crop&w=1200&q=80',
-    ticketPriceApe: 100000n * 10n ** 18n,
-    maxTickets: 100,
-    maxTicketsPerWallet: 10,
-    minNftRequired: 1,
-    startTime: Math.floor(Date.now() / 1000) - 43200,
-    endTime: Math.floor(Date.now() / 1000) + 86400 * 1.2,
-    status: 0, // ACTIVE
-    totalTicketsSold: 68,
-    totalRevenueCollected: 6800000n * 10n ** 18n,
-    selectionMode: 0,
-    winnerCount: 1,
-    winner: '0x0000000000000000000000000000000000000000',
-    winners: [],
-    winningTicketId: 0,
-    winningTicketIds: [],
-    selectedTimestamp: 0,
-    selectedByAdmin: '0x0000000000000000000000000000000000000000',
-    prizeStatus: 0,
-    prizeFulfillmentProof: '',
-    revenueWithdrawn: false,
-  },
-  {
-    drawId: 3,
-    title: '5,000,000 $APEBROKE Whale Stash',
-    prizeDescription: 'Massive five million token bundle to supercharge your Ape Broker Desks & 24H Staking.',
-    prizeCategory: 2, // TOKEN
-    imageUrl: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=1200&q=80',
-    ticketPriceApe: 25000n * 10n ** 18n,
-    maxTickets: 400,
-    maxTicketsPerWallet: 50,
-    minNftRequired: 1,
-    startTime: Math.floor(Date.now() / 1000) - 172800,
-    endTime: Math.floor(Date.now() / 1000) - 3600,
-    status: 2, // WINNER_SELECTED
-    totalTicketsSold: 400,
-    totalRevenueCollected: 10000000n * 10n ** 18n,
-    selectionMode: 1, // RANDOM
-    winnerCount: 1,
-    winner: '0x12942981aF3C5E5e6003a46607B4560e6589146E',
-    winners: ['0x12942981aF3C5E5e6003a46607B4560e6589146E'],
-    winningTicketId: 287,
-    winningTicketIds: [287],
-    selectedTimestamp: Math.floor(Date.now() / 1000) - 3200,
-    selectedByAdmin: ADMIN_ADDRESS,
-    prizeStatus: 3, // COMPLETED
-    prizeFulfillmentProof: '0x7f4567e99558188e1b6a46ce72d52b1c7df79ba326c28c480430da2b51091aee',
-    revenueWithdrawn: true,
-  }
-];
+// No default demo draws - all draws are dynamically loaded from Robinhood EVM
+const DEFAULT_SAMPLE_DRAWS = [];
 
 export function useApeBrokerLuckyDraw() {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
 
-  const [draws, setDraws] = useState(DEFAULT_SAMPLE_DRAWS);
-  const [totalDraws, setTotalDraws] = useState(DEFAULT_SAMPLE_DRAWS.length);
+  const [draws, setDraws] = useState([]);
+  const [totalDraws, setTotalDraws] = useState(0);
   const [userBalances, setUserBalances] = useState({
     apeBrokeBalance: 0n,
     ethBalance: 0n,
@@ -278,6 +196,13 @@ export function useApeBrokerLuckyDraw() {
             setDraws(validDraws);
             setTotalDraws(validDraws.length);
             onChainLoaded = true;
+          } else {
+            setDraws([]);
+            setTotalDraws(0);
+            onChainLoaded = true;
+            try {
+              localStorage.removeItem('apebroker_lucky_draws_cache');
+            } catch (e) {}
           }
 
           // Read available unwithdrawn ticket revenue
@@ -289,6 +214,14 @@ export function useApeBrokerLuckyDraw() {
             })
             .catch(() => 0n);
           setAvailableTicketRevenue(unwithdrawn);
+        } else {
+          // Zero on-chain draws created yet
+          setDraws([]);
+          setTotalDraws(0);
+          onChainLoaded = true;
+          try {
+            localStorage.removeItem('apebroker_lucky_draws_cache');
+          } catch (e) {}
         }
       } catch (err) {
         console.warn('Could not query on-chain lucky draw contract:', err.message);
@@ -301,10 +234,26 @@ export function useApeBrokerLuckyDraw() {
         const cached = localStorage.getItem('apebroker_lucky_draws_cache');
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setDraws(parsed.map(d => ({ ...d, ticketPriceApe: BigInt(d.ticketPriceApe || 0), totalRevenueCollected: BigInt(d.totalRevenueCollected || 0) })));
-            setTotalDraws(parsed.length);
+          if (Array.isArray(parsed)) {
+            // Strictly exclude old mock demo draws
+            const cleaned = parsed.filter((d) =>
+              d &&
+              !d.title?.includes('Sony PlayStation') &&
+              !d.title?.includes('Syndicate Miner') &&
+              !d.title?.includes('Whale Stash')
+            );
+            if (cleaned.length > 0) {
+              setDraws(cleaned.map(d => ({ ...d, ticketPriceApe: BigInt(d.ticketPriceApe || 0), totalRevenueCollected: BigInt(d.totalRevenueCollected || 0) })));
+              setTotalDraws(cleaned.length);
+            } else {
+              setDraws([]);
+              setTotalDraws(0);
+              localStorage.removeItem('apebroker_lucky_draws_cache');
+            }
           }
+        } else {
+          setDraws([]);
+          setTotalDraws(0);
         }
       } catch (e) {}
     }
@@ -407,7 +356,8 @@ export function useApeBrokerLuckyDraw() {
     if (!walletClient || !address) throw new Error('Wallet not connected.');
 
     const ticketPriceWei = parseEther(String(drawData.ticketPriceApe || '50000'));
-    const durationSec = Number(drawData.durationDays || 2) * 86400;
+    const isNoDead = Boolean(drawData.noDeadline);
+    const durationSec = isNoDead ? 315360000 : Number(drawData.durationDays || 2) * 86400;
 
     let txHash = '';
     try {
@@ -448,7 +398,8 @@ export function useApeBrokerLuckyDraw() {
       maxTickets: Number(drawData.maxTickets || 0),
       maxTicketsPerWallet: Number(drawData.maxTicketsPerWallet || 0),
       minNftRequired: Number(drawData.minNftRequired || 1),
-      durationDays: Number(drawData.durationDays || 2),
+      durationDays: isNoDead ? 3650 : Number(drawData.durationDays || 2),
+      noDeadline: isNoDead,
       startTime: Math.floor(Date.now() / 1000),
       endTime: Math.floor(Date.now() / 1000) + durationSec,
       status: 0,
@@ -702,6 +653,151 @@ export function useApeBrokerLuckyDraw() {
     return { hash: txHash };
   };
 
+  // Admin Action: Cancel Draw
+  const adminCancelDraw = async (drawId, reason = 'Cancelled by admin') => {
+    if (!walletClient || !address) throw new Error('Wallet not connected.');
+    let txHash = '';
+    try {
+      txHash = await walletClient.writeContract({
+        address: LUCKY_DRAW_CONTRACT_ADDRESS,
+        abi: luckyDrawDeployConfig.abi,
+        functionName: 'cancelDraw',
+        args: [BigInt(drawId), reason],
+      });
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash: txHash });
+      }
+    } catch (err) {
+      console.warn('On-chain cancelDraw error:', err.message);
+    }
+
+    setDraws((prev) => {
+      const updated = prev.map((d) => (d.drawId === drawId ? { ...d, status: 3 } : d));
+      try {
+        localStorage.setItem(
+          'apebroker_lucky_draws_cache',
+          JSON.stringify(updated, (k, v) => (typeof v === 'bigint' ? v.toString() : v))
+        );
+      } catch (e) {}
+      return updated;
+    });
+
+    return { success: true, hash: txHash };
+  };
+
+  // Admin Action: Delete Draw
+  const adminDeleteDraw = async (drawId) => {
+    // Attempt on-chain cancel if active
+    if (walletClient && address) {
+      try {
+        const target = draws.find((d) => d.drawId === drawId);
+        if (target && (target.status === 0 || target.status === 1)) {
+          const tx = await walletClient.writeContract({
+            address: LUCKY_DRAW_CONTRACT_ADDRESS,
+            abi: luckyDrawDeployConfig.abi,
+            functionName: 'cancelDraw',
+            args: [BigInt(drawId), 'Deleted by admin'],
+          });
+          if (publicClient) {
+            await publicClient.waitForTransactionReceipt({ hash: tx });
+          }
+        }
+      } catch (e) {
+        console.warn('On-chain cancel during delete warning:', e.message);
+      }
+    }
+
+    setDraws((prev) => {
+      const updated = prev.filter((d) => d.drawId !== drawId);
+      setTotalDraws(updated.length);
+      try {
+        localStorage.setItem(
+          'apebroker_lucky_draws_cache',
+          JSON.stringify(updated, (k, v) => (typeof v === 'bigint' ? v.toString() : v))
+        );
+      } catch (e) {}
+      return updated;
+    });
+    return { success: true };
+  };
+
+  // Admin Action: Edit Draw
+  const adminEditDraw = async (drawId, updatedData) => {
+    // If ticket fee changed, update on-chain via setTicketPrice
+    if (walletClient && address && updatedData.ticketPriceApe) {
+      const newPriceWei = parseEther(String(updatedData.ticketPriceApe));
+      try {
+        const tx = await walletClient.writeContract({
+          address: LUCKY_DRAW_CONTRACT_ADDRESS,
+          abi: luckyDrawDeployConfig.abi,
+          functionName: 'setTicketPrice',
+          args: [BigInt(drawId), newPriceWei],
+        });
+        if (publicClient) {
+          await publicClient.waitForTransactionReceipt({ hash: tx });
+        }
+      } catch (e) {
+        console.warn('On-chain setTicketPrice error during edit:', e.message);
+      }
+    }
+
+    setDraws((prev) => {
+      const updated = prev.map((d) => {
+        if (d.drawId === drawId) {
+          const newPriceWei = updatedData.ticketPriceApe
+            ? parseEther(String(updatedData.ticketPriceApe))
+            : d.ticketPriceApe;
+          const isNoDead =
+            updatedData.noDeadline !== undefined ? Boolean(updatedData.noDeadline) : d.noDeadline;
+          const durSec = isNoDead
+            ? 315360000
+            : Number(updatedData.durationDays || 2) * 86400;
+
+          return {
+            ...d,
+            title: updatedData.title || d.title,
+            prizeDescription: updatedData.prizeDescription || d.prizeDescription,
+            prizeCategory:
+              updatedData.prizeCategory !== undefined
+                ? Number(updatedData.prizeCategory)
+                : d.prizeCategory,
+            imageUrl: updatedData.imageUrl || d.imageUrl,
+            ticketPriceApe: newPriceWei,
+            maxTickets:
+              updatedData.maxTickets !== undefined
+                ? Number(updatedData.maxTickets)
+                : d.maxTickets,
+            maxTicketsPerWallet:
+              updatedData.maxTicketsPerWallet !== undefined
+                ? Number(updatedData.maxTicketsPerWallet)
+                : d.maxTicketsPerWallet,
+            minNftRequired:
+              updatedData.minNftRequired !== undefined
+                ? Number(updatedData.minNftRequired)
+                : d.minNftRequired,
+            noDeadline: isNoDead,
+            endTime: isNoDead
+              ? d.startTime + durSec
+              : updatedData.durationDays
+              ? d.startTime + durSec
+              : d.endTime,
+          };
+        }
+        return d;
+      });
+
+      try {
+        localStorage.setItem(
+          'apebroker_lucky_draws_cache',
+          JSON.stringify(updated, (k, v) => (typeof v === 'bigint' ? v.toString() : v))
+        );
+      } catch (e) {}
+      return updated;
+    });
+
+    return { success: true };
+  };
+
   return {
     draws,
     totalDraws,
@@ -723,5 +819,8 @@ export function useApeBrokerLuckyDraw() {
     adminSelectWinnersManual,
     adminUpdatePrizeStatus,
     adminClaimAllTicketRevenue,
+    adminCancelDraw,
+    adminDeleteDraw,
+    adminEditDraw,
   };
 }
